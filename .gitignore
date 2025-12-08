@@ -7,6 +7,8 @@
 !/cmake
 !/data
 !/src
+!/vcpkg-overlay-ports
+!/vcpkg-triplets
 !.clang-format
 !.gersemirc
 !.gitignore
@@ -15,6 +17,8 @@
 !CMakePresets.json
 !LICENSE
 !README.md
+!vcpkg-configuration.json
+!vcpkg.json
 
 # Exclude lock files
 *.lock.json
