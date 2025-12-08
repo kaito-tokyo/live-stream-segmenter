@@ -1,10 +1,37 @@
 name: Build Project
 on:
   workflow_call:
+    inputs:
+      production:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      MACOS_NOTARIZATION_PASSWORD:
+        required: false
+      MACOS_NOTARIZATION_USERNAME:
+        required: false
+      MACOS_SIGNING_APPLICATION_IDENTITY:
+        required: false
+      MACOS_SIGNING_CERT:
+        required: false
+      MACOS_SIGNING_CERT_PASSWORD:
+        required: false
+      MACOS_SIGNING_INSTALLER_IDENTITY:
+        required: false
     outputs:
       pluginName:
         description: Project name detected by parsing build spec file
         value: ${{ jobs.check-event.outputs.pluginName }}
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,read"
+  VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
+
 jobs:
   check-event:
     name: Check GitHub Event Data 🔎
@@ -20,7 +47,7 @@ jobs:
       commitHash: ${{ steps.setup.outputs.commitHash }}
       pluginName: ${{ steps.setup.outputs.pluginName }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Check Event Data ☑️
@@ -78,6 +105,139 @@ jobs:
     defaults:
       run:
         shell: zsh --no-rcs --errexit --pipefail {0}
+    if: ${{ inputs.production == false }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set Up Environment 🔧
+        id: setup
+        run: |
+          : Set Up Environment 🔧
+          if (( ${+RUNNER_DEBUG} )) setopt XTRACE
+
+          print '::group::Enable Xcode 16.1'
+          sudo xcode-select --switch /Applications/Xcode_16.1.0.app/Contents/Developer
+          print '::endgroup::'
+
+          print '::group::Clean Homebrew Environment'
+          local -a unwanted_formulas=()
+          local -a remove_formulas=()
+          for formula (${unwanted_formulas}) {
+            if [[ -d ${HOMEBREW_PREFIX}/Cellar/${formula} ]] remove_formulas+=(${formula})
+          }
+
+          if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
+          print '::endgroup::'
+
+          local product_name
+          local product_version
+          read -r product_name product_version <<< \
+            "$(jq -r '. | {name, version} | join(" ")' buildspec.json)"
+
+          print "pluginName=${product_name}" >> $GITHUB_OUTPUT
+          print "pluginVersion=${product_version}" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache/restore@v4
+        id: ccache-cache
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ needs.check-event.outputs.config }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Set Up Codesigning 🔑
+        uses: ./.github/actions/setup-macos-codesigning
+        if: fromJSON(needs.check-event.outputs.codesign)
+        id: codesign
+        with:
+          codesignIdentity: ${{ secrets.MACOS_SIGNING_APPLICATION_IDENTITY }}
+          installerIdentity: ${{ secrets.MACOS_SIGNING_INSTALLER_IDENTITY }}
+          codesignCertificate: ${{ secrets.MACOS_SIGNING_CERT }}
+          certificatePassword: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD }}
+          keychainPassword: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+          provisioningProfile: ${{ secrets.MACOS_SIGNING_PROVISIONING_PROFILE }}
+          notarizationUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
+          notarizationPassword: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
+
+      - name: Bootstrap vcpkg
+        working-directory: ${{ env.VCPKG_ROOT }}
+        run: ./bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: brew install mono
+
+      - name: "Setup NuGet Credentials"
+        run: |
+          NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
+          mono "$NUGET_PATH" sources add \
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -StorePasswordInClearText \
+            -Name "GitHub" \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: "Install dependencies from vcpkg"
+        run: ".github/scripts/install-vcpkg-macos.bash"
+
+      - name: Build Plugin 🧱
+        uses: ./.github/actions/build-plugin
+        with:
+          target: macos-universal
+          config: ${{ needs.check-event.outputs.config }}
+          codesign: ${{ fromJSON(needs.check-event.outputs.codesign) }}
+          codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
+
+      - name: Package Plugin 📀
+        uses: ./.github/actions/package-plugin
+        with:
+          target: macos-universal
+          config: ${{ needs.check-event.outputs.config }}
+          package: ${{ fromJSON(needs.check-event.outputs.package) }}
+          codesign: ${{ fromJSON(needs.check-event.outputs.codesign) && fromJSON(steps.codesign.outputs.haveCodesignIdent) }}
+          codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
+          installerIdent: ${{ steps.codesign.outputs.installerIdent }}
+          codesignTeam: ${{ steps.codesign.outputs.codesignTeam }}
+          notarize: ${{ fromJSON(needs.check-event.outputs.notarize) && fromJSON(steps.codesign.outputs.haveNotarizationUser) }}
+          codesignUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
+          codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+
+      - name: Upload Artifacts 📡
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal-${{ needs.check-event.outputs.commitHash }}
+          path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal.*
+
+      - name: Upload Debug Symbol Artifacts 🪲
+        uses: actions/upload-artifact@v4
+        if: ${{ needs.check-event.outputs.config == 'Release' }}
+        with:
+          name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal-${{ needs.check-event.outputs.commitHash }}-dSYMs
+          path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal-dSYMs.*
+
+      - uses: actions/cache/save@v4
+        if: github.event_name != 'pull_request' && steps.ccache-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-${{ needs.check-event.outputs.config }}
+
+  macos-build-release:
+    name: Build for macOS (Production) 🍏
+    runs-on: macos-15
+    needs: check-event
+    defaults:
+      run:
+        shell: zsh --no-rcs --errexit --pipefail {0}
+    if: ${{ inputs.production == true }}
+    environment: production
     steps:
       - uses: actions/checkout@v4
         with:
@@ -134,6 +294,32 @@ jobs:
           notarizationUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           notarizationPassword: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
+
+      - name: Bootstrap vcpkg
+        working-directory: ${{ env.VCPKG_ROOT }}
+        run: ./bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: brew install mono
+
+      - name: "Setup NuGet Credentials"
+        run: |
+          NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
+          mono "$NUGET_PATH" sources add \
+            -Source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -StorePasswordInClearText \
+            -Name "GitHub" \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: "Install dependencies from vcpkg"
+        run: ".github/scripts/install-vcpkg-macos.bash"
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
@@ -157,13 +343,13 @@ jobs:
           codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
       - name: Upload Artifacts 📡
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal-${{ needs.check-event.outputs.commitHash }}
           path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal.*
 
       - name: Upload Debug Symbol Artifacts 🪲
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ needs.check-event.outputs.config == 'Release' }}
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-macos-universal-${{ needs.check-event.outputs.commitHash }}-dSYMs
@@ -186,7 +372,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
           fetch-depth: 0
@@ -211,6 +397,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.os }}-ccache-x86_64-
 
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
+
+      - name: Bootstrap vcpkg
+        working-directory: ${{ env.VCPKG_ROOT }}
+        run: ./bootstrap-vcpkg.sh
+      
+      - name: Install mono
+        run: sudo apt-get -y install mono-devel
+
+      - name: "Setup NuGet Credentials"
+        run: |
+          NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n1)"
+          mono "$NUGET_PATH" sources add \
+            -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json" \
+            -StorePasswordInClearText \
+            -Name "GitHub" \
+            -UserName "kaito-tokyo" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          mono "$NUGET_PATH" setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json"
+
+      - name: "Install dependencies from vcpkg"
+        run: "$VCPKG_ROOT/vcpkg install --triplet x64-linux-obs"
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
@@ -225,19 +439,19 @@ jobs:
           package: ${{ fromJSON(needs.check-event.outputs.package) }}
 
       - name: Upload Source Tarball 🗜️
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-${{ matrix.os }}-sources-${{ needs.check-event.outputs.commitHash }}
           path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-source.*
 
       - name: Upload Artifacts 📡
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-${{ matrix.os }}-x86_64-${{ needs.check-event.outputs.commitHash }}
           path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-x86_64*.*
 
       - name: Upload debug symbol artifacts 🪲
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ fromJSON(needs.check-event.outputs.package) }}
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-${{ matrix.os }}-x86_64-${{ needs.check-event.outputs.commitHash }}-dbgsym
@@ -257,7 +471,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
           fetch-depth: 0
@@ -277,6 +491,36 @@ jobs:
           "pluginName=${ProductName}" >> $env:GITHUB_OUTPUT
           "pluginVersion=${ProductVersion}" >> $env:GITHUB_OUTPUT
 
+      - name: Checkout vcpkg repository
+        uses: actions/checkout@v5
+        with:
+          repository: microsoft/vcpkg
+          path: ${{ env.VCPKG_ROOT }}
+
+      - name: "Bootstrap vcpkg"
+        working-directory: "${{ env.VCPKG_ROOT }}"
+        shell: "pwsh"
+        run: |
+          .\bootstrap-vcpkg.bat
+
+      - name: "Setup NuGet Credentials on Windows"
+        shell: pwsh
+        run: |
+          $NUGET_EXE_PATH = & "${{ env.VCPKG_ROOT }}/vcpkg" fetch nuget | Select-Object -Last 1
+          
+          & $NUGET_EXE_PATH sources add `
+            -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json" `
+            -StorePasswordInClearText `
+            -Name "GitHub" `
+            -UserName "kaito-tokyo" `
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          & $NUGET_EXE_PATH setapikey "${{ secrets.GITHUB_TOKEN }}" `
+            -Source "https://nuget.pkg.github.com/kaito-tokyo/index.json"
+
+      - name: "Install dependencies from vcpkg"
+        shell: bash
+        run: "$VCPKG_ROOT/vcpkg install --triplet x64-windows-static-md-obs"
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
@@ -291,7 +535,7 @@ jobs:
           package: ${{ fromJSON(needs.check-event.outputs.package) }}
 
       - name: Upload Artifacts 📡
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64-${{ needs.check-event.outputs.commitHash }}
           path: ${{ github.workspace }}/release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64*.*
