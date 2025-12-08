@@ -1,0 +1,76 @@
+---
+import { joinURL } from "ufo";
+
+interface Props {
+  lang: string;
+  title: string;
+  description: string;
+}
+
+const { lang, title, description } = Astro.props;
+const { BASE_URL } = import.meta.env;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body>
+    <div>
+      <slot />
+      <footer>
+        <p>&copy; 2025 Kaito Udagawa</p>
+      </footer>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --color-bg: #000;
+    --color-white-box-bg: #fff;
+    --color-box-shadow: #0000001a;
+  }
+
+  main.white-box {
+    max-width: 800px;
+    width: 100%;
+    margin: 1rem auto;
+    padding: 2rem;
+    box-sizing: border-box;
+    overflow: visible;
+
+    border-radius: 8px;
+    box-shadow: 0 4px 8px var(--color-box-shadow);
+
+    background-color: var(--color-white-box-bg);
+  }
+</style>
+
+<style>
+  body {
+    background-color: var(--color-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  footer {
+    color: #fff;
+  }
+
+  footer p {
+    display: inline-block;
+  }
+
+  footer a {
+    color: #fff;
+  }
+</style>

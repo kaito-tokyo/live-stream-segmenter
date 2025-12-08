@@ -1,0 +1,85 @@
+---
+import { joinURL } from "ufo";
+import { Image } from "astro:assets";
+
+import Layout from "../layouts/Layout.astro";
+import { getLatestRelease } from "../lib/github.js";
+
+import { dependencies, name } from "../../../buildspec.json";
+
+const githubURL = `https://github.com/kaito-tokyo/${name}`;
+
+const { BASE_URL } = import.meta.env;
+
+const release = await getLatestRelease();
+const tagName = release.tag_name;
+---
+
+<Layout
+  lang="en"
+  title="Live Stream Segmenter"
+  description="Live Stream Segmenter"
+>
+  <main class="white-box">
+    <h1>Live Stream Segmenter</h1>
+
+    <section class="download-links" id="download-links">
+      <h2>⬇️ Download Latest Release (v{tagName})</h2>
+      <div>
+        <a
+          href={joinURL(
+            githubURL,
+            `releases/download/${tagName}/${name}-${tagName}-windows-x64.zip`,
+          )}
+          title={`Download v${tagName} for Windows (x64)`}>Windows</a
+        >
+
+        <a
+          href={joinURL(
+            githubURL,
+            `releases/download/${tagName}/${name}-${tagName}-macos-universal.pkg`,
+          )}
+          title={`Download v${tagName} for macOS (Universal)`}>Mac</a
+        >
+
+        <a
+          href={joinURL(
+            githubURL,
+            `releases/download/${tagName}/${name}-${tagName}-x86_64-linux-gnu.deb`,
+          )}
+          title={`Download v${tagName} for Ubuntu (deb)`}>Ubuntu</a
+        >
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  h1 {
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .download-links > div {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .download-links > div a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background-color: #4caf50;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-size: 18px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .download-links > div a:hover {
+    background-color: #45a049;
+  }
+</style>
