@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "dependencies": [
+    "backward-cpp",
     {
       "name": "curl",
       "default-features": false,
@@ -16,6 +17,8 @@
         "wolfssl"
       ],
       "platform": "(uwp | !windows) & !mingw"
-    }
+    },
+    "fmt",
+    "gtest"
   ]
 }

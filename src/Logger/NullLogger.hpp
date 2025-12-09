@@ -1,6 +1,6 @@
 /*
-Plugin Name
-Copyright (C) <Year> <Developer> <Email Address>
+Bridge Utils
+Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,24 +16,33 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
-#include <plugin-support.h>
+#pragma once
 
-const char *PLUGIN_NAME = "@CMAKE_PROJECT_NAME@";
-const char *PLUGIN_VERSION = "@CMAKE_PROJECT_VERSION@";
+#include <mutex>
+#include <string_view>
+#include <string>
 
-void obs_log(int log_level, const char *format, ...)
-{
-	size_t length = 4 + strlen(PLUGIN_NAME) + strlen(format);
+#include <util/base.h>
 
-	char *template = malloc(length + 1);
+#include "ILogger.hpp"
 
-	snprintf(template, length, "[%s] %s", PLUGIN_NAME, format);
+namespace KaitoTokyo {
+namespace Logger {
 
-	va_list(args);
+class NullLogger final : public ILogger {
+public:
+	NullLogger() = default;
+	~NullLogger() noexcept override = default;
+	bool isInvalid() const noexcept override { return true; }
 
-	va_start(args, format);
-	blogva(log_level, template, args);
-	va_end(args);
+protected:
+	void log(LogLevel, std::string_view) const noexcept override
+	{
+		// No-op
+	}
 
-	free(template);
-}
+	const char *getPrefix() const noexcept override { return nullptr; }
+};
+
+} // namespace Logger
+} // namespace KaitoTokyo

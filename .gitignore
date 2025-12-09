@@ -8,6 +8,7 @@
 !/data
 !/docs
 !/src
+!/tests
 !/vcpkg-overlay-ports
 !/vcpkg-triplets
 !.clang-format
