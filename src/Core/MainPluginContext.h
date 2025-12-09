@@ -88,7 +88,7 @@ private:
 	mutable std::mutex debugWindowMutex_;
 };
 
-} // namespace LiveBackgroundRemovalLite
+} // namespace LiveStreamSegmenter
 } // namespace KaitoTokyo
 
 extern "C" {

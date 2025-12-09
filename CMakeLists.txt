@@ -95,13 +95,9 @@ target_compile_definitions(
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
 
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}
-  PUBLIC OBS::libobs BridgeUtils UpdateChecker
-)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs BridgeUtils UpdateChecker)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
-
 
 if(BUILD_TESTING)
   if(VCPKG_TARGET_TRIPLET)
