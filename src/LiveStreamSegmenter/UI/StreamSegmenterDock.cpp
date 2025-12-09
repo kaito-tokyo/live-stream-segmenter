@@ -1,41 +1,315 @@
-/*
-Live Stream Segmenter
-Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #include "StreamSegmenterDock.hpp"
+#include <QFontDatabase>
+#include <QScrollBar>
+#include <QMessageBox>
+#include <fmt/format.h>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
-	: QWidget(parent),
-	  mainLayout_(new QVBoxLayout(this)),
-	  statusLabel_(new QLabel("Hello, Stream Segmenter Dock!", this))
+using namespace KaitoTokyo::Logger;
+
+StreamSegmenterDock::StreamSegmenterDock(QWidget *parent) 
+    : QDockWidget(parent),
+      mainWidget_(new QWidget(this)),
+      titleBarWidget_(new QWidget(this)),
+      mainLayout_(new QVBoxLayout(mainWidget_)),
+      
+      // Top Controls
+      topControlLayout_(new QHBoxLayout()),
+      startButton_(new QPushButton(tr("Start"), mainWidget_)),
+      stopButton_(new QPushButton(tr("Stop"), mainWidget_)),
+
+      // Status Monitor
+      statusGroup_(new QGroupBox(tr("System Monitor"), mainWidget_)),
+      statusLayout_(new QVBoxLayout(statusGroup_)),
+      monitorLabel_(new QLabel(statusGroup_)),
+      
+      // Schedule
+      scheduleGroup_(new QGroupBox(tr("Broadcast Schedule"), mainWidget_)),
+      scheduleLayout_(new QVBoxLayout(scheduleGroup_)),
+      
+      currentContainer_(new QWidget(scheduleGroup_)),
+      currentLayout_(new QVBoxLayout(currentContainer_)),
+      currentRoleLabel_(new QLabel("CURRENT", currentContainer_)),
+      currentStatusLabel_(new QLabel(currentContainer_)),
+      currentTitleLabel_(new QLabel(currentContainer_)),
+
+      nextContainer_(new QWidget(scheduleGroup_)),
+      nextLayout_(new QVBoxLayout(nextContainer_)),
+      nextRoleLabel_(new QLabel("NEXT", nextContainer_)),
+      nextStatusLabel_(new QLabel(nextContainer_)),
+      nextTitleLabel_(new QLabel(nextContainer_)),
+      
+      // Log
+      logGroup_(new QGroupBox(tr("Operation Log"), mainWidget_)),
+      logLayout_(new QVBoxLayout(logGroup_)),
+      consoleView_(new QTextEdit(logGroup_)),
+
+      // Bottom Controls (変更: 縦並び)
+      bottomControlLayout_(new QVBoxLayout()),
+      settingsButton_(new QPushButton(tr("Settings"), mainWidget_)),
+      segmentNowBtn_(new QPushButton(tr("Segment Now..."), mainWidget_)),
+
+      // Cache
+      currentStatusText_("IDLE"),
+      currentStatusColor_("#888888"),
+      currentNextTimeText_("--:--:--"),
+      currentTimeRemainingText_("--")
 {
-	statusLabel_->setAlignment(Qt::AlignCenter);
+    setObjectName("StreamSegmenterDock");
+    setWindowTitle(tr("Stream Segmenter"));
+    setTitleBarWidget(titleBarWidget_);
 
-	QFont font = statusLabel_->font();
-	font.setPointSize(16);
-	statusLabel_->setFont(font);
+    setupUi();
 
-	mainLayout_->addWidget(statusLabel_);
+    connect(this, &StreamSegmenterDock::logRequest,
+            this, &StreamSegmenterDock::onLogRequest,
+            Qt::QueuedConnection);
 
-	setLayout(mainLayout_);
+    connect(startButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onStartClicked);
+    connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onStopClicked);
+    connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsClicked);
+    connect(segmentNowBtn_, &QPushButton::clicked, this, &StreamSegmenterDock::onSegmentNowClicked);
+
+    setWidget(mainWidget_);
+
+    updateMonitorLabel();
+    startButton_->setEnabled(true);
+    stopButton_->setEnabled(false);
+    
+    info("Live Stream Segmenter initialized.");
+    
+    updateCurrentStream("(No Active Stream)", "---");
+    updateNextStream("(Pending)", "Waiting");
+}
+
+void StreamSegmenterDock::setupUi() {
+    mainLayout_->setContentsMargins(4, 4, 4, 4);
+    mainLayout_->setSpacing(6);
+
+    // --- 1. Top Controls ---
+    startButton_->setStyleSheet("font-weight: bold;");
+    topControlLayout_->addWidget(startButton_, 1);
+    topControlLayout_->addWidget(stopButton_, 1);
+    mainLayout_->addLayout(topControlLayout_);
+
+    // --- 2. Status Monitor ---
+    statusLayout_->setContentsMargins(4, 8, 4, 8);
+    const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    QFont monitorFont = fixedFont;
+    monitorFont.setPointSize(12);
+    monitorLabel_->setFont(monitorFont);
+    monitorLabel_->setWordWrap(true);
+    monitorLabel_->setAlignment(Qt::AlignCenter);
+    statusLayout_->addWidget(monitorLabel_);
+    mainLayout_->addWidget(statusGroup_);
+
+    // --- 3. Schedule ---
+    scheduleLayout_->setContentsMargins(4, 8, 4, 8);
+    scheduleLayout_->setSpacing(12);
+
+    // Current Block
+    currentLayout_->setContentsMargins(4, 4, 4, 4);
+    currentLayout_->setSpacing(2);
+    auto *currentHeader = new QHBoxLayout();
+    currentHeader->setContentsMargins(0,0,0,0);
+    currentRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
+    currentStatusLabel_->setStyleSheet("font-weight: bold; font-size: 11px;");
+    currentHeader->addWidget(currentRoleLabel_);
+    currentHeader->addStretch();
+    currentHeader->addWidget(currentStatusLabel_);
+    currentLayout_->addLayout(currentHeader);
+    
+    currentTitleLabel_->setWordWrap(true);
+    currentTitleLabel_->setOpenExternalLinks(true);
+    currentTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px;");
+    currentLayout_->addWidget(currentTitleLabel_);
+    
+    currentContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
+    scheduleLayout_->addWidget(currentContainer_);
+
+    // Next Block
+    nextLayout_->setContentsMargins(4, 4, 4, 4);
+    nextLayout_->setSpacing(2);
+    auto *nextHeader = new QHBoxLayout();
+    nextHeader->setContentsMargins(0,0,0,0);
+    nextRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
+    nextStatusLabel_->setStyleSheet("font-weight: bold; font-size: 11px;");
+    nextHeader->addWidget(nextRoleLabel_);
+    nextHeader->addStretch();
+    nextHeader->addWidget(nextStatusLabel_);
+    nextLayout_->addLayout(nextHeader);
+
+    nextTitleLabel_->setWordWrap(true);
+    nextTitleLabel_->setOpenExternalLinks(true);
+    nextTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px; color: #aaaaaa;");
+    nextLayout_->addWidget(nextTitleLabel_);
+
+    nextContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
+    scheduleLayout_->addWidget(nextContainer_);
+
+    mainLayout_->addWidget(scheduleGroup_);
+
+    // --- 4. Log ---
+    logLayout_->setContentsMargins(0, 0, 0, 0);
+    consoleView_->setReadOnly(true);
+    consoleView_->setStyleSheet(
+        "QTextEdit {"
+        "   background-color: #1e1e1e;"
+        "   color: #e0e0e0;"
+        "   font-family: Consolas, 'Courier New', monospace;"
+        "   font-size: 11px;"
+        "   border: 1px solid #3c3c3c;"
+        "   border-top: none;"
+        "}"
+    );
+    logGroup_->setStyleSheet("QGroupBox { font-weight: bold; border: 1px solid #3c3c3c; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px; }");
+    logLayout_->addWidget(consoleView_);
+    
+    mainLayout_->addWidget(logGroup_, 1);
+
+    // --- 5. Bottom Controls (変更) ---
+    // 縦並びにして、全幅で表示
+    bottomControlLayout_->setSpacing(4); // ボタン間の隙間
+    bottomControlLayout_->addWidget(settingsButton_);
+    bottomControlLayout_->addWidget(segmentNowBtn_);
+    
+    mainLayout_->addLayout(bottomControlLayout_);
+}
+
+// ... (以下、イベントハンドラ等は変更なし) ...
+
+void StreamSegmenterDock::onSettingsClicked() {
+    info("Settings dialog requested.");
+}
+
+void StreamSegmenterDock::updateCurrentStream(const QString &title, const QString &status, const QString &url) {
+    if (url.isEmpty()) {
+        currentTitleLabel_->setText(title);
+    } else {
+        currentTitleLabel_->setText(QString("<a href=\"%1\" style=\"color: #4EC9B0; text-decoration: none;\">%2</a>").arg(url, title));
+    }
+    
+    if (status == "LIVE") {
+        currentStatusLabel_->setText(QString("<span style='color: #4CAF50;'>● %1</span>").arg(status));
+    } else {
+        currentStatusLabel_->setText(status);
+    }
+}
+
+void StreamSegmenterDock::updateNextStream(const QString &title, const QString &status, const QString &url) {
+    if (url.isEmpty()) {
+        nextTitleLabel_->setText(title);
+    } else {
+        nextTitleLabel_->setText(QString("<a href=\"%1\" style=\"color: #4EC9B0; text-decoration: none;\">%2</a>").arg(url, title));
+    }
+    nextStatusLabel_->setText(status);
+}
+
+void StreamSegmenterDock::updateMonitorLabel() {
+    QString html = QString(
+        "<span style='color: %1; font-weight: bold;'>%2</span>"
+        "<span style='color: #666666;'> / </span>"
+        "Next <span style='font-weight: bold;'>%3</span>"
+        "<span style='color: #666666;'> / </span>"
+        "Rem. <span style='font-weight: bold;'>%4</span>"
+    ).arg(currentStatusColor_, currentStatusText_, currentNextTimeText_, currentTimeRemainingText_);
+    monitorLabel_->setText(html);
+}
+
+void StreamSegmenterDock::onStartClicked() {
+    startButton_->setEnabled(false);
+    stopButton_->setEnabled(true);
+    setSystemStatus("RUNNING", "#4CAF50");
+    
+    updateCurrentStream("Endurance Stream Part 1 - A very long title to test word wrapping in narrow dock mode.", "LIVE", "https://youtube.com");
+    updateNextStream("Endurance Stream Part 2", "READY", "https://youtube.com");
+    
+    info("Service started.");
+}
+
+void StreamSegmenterDock::onStopClicked() {
+    startButton_->setEnabled(true);
+    stopButton_->setEnabled(false);
+    setSystemStatus("STOPPED", "#F44747");
+    
+    updateCurrentStream("(No Active Stream)", "---");
+    updateNextStream("(Pending)", "Waiting");
+    warn("Service stopped.");
+}
+
+void StreamSegmenterDock::onSegmentNowClicked() {
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, tr("Confirm Segmentation"),
+                                  tr("Are you sure you want to stop the current stream and start the next one?"),
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        info("Manual segmentation requested.");
+    }
+}
+
+void StreamSegmenterDock::log(LogLevel level, std::string_view message) const noexcept {
+    emit const_cast<StreamSegmenterDock*>(this)->logRequest(
+        static_cast<int>(level), 
+        QString::fromUtf8(message.data(), static_cast<int>(message.size()))
+    );
+}
+
+void StreamSegmenterDock::onLogRequest(int levelInt, const QString &message) {
+    LogLevel level = static_cast<LogLevel>(levelInt);
+    QString timeStr = QDateTime::currentDateTime().toString("[HH:mm:ss]");
+    QString color, levelStr;
+
+    switch(level) {
+        case LogLevel::Debug:   color = "#808080"; levelStr = "DBG";  break;
+        case LogLevel::Info:    color = "#569CD6"; levelStr = "INFO"; break;
+        case LogLevel::Warn:    color = "#DCDCAA"; levelStr = "WARN"; break;
+        case LogLevel::Error:   color = "#F44747"; levelStr = "ERR";  break;
+    }
+
+    QString html = QString("<span style='color:#666666;'>%1</span> "
+                           "<span style='color:%2; font-weight:bold;'>[%3]</span> %4")
+                           .arg(timeStr, color, levelStr, message);
+
+    consoleView_->append(html);
+    consoleView_->verticalScrollBar()->setValue(consoleView_->verticalScrollBar()->maximum());
+}
+
+void StreamSegmenterDock::setSystemStatus(const QString &statusText, const QString &colorCode) {
+    currentStatusText_ = statusText;
+    currentStatusColor_ = colorCode;
+    updateMonitorLabel();
+}
+
+void StreamSegmenterDock::setNextSegmentationTime(const QDateTime &time) {
+    currentNextTimeText_ = time.toString("hh:mm ap");
+    updateMonitorLabel();
+}
+
+void StreamSegmenterDock::setTimeRemaining(int remainingSeconds) {
+    QString newText;
+    if (remainingSeconds < 0) {
+        newText = "--";
+    } else if (remainingSeconds < 60) {
+        newText = "< 1m";
+    } else {
+        const int hours = remainingSeconds / 3600;
+        const int minutes = (remainingSeconds % 3600) / 60;
+        std::string s;
+        if (hours > 0) {
+            s = fmt::format("{}h {:02}m", hours, minutes);
+        } else {
+            s = fmt::format("{}m", minutes);
+        }
+        newText = QString::fromStdString(s);
+    }
+
+    if (currentTimeRemainingText_ != newText) {
+        currentTimeRemainingText_ = newText;
+        updateMonitorLabel();
+    }
 }
 
 } // namespace UI

@@ -98,7 +98,7 @@ target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
 add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
-target_link_libraries(${CMAKE_PROJECT_NAME}_UI PUBLIC Qt6::Core Qt6::Widgets)
+target_link_libraries(${CMAKE_PROJECT_NAME}_UI PUBLIC Qt6::Core Qt6::Widgets Logger)
 target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
 set_target_properties(
   ${CMAKE_PROJECT_NAME}_UI
