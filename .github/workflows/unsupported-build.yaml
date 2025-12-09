@@ -82,6 +82,6 @@ jobs:
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@10a3c29f0162516f0f68006be14c92f34bd4fa6c
         with:
-          bundle: com.obsproject.Studio.Plugin.live-stream-segmenter
-          manifest-path: unsupported/flatpak/com.obsproject.Studio.Plugin.live-stream-segmenter.json
+          bundle: com.obsproject.Studio.Plugin.LiveStreamSegmenter
+          manifest-path: unsupported/flatpak/com.obsproject.Studio.Plugin.LiveStreamSegmenter.json
           cache-key: flatpak-builder-${{ github.sha }}
