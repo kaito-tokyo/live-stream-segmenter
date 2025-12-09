@@ -11,7 +11,7 @@
   },
   "modules": [
     {
-      "name": "live-backgroundremoval-lite",
+      "name": "live-stream-segmenter",
       "buildsystem": "cmake-ninja",
       "builddir": true,
       "config-opts": [
