@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>com.obsproject.Studio.Plugin.LiveStreamSegmenter</id>
+  <extends>com.obsproject.Studio</extends>
+  <developer id="tokyo.kaito">
+    <name>Kaito Udagawa</name>
+  </developer>
+  <name>Live Stream Segmenter</name>
+  <summary>Live Stream Segmenter for OBS Studio</summary>
+  <description>
+    <p>
+      Live Stream Segmenter
+    </p>
+  </description>
+  <url type="homepage">https://github.com/kaito-tokyo/live-stream-segmenter</url>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <releases>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

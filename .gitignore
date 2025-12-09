@@ -9,6 +9,14 @@
 !/docs
 !/src
 !/tests
+!/unsupported
+/unsupported/arch/*/*
+!/unsupported/arch/*/PKGBUILD
+/unsupported/flatpak/*
+!/unsupported/flatpak/patches/
+!/unsupported/flatpak/*.xml
+!/unsupported/flatpak/*.json
+!/unsupported/flatpak/README.md
 !/vcpkg-overlay-ports
 !/vcpkg-triplets
 !.clang-format
