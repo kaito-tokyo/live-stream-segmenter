@@ -13,14 +13,12 @@ Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDir>
-#include <obs-module.h> // OBS API
+#include <obs-module.h>
 
-namespace KaitoTokyo {
-namespace LiveStreamSegmenter {
-namespace UI {
+namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 // ==========================================
-//  JsonDropArea Implementation
+//  JsonDropArea (変更なし)
 // ==========================================
 
 JsonDropArea::JsonDropArea(QWidget *parent) : QLabel(parent)
@@ -65,11 +63,8 @@ void JsonDropArea::dropEvent(QDropEvent *event)
 	setStyleSheet(
 		"QLabel { border: 2px dashed #666; background-color: #2a2a2a; border-radius: 8px; color: #ccc; padding: 20px; } QLabel:hover { border-color: #4EC9B0; background-color: #333; }");
 	const QList<QUrl> urls = event->mimeData()->urls();
-	if (urls.isEmpty())
-		return;
-	QString filePath = urls.first().toLocalFile();
-	if (!filePath.isEmpty()) {
-		emit fileDropped(filePath);
+	if (!urls.isEmpty()) {
+		emit fileDropped(urls.first().toLocalFile());
 	}
 }
 
@@ -80,11 +75,12 @@ void JsonDropArea::mousePressEvent(QMouseEvent *event)
 }
 
 // ==========================================
-//  SettingsDialog Implementation
+//  SettingsDialog
 // ==========================================
 
 SettingsDialog::SettingsDialog(QWidget *parent)
 	: QDialog(parent),
+	  authManager_(new Auth::GoogleAuthManager(this)), // Manager生成
 	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),
 	  clientSecretDisplay_(new QLineEdit(this)),
@@ -99,13 +95,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 	setupUi();
 
-	// UIシグナル接続
+	// UI Connections
 	connect(dropArea_, &JsonDropArea::fileDropped, this, &SettingsDialog::onJsonFileSelected);
 	connect(dropArea_, &JsonDropArea::clicked, this, &SettingsDialog::onAreaClicked);
-	connect(loadJsonButton_, &QPushButton::clicked, this,
-		&SettingsDialog::onLoadJsonClicked); // ボタンでも開けるように
+	connect(loadJsonButton_, &QPushButton::clicked, this, &SettingsDialog::onLoadJsonClicked);
 	connect(saveButton_, &QPushButton::clicked, this, &SettingsDialog::onSaveClicked);
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthClicked);
+
+	// AuthManager Connections
+	connect(authManager_, &Auth::GoogleAuthManager::authStateChanged, this, &SettingsDialog::onAuthStateChanged);
+	connect(authManager_, &Auth::GoogleAuthManager::loginStatusChanged, this,
+		&SettingsDialog::onLoginStatusChanged);
+	connect(authManager_, &Auth::GoogleAuthManager::loginError, this, &SettingsDialog::onLoginError);
 
 	initializeData();
 }
@@ -118,21 +119,18 @@ void SettingsDialog::setupUi()
 
 	// 説明
 	auto *infoLabel = new QLabel(tr("<b>Step 1:</b> Drop your GCP Credentials JSON file here.<br>"
-					"<b>Step 2:</b> Review and Save (The file is copied internally).<br>"
+					"<b>Step 2:</b> Review and Save.<br>"
 					"<b>Step 3:</b> Authenticate with YouTube."),
 				     this);
 	infoLabel->setStyleSheet("color: #aaaaaa; font-size: 11px; margin-bottom: 8px;");
 	mainLayout->addWidget(infoLabel);
 
-	// 認証情報グループ
+	// Credentials Group
 	auto *credGroup = new QGroupBox(tr("Credentials Setup"), this);
 	auto *formLayout = new QVBoxLayout(credGroup);
 	formLayout->setSpacing(12);
-
-	// Drop Area
 	formLayout->addWidget(dropArea_);
 
-	// 詳細表示
 	auto *detailsLayout = new QFormLayout();
 	detailsLayout->setLabelAlignment(Qt::AlignLeft);
 
@@ -149,7 +147,6 @@ void SettingsDialog::setupUi()
 
 	formLayout->addLayout(detailsLayout);
 
-	// Save Button
 	saveButton_->setCursor(Qt::PointingHandCursor);
 	saveButton_->setEnabled(false);
 	saveButton_->setStyleSheet("font-weight: bold; margin-top: 4px; height: 30px;");
@@ -157,7 +154,7 @@ void SettingsDialog::setupUi()
 
 	mainLayout->addWidget(credGroup);
 
-	// 認証グループ
+	// Auth Group
 	auto *authGroup = new QGroupBox(tr("Authorization"), this);
 	auto *authLayout = new QVBoxLayout(authGroup);
 
@@ -173,16 +170,15 @@ void SettingsDialog::setupUi()
 	mainLayout->addWidget(authGroup);
 	mainLayout->addStretch();
 
-	resize(420, 500);
+	resize(420, 520);
 }
 
 // ---------------------------------------------------------
-//  OBS API / Logic Helpers (ここにロジックを集約)
+//  Helpers
 // ---------------------------------------------------------
 
 QString SettingsDialog::getObsConfigPath(const QString &filename) const
 {
-	// OBS API呼び出しはここだけ
 	char *path = obs_module_get_config_path(obs_current_module(), filename.toUtf8().constData());
 	if (!path)
 		return QString();
@@ -196,24 +192,17 @@ bool SettingsDialog::saveCredentialsToStorage(const QString &clientId, const QSt
 	QString savePath = getObsConfigPath("credentials.json");
 	if (savePath.isEmpty())
 		return false;
-
-	// ディレクトリ作成
 	QFileInfo fileInfo(savePath);
 	QDir().mkpath(fileInfo.dir().path());
 
-	// JSON作成
 	QJsonObject root;
 	root["client_id"] = clientId;
 	root["client_secret"] = clientSecret;
 
-	// 書き込み
 	QFile outFile(savePath);
 	if (!outFile.open(QIODevice::WriteOnly))
 		return false;
-
 	outFile.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
-	outFile.close();
-
 	return true;
 }
 
@@ -223,9 +212,7 @@ QJsonObject SettingsDialog::loadCredentialsFromStorage()
 	QFile file(savePath);
 	if (!file.open(QIODevice::ReadOnly))
 		return QJsonObject();
-
-	QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-	return doc.object();
+	return QJsonDocument::fromJson(file.readAll()).object();
 }
 
 bool SettingsDialog::parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret)
@@ -233,54 +220,47 @@ bool SettingsDialog::parseCredentialJson(const QByteArray &jsonData, QString &ou
 	QJsonDocument doc = QJsonDocument::fromJson(jsonData);
 	if (!doc.isObject())
 		return false;
-
 	QJsonObject root = doc.object();
 	QJsonObject creds;
 
-	if (root.contains("installed")) {
+	if (root.contains("installed"))
 		creds = root["installed"].toObject();
-	} else if (root.contains("web")) {
+	else if (root.contains("web"))
 		creds = root["web"].toObject();
-	} else {
+	else
 		return false;
-	}
 
 	outId = creds["client_id"].toString();
 	outSecret = creds["client_secret"].toString();
-
 	return (!outId.isEmpty() && !outSecret.isEmpty());
 }
 
 // ---------------------------------------------------------
-//  UI Slots (司令塔: ロジックを呼び出しUIを更新する)
+//  Logic
 // ---------------------------------------------------------
 
 void SettingsDialog::initializeData()
 {
-	// 起動時に保存済みデータをロード
-	QJsonObject savedData = loadCredentialsFromStorage();
-
-	QString cid = savedData["client_id"].toString();
-	QString csecret = savedData["client_secret"].toString();
+	// 1. Credentials読み込み
+	QJsonObject creds = loadCredentialsFromStorage();
+	QString cid = creds["client_id"].toString();
+	QString csecret = creds["client_secret"].toString();
 
 	if (!cid.isEmpty() && !csecret.isEmpty()) {
-		// メモリ反映
 		tempClientId_ = cid;
 		tempClientSecret_ = csecret;
-
-		// UI反映
 		clientIdDisplay_->setText(cid);
 		clientSecretDisplay_->setText(csecret);
 
-		// 状態更新
-		authButton_->setEnabled(true);
 		saveButton_->setEnabled(true);
+		dropArea_->setText(tr("<b>Credentials Loaded.</b><br>Drag & Drop to update."));
 
-		dropArea_->setText(tr("<b>Loaded from storage.</b><br>Drag & Drop to update."));
-		statusLabel_->setText(tr("Credentials Ready (Not Authenticated)"));
-	} else {
-		updateAuthStatus(false);
+		// 【重要】Managerにクレデンシャルを渡す
+		authManager_->setCredentials(cid, csecret);
 	}
+
+	// 2. AuthStatus更新 (Managerはコンストラクタで自動ロード済み)
+	updateAuthUI();
 }
 
 void SettingsDialog::onAreaClicked()
@@ -292,10 +272,8 @@ void SettingsDialog::onLoadJsonClicked()
 {
 	QString fileName =
 		QFileDialog::getOpenFileName(this, tr("Select Credentials JSON"), "", tr("JSON Files (*.json)"));
-
-	if (!fileName.isEmpty()) {
+	if (!fileName.isEmpty())
 		onJsonFileSelected(fileName);
-	}
 }
 
 void SettingsDialog::onJsonFileSelected(const QString &filePath)
@@ -306,27 +284,19 @@ void SettingsDialog::onJsonFileSelected(const QString &filePath)
 		return;
 	}
 
-	// ロジック呼び出し
 	QString cid, csecret;
-	bool success = parseCredentialJson(file.readAll(), cid, csecret);
-
-	if (!success) {
-		QMessageBox::warning(
-			this, tr("Error"),
-			tr("Invalid JSON format.\nMake sure you downloaded the 'OAuth 2.0 Client ID' JSON (Desktop App)."));
+	if (!parseCredentialJson(file.readAll(), cid, csecret)) {
+		QMessageBox::warning(this, tr("Error"), tr("Invalid JSON format."));
 		return;
 	}
 
-	// メモリ反映
 	tempClientId_ = cid;
 	tempClientSecret_ = csecret;
-
-	// UI反映
 	clientIdDisplay_->setText(cid);
 	clientSecretDisplay_->setText(csecret);
 
 	saveButton_->setEnabled(true);
-	authButton_->setEnabled(false); // 保存を強制
+	authButton_->setEnabled(false); // 保存必須
 
 	dropArea_->setText(tr("<b>File Loaded!</b><br>Please click 'Save Credentials'."));
 	dropArea_->setStyleSheet(
@@ -335,14 +305,13 @@ void SettingsDialog::onJsonFileSelected(const QString &filePath)
 
 void SettingsDialog::onSaveClicked()
 {
-	// ロジック呼び出し
-	bool success = saveCredentialsToStorage(tempClientId_, tempClientSecret_);
+	if (saveCredentialsToStorage(tempClientId_, tempClientSecret_)) {
+		// Managerにも反映
+		authManager_->setCredentials(tempClientId_, tempClientSecret_);
 
-	if (success) {
-		authButton_->setEnabled(true);
-		QMessageBox::information(this, tr("Saved"),
-					 tr("Credentials saved successfully.\n"
-					    "You can now safely delete the source JSON file."));
+		updateAuthUI(); // ボタン有効化判定
+
+		QMessageBox::information(this, tr("Saved"), tr("Credentials saved successfully."));
 	} else {
 		QMessageBox::critical(this, tr("Error"), tr("Failed to save credentials file."));
 	}
@@ -350,18 +319,52 @@ void SettingsDialog::onSaveClicked()
 
 void SettingsDialog::onAuthClicked()
 {
-	// 認証ロジック (次回実装)
-	QMessageBox::information(this, tr("Auth"), tr("Starting OAuth flow..."));
+	// ログイン処理開始 (Managerに一任)
+	authManager_->startLogin();
 }
 
-void SettingsDialog::updateAuthStatus(bool isConnected, const QString &accountName)
+// --- AuthManager Signals ---
+
+void SettingsDialog::onAuthStateChanged()
 {
-	if (isConnected) {
-		statusLabel_->setText(QString("✅ Connected: %1").arg(accountName));
-		statusLabel_->setStyleSheet("color: #4CAF50;");
+	updateAuthUI();
+
+	if (authManager_->isAuthenticated()) {
+		QMessageBox::information(
+			this, tr("Success"),
+			tr("Authentication successful!\nConnected as: %1").arg(authManager_->currentChannelName()));
+	}
+}
+
+void SettingsDialog::onLoginStatusChanged(const QString &status)
+{
+	statusLabel_->setText(status);
+	authButton_->setEnabled(false);
+}
+
+void SettingsDialog::onLoginError(const QString &message)
+{
+	updateAuthUI(); // ボタン復帰
+	QMessageBox::critical(this, tr("Login Error"), message);
+}
+
+void SettingsDialog::updateAuthUI()
+{
+	bool hasCreds = !tempClientId_.isEmpty();
+	bool isAuth = authManager_->isAuthenticated();
+
+	if (isAuth) {
+		statusLabel_->setText(QString("✅ Connected: %1").arg(authManager_->currentChannelName()));
+		statusLabel_->setStyleSheet(
+			"color: #4CAF50; padding: 4px; border: 1px solid #4CAF50; border-radius: 4px;");
+		authButton_->setText(tr("Re-Authenticate"));
+		authButton_->setEnabled(true);
 	} else {
-		statusLabel_->setText("⚠️ Not Connected");
-		statusLabel_->setStyleSheet("color: #F44747;");
+		statusLabel_->setText(tr("⚠️ Not Connected"));
+		statusLabel_->setStyleSheet(
+			"color: #F44747; padding: 4px; border: 1px solid #F44747; border-radius: 4px;");
+		authButton_->setText(tr("3. Authenticate"));
+		authButton_->setEnabled(hasCreds); // クレデンシャルがあれば押せる
 	}
 }
 
@@ -370,6 +373,4 @@ void SettingsDialog::onLinkDocClicked()
 	QDesktopServices::openUrl(QUrl("https://console.cloud.google.com/apis/credentials"));
 }
 
-} // namespace UI
-} // namespace LiveStreamSegmenter
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::LiveStreamSegmenter::UI

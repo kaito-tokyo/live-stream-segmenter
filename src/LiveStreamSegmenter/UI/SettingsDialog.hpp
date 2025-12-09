@@ -11,10 +11,12 @@
 #include <QDropEvent>
 #include <QJsonObject>
 
-namespace KaitoTokyo {
-namespace LiveStreamSegmenter {
-namespace UI {
+// Authモジュール
+#include "../Auth/GoogleAuthManager.hpp"
 
+namespace KaitoTokyo::LiveStreamSegmenter::UI {
+
+// --- JsonDropArea (変更なし) ---
 class JsonDropArea : public QLabel {
 	Q_OBJECT
 public:
@@ -30,6 +32,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event) override;
 };
 
+// --- SettingsDialog ---
 class SettingsDialog : public QDialog {
 	Q_OBJECT
 
@@ -38,6 +41,7 @@ public:
 	~SettingsDialog() override = default;
 
 private slots:
+	// UI Slots
 	void onJsonFileSelected(const QString &filePath);
 	void onAreaClicked();
 	void onLoadJsonClicked();
@@ -45,14 +49,17 @@ private slots:
 	void onAuthClicked();
 	void onLinkDocClicked();
 
+	// AuthManagerからのシグナル
+	void onAuthStateChanged();
+	void onLoginStatusChanged(const QString &status);
+	void onLoginError(const QString &message);
+
 private:
 	void setupUi();
 	void initializeData();
+	void updateAuthUI(); // 認証状態に基づいて表示を更新
 
-	// 【追加】この行が抜けていました！
-	void updateAuthStatus(bool isConnected, const QString &accountName = "");
-
-	// Logic Helpers
+	// Helpers (CredentialsはUI側で管理し、AuthManagerに渡す)
 	QString getObsConfigPath(const QString &filename) const;
 	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
 	QJsonObject loadCredentialsFromStorage();
@@ -61,6 +68,9 @@ private:
 	// Data
 	QString tempClientId_;
 	QString tempClientSecret_;
+
+	// Auth Manager (司令塔)
+	Auth::GoogleAuthManager *authManager_;
 
 	// UI Components
 	JsonDropArea *dropArea_;
@@ -72,6 +82,4 @@ private:
 	QLabel *statusLabel_;
 };
 
-} // namespace UI
-} // namespace LiveStreamSegmenter
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::LiveStreamSegmenter::UI
