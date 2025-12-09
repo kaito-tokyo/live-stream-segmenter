@@ -7,7 +7,9 @@
 #include <QGroupBox>
 #include <QTextEdit>
 #include <QPushButton>
+#include <QToolButton> // 【追加】アイコン的なボタン用
 #include <QDateTime>
+// #include <QEvent> // 削除
 
 #include <ILogger.hpp>
 
@@ -33,6 +35,8 @@ protected:
     void log(LogLevel level, std::string_view message) const noexcept override;
     const char *getPrefix() const noexcept override { return ""; }
 
+    // eventFilter は削除
+
 signals:
     void logRequest(int level, const QString &message);
 
@@ -42,6 +46,9 @@ private slots:
     void onStopClicked();
     void onSegmentNowClicked();
     void onSettingsClicked();
+    
+    // 【追加】リンクボタンクリック時の処理
+    void onLinkButtonClicked();
 
 private:
     void setupUi();
@@ -78,19 +85,21 @@ private:
     QLabel * const currentRoleLabel_;
     QLabel * const currentStatusLabel_;
     QLabel * const currentTitleLabel_;
+    QToolButton * const currentLinkBtn_; // 【追加】
 
     QWidget * const nextContainer_;
     QVBoxLayout * const nextLayout_;
     QLabel * const nextRoleLabel_;
     QLabel * const nextStatusLabel_;
     QLabel * const nextTitleLabel_;
+    QToolButton * const nextLinkBtn_;    // 【追加】
 
     // 4. Log Section
     QGroupBox * const logGroup_;
     QVBoxLayout * const logLayout_;
     QTextEdit * const consoleView_;
 
-    // 5. Bottom Controls (変更: 縦並びにするため QVBoxLayout)
+    // 5. Bottom Controls
     QVBoxLayout * const bottomControlLayout_;
     QPushButton * const settingsButton_;
     QPushButton * const segmentNowBtn_;

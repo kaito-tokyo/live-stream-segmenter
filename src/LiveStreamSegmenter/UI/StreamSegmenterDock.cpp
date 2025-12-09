@@ -1,7 +1,27 @@
+/*
+Live Stream Segmenter
+Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include "StreamSegmenterDock.hpp"
 #include <QFontDatabase>
 #include <QScrollBar>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
 #include <fmt/format.h>
 
 namespace KaitoTokyo {
@@ -12,6 +32,7 @@ using namespace KaitoTokyo::Logger;
 
 StreamSegmenterDock::StreamSegmenterDock(QWidget *parent) 
     : QDockWidget(parent),
+      // --- Member Initialization List ---
       mainWidget_(new QWidget(this)),
       titleBarWidget_(new QWidget(this)),
       mainLayout_(new QVBoxLayout(mainWidget_)),
@@ -35,24 +56,26 @@ StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
       currentRoleLabel_(new QLabel("CURRENT", currentContainer_)),
       currentStatusLabel_(new QLabel(currentContainer_)),
       currentTitleLabel_(new QLabel(currentContainer_)),
+      currentLinkBtn_(new QToolButton(currentContainer_)),
 
       nextContainer_(new QWidget(scheduleGroup_)),
       nextLayout_(new QVBoxLayout(nextContainer_)),
       nextRoleLabel_(new QLabel("NEXT", nextContainer_)),
       nextStatusLabel_(new QLabel(nextContainer_)),
       nextTitleLabel_(new QLabel(nextContainer_)),
+      nextLinkBtn_(new QToolButton(nextContainer_)),
       
       // Log
       logGroup_(new QGroupBox(tr("Operation Log"), mainWidget_)),
       logLayout_(new QVBoxLayout(logGroup_)),
       consoleView_(new QTextEdit(logGroup_)),
 
-      // Bottom Controls (変更: 縦並び)
+      // Bottom Controls
       bottomControlLayout_(new QVBoxLayout()),
       settingsButton_(new QPushButton(tr("Settings"), mainWidget_)),
       segmentNowBtn_(new QPushButton(tr("Segment Now..."), mainWidget_)),
 
-      // Cache
+      // Cache Initialization
       currentStatusText_("IDLE"),
       currentStatusColor_("#888888"),
       currentNextTimeText_("--:--:--"),
@@ -63,6 +86,10 @@ StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
     setTitleBarWidget(titleBarWidget_);
 
     setupUi();
+
+    // リンクボタンの接続
+    connect(currentLinkBtn_, &QToolButton::clicked, this, &StreamSegmenterDock::onLinkButtonClicked);
+    connect(nextLinkBtn_, &QToolButton::clicked, this, &StreamSegmenterDock::onLinkButtonClicked);
 
     connect(this, &StreamSegmenterDock::logRequest,
             this, &StreamSegmenterDock::onLogRequest,
@@ -110,9 +137,10 @@ void StreamSegmenterDock::setupUi() {
     scheduleLayout_->setContentsMargins(4, 8, 4, 8);
     scheduleLayout_->setSpacing(12);
 
-    // Current Block
+    // --- Current Block ---
     currentLayout_->setContentsMargins(4, 4, 4, 4);
     currentLayout_->setSpacing(2);
+    
     auto *currentHeader = new QHBoxLayout();
     currentHeader->setContentsMargins(0,0,0,0);
     currentRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
@@ -122,17 +150,45 @@ void StreamSegmenterDock::setupUi() {
     currentHeader->addWidget(currentStatusLabel_);
     currentLayout_->addLayout(currentHeader);
     
+    // Title Row
+    auto *currentTitleRow = new QHBoxLayout();
+    currentTitleRow->setContentsMargins(0,0,0,0);
+    currentTitleRow->setSpacing(2);
+
     currentTitleLabel_->setWordWrap(true);
-    currentTitleLabel_->setOpenExternalLinks(true);
-    currentTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px;");
-    currentLayout_->addWidget(currentTitleLabel_);
+    currentTitleLabel_->setOpenExternalLinks(false); 
+    currentTitleLabel_->setMaximumHeight(45); 
+    currentTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px; color: #e0e0e0;");
+    
+    currentLinkBtn_->setText("↗");
+    currentLinkBtn_->setToolTip(tr("Open in Browser"));
+    currentLinkBtn_->setCursor(Qt::PointingHandCursor);
+    currentLinkBtn_->setStyleSheet(
+        "QToolButton {"
+        "    border: none;"
+        "    background: transparent;"
+        "    color: #666666;"
+        "    padding: 0px 2px;"
+        "    font-weight: bold;"
+        "}"
+        "QToolButton:hover {"
+        "    color: #4EC9B0;"
+        "}"
+    );
+    currentLinkBtn_->hide();
+
+    currentTitleRow->addWidget(currentTitleLabel_, 1);
+    currentTitleRow->addWidget(currentLinkBtn_, 0, Qt::AlignTop);
+    
+    currentLayout_->addLayout(currentTitleRow);
     
     currentContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
     scheduleLayout_->addWidget(currentContainer_);
 
-    // Next Block
+    // --- Next Block ---
     nextLayout_->setContentsMargins(4, 4, 4, 4);
     nextLayout_->setSpacing(2);
+    
     auto *nextHeader = new QHBoxLayout();
     nextHeader->setContentsMargins(0,0,0,0);
     nextRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
@@ -142,10 +198,36 @@ void StreamSegmenterDock::setupUi() {
     nextHeader->addWidget(nextStatusLabel_);
     nextLayout_->addLayout(nextHeader);
 
+    auto *nextTitleRow = new QHBoxLayout();
+    nextTitleRow->setContentsMargins(0,0,0,0);
+    nextTitleRow->setSpacing(2);
+
     nextTitleLabel_->setWordWrap(true);
-    nextTitleLabel_->setOpenExternalLinks(true);
+    nextTitleLabel_->setOpenExternalLinks(false);
+    nextTitleLabel_->setMaximumHeight(45);
     nextTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px; color: #aaaaaa;");
-    nextLayout_->addWidget(nextTitleLabel_);
+
+    nextLinkBtn_->setText("↗");
+    nextLinkBtn_->setToolTip(tr("Open in Browser"));
+    nextLinkBtn_->setCursor(Qt::PointingHandCursor);
+    nextLinkBtn_->setStyleSheet(
+        "QToolButton {"
+        "    border: none;"
+        "    background: transparent;"
+        "    color: #666666;"
+        "    padding: 0px 2px;"
+        "    font-weight: bold;"
+        "}"
+        "QToolButton:hover {"
+        "    color: #4EC9B0;"
+        "}"
+    );
+    nextLinkBtn_->hide();
+
+    nextTitleRow->addWidget(nextTitleLabel_, 1);
+    nextTitleRow->addWidget(nextLinkBtn_, 0, Qt::AlignTop);
+
+    nextLayout_->addLayout(nextTitleRow);
 
     nextContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
     scheduleLayout_->addWidget(nextContainer_);
@@ -167,31 +249,39 @@ void StreamSegmenterDock::setupUi() {
     );
     logGroup_->setStyleSheet("QGroupBox { font-weight: bold; border: 1px solid #3c3c3c; margin-top: 6px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px; }");
     logLayout_->addWidget(consoleView_);
-    
     mainLayout_->addWidget(logGroup_, 1);
 
-    // --- 5. Bottom Controls (変更) ---
-    // 縦並びにして、全幅で表示
-    bottomControlLayout_->setSpacing(4); // ボタン間の隙間
+    // --- 5. Bottom Controls ---
+    bottomControlLayout_->setSpacing(4);
     bottomControlLayout_->addWidget(settingsButton_);
     bottomControlLayout_->addWidget(segmentNowBtn_);
-    
     mainLayout_->addLayout(bottomControlLayout_);
 }
 
-// ... (以下、イベントハンドラ等は変更なし) ...
-
-void StreamSegmenterDock::onSettingsClicked() {
-    info("Settings dialog requested.");
+void StreamSegmenterDock::onLinkButtonClicked() {
+    auto *btn = qobject_cast<QToolButton*>(sender());
+    if (btn) {
+        QString urlStr = btn->property("url").toString();
+        if (!urlStr.isEmpty()) {
+            QDesktopServices::openUrl(QUrl(urlStr));
+        }
+    }
 }
 
 void StreamSegmenterDock::updateCurrentStream(const QString &title, const QString &status, const QString &url) {
-    if (url.isEmpty()) {
-        currentTitleLabel_->setText(title);
-    } else {
-        currentTitleLabel_->setText(QString("<a href=\"%1\" style=\"color: #4EC9B0; text-decoration: none;\">%2</a>").arg(url, title));
-    }
+    currentTitleLabel_->setText(title);
     
+    QString tooltip = title;
+    if (!url.isEmpty()) {
+        tooltip += "\n" + url;
+        currentLinkBtn_->setProperty("url", url);
+        currentLinkBtn_->show();
+    } else {
+        currentLinkBtn_->setProperty("url", "");
+        currentLinkBtn_->hide();
+    }
+    currentTitleLabel_->setToolTip(tooltip);
+
     if (status == "LIVE") {
         currentStatusLabel_->setText(QString("<span style='color: #4CAF50;'>● %1</span>").arg(status));
     } else {
@@ -200,12 +290,24 @@ void StreamSegmenterDock::updateCurrentStream(const QString &title, const QStrin
 }
 
 void StreamSegmenterDock::updateNextStream(const QString &title, const QString &status, const QString &url) {
-    if (url.isEmpty()) {
-        nextTitleLabel_->setText(title);
+    nextTitleLabel_->setText(title);
+
+    QString tooltip = title;
+    if (!url.isEmpty()) {
+        tooltip += "\n" + url;
+        nextLinkBtn_->setProperty("url", url);
+        nextLinkBtn_->show();
     } else {
-        nextTitleLabel_->setText(QString("<a href=\"%1\" style=\"color: #4EC9B0; text-decoration: none;\">%2</a>").arg(url, title));
+        nextLinkBtn_->setProperty("url", "");
+        nextLinkBtn_->hide();
     }
+    nextTitleLabel_->setToolTip(tooltip);
+    
     nextStatusLabel_->setText(status);
+}
+
+void StreamSegmenterDock::onSettingsClicked() {
+    info("Settings dialog requested.");
 }
 
 void StreamSegmenterDock::updateMonitorLabel() {
@@ -219,25 +321,46 @@ void StreamSegmenterDock::updateMonitorLabel() {
     monitorLabel_->setText(html);
 }
 
+// 【変更】開始確認ダイアログを追加
 void StreamSegmenterDock::onStartClicked() {
-    startButton_->setEnabled(false);
-    stopButton_->setEnabled(true);
-    setSystemStatus("RUNNING", "#4CAF50");
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, tr("Confirm Start"),
+                                  tr("Are you sure you want to start the automatic segmentation service?"),
+                                  QMessageBox::Yes | QMessageBox::No);
     
-    updateCurrentStream("Endurance Stream Part 1 - A very long title to test word wrapping in narrow dock mode.", "LIVE", "https://youtube.com");
-    updateNextStream("Endurance Stream Part 2", "READY", "https://youtube.com");
-    
-    info("Service started.");
+    if (reply == QMessageBox::Yes) {
+        startButton_->setEnabled(false);
+        stopButton_->setEnabled(true);
+        setSystemStatus("RUNNING", "#4CAF50");
+        
+        QString longTitle = "Endurance Stream Part 1 - Very long title test.";
+        updateCurrentStream(longTitle, "LIVE", "https://youtube.com");
+        updateNextStream("Endurance Stream Part 2", "READY", "https://youtube.com");
+        
+        info("Service started.");
+    } else {
+        info("Start cancelled.");
+    }
 }
 
+// 【変更】停止確認ダイアログを追加
 void StreamSegmenterDock::onStopClicked() {
-    startButton_->setEnabled(true);
-    stopButton_->setEnabled(false);
-    setSystemStatus("STOPPED", "#F44747");
-    
-    updateCurrentStream("(No Active Stream)", "---");
-    updateNextStream("(Pending)", "Waiting");
-    warn("Service stopped.");
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, tr("Confirm Stop"),
+                                  tr("Are you sure you want to stop the service?\nAutomatic segmentation will be disabled."),
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        startButton_->setEnabled(true);
+        stopButton_->setEnabled(false);
+        setSystemStatus("STOPPED", "#F44747");
+        
+        updateCurrentStream("(No Active Stream)", "---");
+        updateNextStream("(Pending)", "Waiting");
+        warn("Service stopped.");
+    } else {
+        info("Stop cancelled.");
+    }
 }
 
 void StreamSegmenterDock::onSegmentNowClicked() {
@@ -297,6 +420,7 @@ void StreamSegmenterDock::setTimeRemaining(int remainingSeconds) {
     } else {
         const int hours = remainingSeconds / 3600;
         const int minutes = (remainingSeconds % 3600) / 60;
+        
         std::string s;
         if (hours > 0) {
             s = fmt::format("{}h {:02}m", hours, minutes);
