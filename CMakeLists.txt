@@ -97,6 +97,30 @@ target_link_libraries(UpdateChecker INTERFACE CURL::libcurl)
 target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
 add_library(
+  ${CMAKE_PROJECT_NAME}_Auth
+  STATIC
+  src/LiveStreamSegmenter/Auth/GoogleAuthState.cpp
+  src/LiveStreamSegmenter/Auth/GoogleAuthManager.cpp
+  src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.cpp
+)
+target_include_directories(${CMAKE_PROJECT_NAME}_Auth PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}_Auth
+  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CURL::libcurl
+)
+target_sources(
+  ${CMAKE_PROJECT_NAME}_Auth
+  PRIVATE
+    src/LiveStreamSegmenter/Auth/GoogleAuthState.hpp
+    src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
+    src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
+)
+set_target_properties(
+  ${CMAKE_PROJECT_NAME}_Auth
+  PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
+)
+
+add_library(
   ${CMAKE_PROJECT_NAME}_UI
   STATIC
   src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
@@ -106,7 +130,7 @@ add_library(
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
-  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger
+  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CURL::libcurl ${CMAKE_PROJECT_NAME}_Auth
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI

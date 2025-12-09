@@ -2,8 +2,6 @@
 
 #include <QObject>
 #include <QTcpServer>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -24,17 +22,18 @@ signals:
 	// 失敗・エラー
 	void authError(const QString &message);
 
-	// ステータス更新（UIに「今なにをしてるか」を表示させるため）
+	// ステータス更新
 	void statusChanged(const QString &status);
 
 private slots:
 	void onNewConnection();
-	void onTokenExchangeFinished(QNetworkReply *reply);
-	void onUserInfoFinished(QNetworkReply *reply);
 
 private:
+	// 内部実装用の private メソッド
+	void exchangeCode(const QString &code);
+	void fetchUserInfo();
+
 	QTcpServer *server_;
-	QNetworkAccessManager *networkManager_;
 
 	QString clientId_;
 	QString clientSecret_;
