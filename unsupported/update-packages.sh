@@ -16,8 +16,8 @@ fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 ARCH_PKGBUILD_PATH="${REPO_ROOT}/unsupported/arch/live-stream-segmenter/PKGBUILD"
-FLATPAK_YAML_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.yaml"
-FLATPAK_METAINFO_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.metainfo.xml"
+FLATPAK_YAML_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveStreamSegmenter.yaml"
+FLATPAK_METAINFO_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveStreamSegmenter.metainfo.xml"
 REPO_URL="https://github.com/kaito-tokyo/live-stream-segmenter"
 PKG_NAME="live-stream-segmenter"
 
