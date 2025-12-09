@@ -119,6 +119,16 @@ set_target_properties(
   ${CMAKE_PROJECT_NAME}_Auth
   PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
 )
+set_property(TARGET ${CMAKE_PROJECT_NAME}_Auth PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(${CMAKE_PROJECT_NAME}_API STATIC src/LiveStreamSegmenter/API/YouTubeApiClient.cpp)
+target_include_directories(${CMAKE_PROJECT_NAME}_API PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API PUBLIC OBS::libobs CURL::libcurl)
+target_sources(
+  ${CMAKE_PROJECT_NAME}_API
+  PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
+)
+set_property(TARGET ${CMAKE_PROJECT_NAME}_API PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(
   ${CMAKE_PROJECT_NAME}_UI
@@ -130,7 +140,15 @@ add_library(
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
-  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CURL::libcurl ${CMAKE_PROJECT_NAME}_Auth
+  PUBLIC
+    OBS::libobs
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Network
+    Logger
+    CURL::libcurl
+    ${CMAKE_PROJECT_NAME}_Auth
+    ${CMAKE_PROJECT_NAME}_API
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
@@ -143,6 +161,7 @@ set_target_properties(
   ${CMAKE_PROJECT_NAME}_UI
   PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
 )
+set_property(TARGET ${CMAKE_PROJECT_NAME}_UI PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(
   ${CMAKE_PROJECT_NAME}
