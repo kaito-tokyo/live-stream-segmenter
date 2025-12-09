@@ -11,6 +11,23 @@
   },
   "modules": [
     {
+      "name": "nlohmann-json",
+      "buildsystem": "cmake-ninja",
+      "builddir": true,
+      "config-opts": [
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_INCLUDEDIR=include"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/nlohmann/json.git",
+          "tag": "v3.12.0",
+          "commit": "55f93686c01528224f448c19128836e7df245f72"
+        }
+      ]
+    },
+    {
       "name": "live-stream-segmenter",
       "buildsystem": "cmake-ninja",
       "builddir": true,
@@ -25,8 +42,8 @@
         {
           "type": "git",
           "url": "https://github.com/kaito-tokyo/live-stream-segmenter.git",
-          "tag": "0.1.1",
-          "commit": "9a202c5aa8d88b6bcaf9ec90d970fb989b099cfb",
+          "tag": "2.6.0",
+          "commit": "1ebe79d373b0249025b73c579d736c3dd2d6fd11",
           "x-checker-data": {
             "type": "git",
             "tag-pattern": "^([\\d.]+)$"
