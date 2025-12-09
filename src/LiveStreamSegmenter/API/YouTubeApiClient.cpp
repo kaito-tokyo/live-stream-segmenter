@@ -31,10 +31,6 @@ void YouTubeApiClient::fetchStreamKeys(const std::string &accessToken, FetchKeys
 		url, accessToken,
 		[onSuccess, onError](const std::string &responseBody) {
 			try {
-				// 【デバッグ用】 コンソールに生データを出力
-				// (OBSをコマンドラインから起動している場合に見えます)
-				std::cout << "[YouTubeApiClient] Raw JSON: " << responseBody << std::endl;
-
 				auto j = json::parse(responseBody);
 
 				if (j.contains("error")) {
