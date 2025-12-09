@@ -15,9 +15,6 @@ foreach(TEST_NAME IN LISTS TEST_LIST)
       XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
       XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "${DERIVED_DATA_PATH}"
   )
-  target_compile_definitions(
-    ${TEST_NAME}
-    PRIVATE NOMINMAX
-  )
+  target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
   gtest_discover_tests(${TEST_NAME} DISCOVERY_MODE PRE_TEST)
 endforeach()
