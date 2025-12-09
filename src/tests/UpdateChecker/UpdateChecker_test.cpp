@@ -35,7 +35,7 @@ TEST_F(UpdateCheckerTest, FetchLatestVersion_InvalidUrl)
 
 TEST_F(UpdateCheckerTest, FetchLatestVersion_ValidUrl)
 {
-	std::string url = "https://kaito-tokyo.github.io/live-backgroundremoval-lite/metadata/latest-version.txt";
+	std::string url = "https://kaito-tokyo.github.io/live-stream-segmenter/metadata/latest-version.txt";
 	std::string result = KaitoTokyo::UpdateChecker::fetchLatestVersion(url);
 	EXPECT_FALSE(result.empty());
 }

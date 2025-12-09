@@ -6,7 +6,7 @@ The `PKGBUILD` files in this directory are provided for users who wish to build 
 
 Currently, this plugin is **not officially available on the Arch User Repository (AUR)**. To publish and maintain packages on the AUR, we need a dedicated volunteer from the community to act as a maintainer.
 
-**We are actively looking for a volunteer to maintain the AUR packages for `live-backgroundremoval-lite`.** If you are an experienced Arch Linux user and are interested in helping the community by maintaining the `PKGBUILD`s, please get in touch with us by opening an issue in this repository.
+**We are actively looking for a volunteer to maintain the AUR packages for `live-stream-segmenter`.** If you are an experienced Arch Linux user and are interested in helping the community by maintaining the `PKGBUILD`s, please get in touch with us by opening an issue in this repository.
 
 ## Building from This Repository (Manual Installation)
 
@@ -24,15 +24,15 @@ sudo pacman -S --needed base-devel git
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/kaito-tokyo/live-backgroundremoval-lite.git
-    cd live-backgroundremoval-lite/unsupported/arch
+    git clone https://github.com/kaito-tokyo/live-stream-segmenter.git
+    cd live-stream-segmenter/unsupported/arch
     ```
 
 2.  Navigate to the directory of the version you want to build.
 
       * **For a specific release version (stable):**
         ```bash
-        cd live-backgroundremoval-lite
+        cd live-stream-segmenter
         ```
       * **For the latest development version:**
         ```bash

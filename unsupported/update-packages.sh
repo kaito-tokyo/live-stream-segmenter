@@ -63,7 +63,7 @@ if [ -z "${COMMIT_HASH}" ]; then
 fi
 
 # Update JSON file using jq
-FLATPAK_JSON_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.json"
+FLATPAK_JSON_PATH="${REPO_ROOT}/unsupported/flatpak/com.obsproject.Studio.Plugin.LiveStreamSegmenter.json"
 jq --arg ver "$NEW_VERSION" --arg hash "$COMMIT_HASH" '
     (.modules[] | select(.name == "live-stream-segmenter").sources[] | select(.type == "git")) 
     |= (.tag = $ver | .commit = $hash)
