@@ -16,18 +16,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <obs-module.h>
+#pragma once
 
-OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QWidget>
 
-bool obs_module_load(void)
-{
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version %s)", PLUGIN_VERSION);
-	return true;
-}
+namespace KaitoTokyo {
+namespace LiveStreamSegmenter {
+namespace UI {
 
-void obs_module_unload(void)
-{
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
-}
+class StreamSegmenterDock : public QWidget {
+    Q_OBJECT
+
+public:
+    explicit StreamSegmenterDock(QWidget *parent = nullptr);
+    ~StreamSegmenterDock() override = default;
+
+private:
+    QVBoxLayout *const mainLayout_;
+    QLabel *const statusLabel_;
+};
+
+} // namespace UI
+} // namespace LiveStreamSegmenter
+} // namespace KaitoTokyo

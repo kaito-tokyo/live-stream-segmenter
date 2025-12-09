@@ -26,7 +26,6 @@ endif()
 
 if(ENABLE_QT)
   find_package(Qt6 COMPONENTS Widgets Core)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Qt6::Core Qt6::Widgets)
   target_compile_options(
     ${CMAKE_PROJECT_NAME}
     PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
@@ -97,14 +96,23 @@ target_include_directories(UpdateChecker INTERFACE ${CMAKE_SOURCE_DIR}/src/Updat
 target_link_libraries(UpdateChecker INTERFACE CURL::libcurl)
 target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
+add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
+target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
+target_link_libraries(${CMAKE_PROJECT_NAME}_UI PUBLIC Qt6::Core Qt6::Widgets)
+target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
+set_target_properties(
+  ${CMAKE_PROJECT_NAME}_UI
+  PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
+)
+
 target_compile_definitions(
   ${CMAKE_PROJECT_NAME}
   PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
 )
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs BridgeUtils UpdateChecker)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs BridgeUtils UpdateChecker ${CMAKE_PROJECT_NAME}_UI)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
