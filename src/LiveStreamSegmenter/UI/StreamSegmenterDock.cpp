@@ -24,6 +24,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <QUrl>
 #include <fmt/format.h>
 
+#include "SettingsDialog.hpp"
+
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
@@ -309,7 +311,8 @@ void StreamSegmenterDock::updateNextStream(const QString &title, const QString &
 
 void StreamSegmenterDock::onSettingsClicked()
 {
-	info("Settings dialog requested.");
+	SettingsDialog dialog(this);
+	dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
 }
 
 void StreamSegmenterDock::updateMonitorLabel()
