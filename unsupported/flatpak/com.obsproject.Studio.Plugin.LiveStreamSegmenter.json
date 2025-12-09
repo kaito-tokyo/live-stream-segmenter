@@ -16,7 +16,8 @@
       "builddir": true,
       "config-opts": [
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_INCLUDEDIR=include"
+        "-DCMAKE_INSTALL_INCLUDEDIR=include",
+        "-DJSON_BuildTests=OFF"
       ],
       "sources": [
         {
