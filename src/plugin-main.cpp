@@ -28,7 +28,7 @@ using namespace KaitoTokyo::LiveStreamSegmenter::UI;
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
-static StreamSegmenterDock *g_dock = nullptr;
+static StreamSegmenterDock *g_dock_ = nullptr;
 
 bool obs_module_load(void)
 {
@@ -39,8 +39,8 @@ bool obs_module_load(void)
 		return false;
 	}
 
-	g_dock = new StreamSegmenterDock(mainWindow);
-	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), g_dock);		
+	g_dock_ = new StreamSegmenterDock(mainWindow);
+	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), g_dock_);		
 
 	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version %s)", PLUGIN_VERSION);
 	return true;
