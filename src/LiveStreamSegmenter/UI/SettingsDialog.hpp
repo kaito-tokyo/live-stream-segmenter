@@ -11,6 +11,8 @@
 #include <QDropEvent>
 #include <QJsonObject>
 
+#include "OAuth2Handler.hpp" // 【追加】
+
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
@@ -45,6 +47,11 @@ private slots:
 	void onAuthClicked();
 	void onLinkDocClicked();
 
+	// Handlerからのシグナルを受けるスロット
+	void onAuthStatusChanged(const QString &status);
+	void onAuthSuccess(const QString &refreshToken, const QString &accessToken, const QString &email);
+	void onAuthError(const QString &message);
+
 private:
 	void setupUi();
 	void initializeData();
@@ -57,6 +64,8 @@ private:
 	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
 	QJsonObject loadCredentialsFromStorage();
 	bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
+
+	OAuth2Handler *oauthHandler_;
 
 	// Data
 	QString tempClientId_;

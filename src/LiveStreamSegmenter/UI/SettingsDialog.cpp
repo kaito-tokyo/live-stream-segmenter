@@ -85,6 +85,7 @@ void JsonDropArea::mousePressEvent(QMouseEvent *event)
 
 SettingsDialog::SettingsDialog(QWidget *parent)
 	: QDialog(parent),
+	  oauthHandler_(new OAuth2Handler(this)),
 	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),
 	  clientSecretDisplay_(new QLineEdit(this)),
@@ -106,6 +107,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 		&SettingsDialog::onLoadJsonClicked); // ボタンでも開けるように
 	connect(saveButton_, &QPushButton::clicked, this, &SettingsDialog::onSaveClicked);
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthClicked);
+
+	connect(oauthHandler_, &OAuth2Handler::statusChanged, this, &SettingsDialog::onAuthStatusChanged);
+	connect(oauthHandler_, &OAuth2Handler::authSuccess, this, &SettingsDialog::onAuthSuccess);
+	connect(oauthHandler_, &OAuth2Handler::authError, this, &SettingsDialog::onAuthError);
 
 	initializeData();
 }
@@ -350,8 +355,10 @@ void SettingsDialog::onSaveClicked()
 
 void SettingsDialog::onAuthClicked()
 {
-	// 認証ロジック (次回実装)
-	QMessageBox::information(this, tr("Auth"), tr("Starting OAuth flow..."));
+	authButton_->setEnabled(false);
+
+	// ロジック実行
+	oauthHandler_->startAuthorization(tempClientId_, tempClientSecret_);
 }
 
 void SettingsDialog::updateAuthStatus(bool isConnected, const QString &accountName)
@@ -368,6 +375,36 @@ void SettingsDialog::updateAuthStatus(bool isConnected, const QString &accountNa
 void SettingsDialog::onLinkDocClicked()
 {
 	QDesktopServices::openUrl(QUrl("https://console.cloud.google.com/apis/credentials"));
+}
+
+void SettingsDialog::onAuthStatusChanged(const QString &status)
+{
+	statusLabel_->setText(status);
+}
+
+void SettingsDialog::onAuthSuccess(const QString &refreshToken, const QString &accessToken, const QString &email)
+{
+	// 1. トークンを保存
+	saveTokenToStorage(refreshToken, email);
+
+	// 2. UIを更新
+	updateAuthStatus(true, email);
+	authButton_->setEnabled(true);
+	authButton_->setText(tr("Re-Authenticate"));
+
+	// 3. 成功メッセージ
+	QMessageBox::information(this, tr("Success"), tr("Authentication successful!\n\nConnected as: %1").arg(email));
+}
+
+void SettingsDialog::onAuthError(const QString &message)
+{
+	// UIを元に戻す
+	authButton_->setEnabled(true);
+	authButton_->setText(tr("3. Authenticate"));
+	updateAuthStatus(false);
+
+	// エラー表示
+	QMessageBox::critical(this, tr("Authentication Failed"), message);
 }
 
 } // namespace UI

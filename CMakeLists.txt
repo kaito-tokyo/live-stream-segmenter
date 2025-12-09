@@ -25,7 +25,7 @@ if(ENABLE_FRONTEND_API)
 endif()
 
 if(ENABLE_QT)
-  find_package(Qt6 COMPONENTS Widgets Core)
+  find_package(Qt6 COMPONENTS Widgets Core Network REQUIRED)
   target_compile_options(
     ${CMAKE_PROJECT_NAME}
     PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
@@ -101,12 +101,19 @@ add_library(
   STATIC
   src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
   src/LiveStreamSegmenter/UI/SettingsDialog.cpp
+  src/LiveStreamSegmenter/UI/OAuth2Handler.cpp
 )
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
-target_link_libraries(${CMAKE_PROJECT_NAME}_UI PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Logger)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}_UI
+  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger
+)
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp src/LiveStreamSegmenter/UI/SettingsDialog.hpp
+  PRIVATE
+    src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
+    src/LiveStreamSegmenter/UI/SettingsDialog.hpp
+    src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
 )
 set_target_properties(
   ${CMAKE_PROJECT_NAME}_UI
