@@ -44,6 +44,7 @@ if(VCPKG_TARGET_TRIPLET)
 
   find_package(CURL CONFIG REQUIRED)
   find_package(fmt CONFIG REQUIRED)
+  find_package(nlohmann_json CONFIG REQUIRED)
 elseif(USE_PKGCONFIG)
   find_package(PkgConfig REQUIRED)
 
@@ -62,6 +63,14 @@ elseif(USE_PKGCONFIG)
   target_include_directories(fmt::fmt INTERFACE ${PC_FMT_INCLUDE_DIRS})
   target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
   target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
+
+  # --- nlohmann_json ---
+  pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
+  add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+  target_link_libraries(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARIES})
+  target_include_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_INCLUDE_DIRS})
+  target_compile_definitions(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_CFLAGS_OTHER})
+  target_link_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARY_DIRS})
 else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()

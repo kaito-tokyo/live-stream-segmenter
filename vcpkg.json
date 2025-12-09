@@ -19,6 +19,7 @@
       "platform": "(uwp | !windows) & !mingw"
     },
     "fmt",
-    "gtest"
+    "gtest",
+    "nlohmann-json"
   ]
 }
