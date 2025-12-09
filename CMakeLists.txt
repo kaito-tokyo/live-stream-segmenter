@@ -99,7 +99,7 @@ target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
 target_compile_definitions(
   ${CMAKE_PROJECT_NAME}
-  PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}"
+  PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
