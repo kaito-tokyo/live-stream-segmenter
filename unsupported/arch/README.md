@@ -36,7 +36,7 @@ sudo pacman -S --needed base-devel git
         ```
       * **For the latest development version:**
         ```bash
-        cd live-backgroundremoval-lite-git
+        cd live-stream-segmenter-git
         ```
 
 3.  Use `makepkg` to build and install the package.
