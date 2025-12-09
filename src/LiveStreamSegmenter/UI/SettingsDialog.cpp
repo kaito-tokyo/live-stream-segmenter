@@ -2,6 +2,7 @@
 Live Stream Segmenter
 Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 */
+#include <thread> // 【追加】
 
 #include "SettingsDialog.hpp"
 #include <QDesktopServices>
@@ -14,6 +15,9 @@ Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 #include <QJsonObject>
 #include <QDir>
 #include <obs-module.h>
+#include <QTimer> // 【追加】
+
+#include <YouTubeApiClient.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -79,98 +83,106 @@ void JsonDropArea::mousePressEvent(QMouseEvent *event)
 // ==========================================
 
 SettingsDialog::SettingsDialog(QWidget *parent)
-	: QDialog(parent),
-	  authManager_(new Auth::GoogleAuthManager(this)), // Manager生成
-	  dropArea_(new JsonDropArea(this)),
-	  clientIdDisplay_(new QLineEdit(this)),
-	  clientSecretDisplay_(new QLineEdit(this)),
-	  loadJsonButton_(new QPushButton(tr("Select File..."), this)),
-	  saveButton_(new QPushButton(tr("2. Save Credentials"), this)),
-	  authButton_(new QPushButton(tr("3. Authenticate"), this)),
-	  statusLabel_(new QLabel(this))
+    : QDialog(parent),
+      authManager_(new Auth::GoogleAuthManager(this)),
+      dropArea_(new JsonDropArea(this)),
+      clientIdDisplay_(new QLineEdit(this)),
+      clientSecretDisplay_(new QLineEdit(this)),
+      loadJsonButton_(new QPushButton(tr("Select File..."), this)),
+      saveButton_(new QPushButton(tr("2. Save Credentials"), this)),
+      authButton_(new QPushButton(tr("3. Authenticate"), this)),
+      statusLabel_(new QLabel(this)),
+      // 新規コンポーネント初期化
+      streamKeyCombo_(new QComboBox(this)),
+      refreshKeysBtn_(new QPushButton(tr("Reload Keys"), this))
 {
-	setWindowTitle(tr("Settings"));
-	setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint |
-		       Qt::WindowTitleHint);
+    setWindowTitle(tr("Settings"));
+    setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint | Qt::WindowTitleHint);
 
-	setupUi();
+    setupUi();
+    
+    // Existing connections...
+    connect(dropArea_, &JsonDropArea::fileDropped, this, &SettingsDialog::onJsonFileSelected);
+    connect(dropArea_, &JsonDropArea::clicked, this, &SettingsDialog::onAreaClicked);
+    connect(loadJsonButton_, &QPushButton::clicked, this, &SettingsDialog::onLoadJsonClicked);
+    connect(saveButton_, &QPushButton::clicked, this, &SettingsDialog::onSaveClicked);
+    connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthClicked);
 
-	// UI Connections
-	connect(dropArea_, &JsonDropArea::fileDropped, this, &SettingsDialog::onJsonFileSelected);
-	connect(dropArea_, &JsonDropArea::clicked, this, &SettingsDialog::onAreaClicked);
-	connect(loadJsonButton_, &QPushButton::clicked, this, &SettingsDialog::onLoadJsonClicked);
-	connect(saveButton_, &QPushButton::clicked, this, &SettingsDialog::onSaveClicked);
-	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthClicked);
+    // Auth connections...
+    connect(authManager_, &Auth::GoogleAuthManager::authStateChanged, this, &SettingsDialog::onAuthStateChanged);
+    connect(authManager_, &Auth::GoogleAuthManager::loginStatusChanged, this, &SettingsDialog::onLoginStatusChanged);
+    connect(authManager_, &Auth::GoogleAuthManager::loginError, this, &SettingsDialog::onLoginError);
 
-	// AuthManager Connections
-	connect(authManager_, &Auth::GoogleAuthManager::authStateChanged, this, &SettingsDialog::onAuthStateChanged);
-	connect(authManager_, &Auth::GoogleAuthManager::loginStatusChanged, this,
-		&SettingsDialog::onLoginStatusChanged);
-	connect(authManager_, &Auth::GoogleAuthManager::loginError, this, &SettingsDialog::onLoginError);
+    // --- New Stream Key connections ---
+    connect(refreshKeysBtn_, &QPushButton::clicked, this, &SettingsDialog::onRefreshKeysClicked);
+    // ユーザーが変更した時だけ保存したい
+    connect(streamKeyCombo_, QOverload<int>::of(&QComboBox::activated), this, &SettingsDialog::onKeySelectionChanged);
 
-	initializeData();
+    initializeData();
 }
 
-void SettingsDialog::setupUi()
-{
-	auto *mainLayout = new QVBoxLayout(this);
-	mainLayout->setSpacing(16);
-	mainLayout->setContentsMargins(24, 24, 24, 24);
+void SettingsDialog::setupUi() {
+    auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(16);
+    mainLayout->setContentsMargins(24, 24, 24, 24);
 
-	// 説明
-	auto *infoLabel = new QLabel(tr("<b>Step 1:</b> Drop your GCP Credentials JSON file here.<br>"
-					"<b>Step 2:</b> Review and Save.<br>"
-					"<b>Step 3:</b> Authenticate with YouTube."),
-				     this);
-	infoLabel->setStyleSheet("color: #aaaaaa; font-size: 11px; margin-bottom: 8px;");
-	mainLayout->addWidget(infoLabel);
+    // 1. Info
+    auto *infoLabel = new QLabel(tr("<b>Step 1:</b> Import Credentials.<br><b>Step 2:</b> Authenticate.<br><b>Step 3:</b> Select Stream Key."), this);
+    infoLabel->setStyleSheet("color: #aaaaaa; font-size: 11px;");
+    mainLayout->addWidget(infoLabel);
 
-	// Credentials Group
-	auto *credGroup = new QGroupBox(tr("Credentials Setup"), this);
-	auto *formLayout = new QVBoxLayout(credGroup);
-	formLayout->setSpacing(12);
-	formLayout->addWidget(dropArea_);
+    // 2. Credentials Group
+    auto *credGroup = new QGroupBox(tr("Credentials"), this);
+    auto *credLayout = new QVBoxLayout(credGroup);
+    credLayout->addWidget(dropArea_);
+    
+    auto *detailsLayout = new QFormLayout();
+    clientIdDisplay_->setReadOnly(true);
+    clientIdDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
+    detailsLayout->addRow(tr("Client ID:"), clientIdDisplay_);
+    
+    clientSecretDisplay_->setReadOnly(true);
+    clientSecretDisplay_->setEchoMode(QLineEdit::Password);
+    clientSecretDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
+    detailsLayout->addRow(tr("Client Secret:"), clientSecretDisplay_);
+    credLayout->addLayout(detailsLayout);
 
-	auto *detailsLayout = new QFormLayout();
-	detailsLayout->setLabelAlignment(Qt::AlignLeft);
+    saveButton_->setEnabled(false);
+    credLayout->addWidget(saveButton_);
+    mainLayout->addWidget(credGroup);
 
-	clientIdDisplay_->setReadOnly(true);
-	clientIdDisplay_->setPlaceholderText("(Waiting for file...)");
-	clientIdDisplay_->setStyleSheet("color: #cccccc; background: #222; border: 1px solid #444;");
-	detailsLayout->addRow(tr("Client ID:"), clientIdDisplay_);
+    // 3. Auth Group
+    auto *authGroup = new QGroupBox(tr("Authorization"), this);
+    auto *authLayout = new QVBoxLayout(authGroup);
+    authButton_->setEnabled(false);
+    statusLabel_->setAlignment(Qt::AlignCenter);
+    authLayout->addWidget(authButton_);
+    authLayout->addWidget(statusLabel_);
+    mainLayout->addWidget(authGroup);
 
-	clientSecretDisplay_->setReadOnly(true);
-	clientSecretDisplay_->setEchoMode(QLineEdit::Password);
-	clientSecretDisplay_->setPlaceholderText("(Hidden)");
-	clientSecretDisplay_->setStyleSheet("color: #cccccc; background: #222; border: 1px solid #444;");
-	detailsLayout->addRow(tr("Client Secret:"), clientSecretDisplay_);
+    // --- 4. Stream Key Group (New) ---
+    auto *keyGroup = new QGroupBox(tr("Stream Settings"), this);
+    auto *keyLayout = new QVBoxLayout(keyGroup);
 
-	formLayout->addLayout(detailsLayout);
+    auto *keyHeader = new QHBoxLayout();
+    keyHeader->addWidget(new QLabel(tr("Target Stream Key:")));
+    keyHeader->addStretch();
+    
+    refreshKeysBtn_->setCursor(Qt::PointingHandCursor);
+    refreshKeysBtn_->setFixedWidth(100);
+    refreshKeysBtn_->setEnabled(false); // 認証するまで押せない
+    keyHeader->addWidget(refreshKeysBtn_);
+    
+    keyLayout->addLayout(keyHeader);
+    
+    streamKeyCombo_->setPlaceholderText(tr("Authenticate to fetch keys..."));
+    streamKeyCombo_->setEnabled(false);
+    keyLayout->addWidget(streamKeyCombo_);
 
-	saveButton_->setCursor(Qt::PointingHandCursor);
-	saveButton_->setEnabled(false);
-	saveButton_->setStyleSheet("font-weight: bold; margin-top: 4px; height: 30px;");
-	formLayout->addWidget(saveButton_);
-
-	mainLayout->addWidget(credGroup);
-
-	// Auth Group
-	auto *authGroup = new QGroupBox(tr("Authorization"), this);
-	auto *authLayout = new QVBoxLayout(authGroup);
-
-	authButton_->setCursor(Qt::PointingHandCursor);
-	authButton_->setStyleSheet("padding: 8px; font-weight: bold;");
-	authButton_->setEnabled(false);
-
-	statusLabel_->setAlignment(Qt::AlignCenter);
-
-	authLayout->addWidget(authButton_);
-	authLayout->addWidget(statusLabel_);
-
-	mainLayout->addWidget(authGroup);
-	mainLayout->addStretch();
-
-	resize(420, 520);
+    mainLayout->addWidget(keyGroup);
+    mainLayout->addStretch();
+    
+    resize(420, 600);
 }
 
 // ---------------------------------------------------------
@@ -348,29 +360,210 @@ void SettingsDialog::onLoginError(const QString &message)
 	QMessageBox::critical(this, tr("Login Error"), message);
 }
 
-void SettingsDialog::updateAuthUI()
-{
-	bool hasCreds = !tempClientId_.isEmpty();
-	bool isAuth = authManager_->isAuthenticated();
-
-	if (isAuth) {
-		statusLabel_->setText(QString("✅ Connected: %1").arg(authManager_->currentChannelName()));
-		statusLabel_->setStyleSheet(
-			"color: #4CAF50; padding: 4px; border: 1px solid #4CAF50; border-radius: 4px;");
-		authButton_->setText(tr("Re-Authenticate"));
-		authButton_->setEnabled(true);
-	} else {
-		statusLabel_->setText(tr("⚠️ Not Connected"));
-		statusLabel_->setStyleSheet(
-			"color: #F44747; padding: 4px; border: 1px solid #F44747; border-radius: 4px;");
-		authButton_->setText(tr("3. Authenticate"));
-		authButton_->setEnabled(hasCreds); // クレデンシャルがあれば押せる
-	}
-}
-
 void SettingsDialog::onLinkDocClicked()
 {
 	QDesktopServices::openUrl(QUrl("https://console.cloud.google.com/apis/credentials"));
+}
+
+// ---------------------------------------------------------
+//  Stream Key Logic
+// ---------------------------------------------------------
+
+void SettingsDialog::onRefreshKeysClicked() {
+    refreshKeysBtn_->setEnabled(false);
+    refreshKeysBtn_->setText(tr("Loading..."));
+    streamKeyCombo_->clear();
+    streamKeyCombo_->addItem(tr("Loading..."));
+
+    // 1. AuthManagerからトークン取得
+    authManager_->getAccessToken(
+        [this](QString token) {
+            
+            // 2. 別スレッドで実行
+            // std::thread を使うために、ラムダ式でキャプチャ
+            std::thread worker([this, token]() {
+                
+                // Pure C++ Client (スタック上で生成)
+                API::YouTubeApiClient client;
+                
+                // Pure C++ なので std::string に変換
+                std::string stdToken = token.toStdString();
+
+                client.fetchStreamKeys(stdToken,
+                    // Success Callback (Worker Threadで呼ばれる)
+                    [this](const std::vector<API::YouTubeStreamKey> &keys) {
+                        // 3. UIスレッドに戻す
+                        // QMetaObject::invokeMethod の代わりに QTimer::singleShot(0, ...) を使うと
+                        // ラムダ式の型推論エラーが起きにくい
+                        QTimer::singleShot(0, this, [this, keys]() {
+                            updateStreamKeyList(keys);
+                        });
+                    },
+                    // Error Callback (Worker Threadで呼ばれる)
+                    [this](const std::string &error) {
+                        // UIスレッドに戻す
+                        QTimer::singleShot(0, this, [this, error]() {
+                            refreshKeysBtn_->setEnabled(true);
+                            refreshKeysBtn_->setText(tr("Reload Keys"));
+                            streamKeyCombo_->clear();
+                            streamKeyCombo_->setPlaceholderText(tr("Error fetching keys"));
+                            QMessageBox::critical(this, tr("API Error"), QString::fromStdString(error));
+                        });
+                    }
+                );
+            });
+            
+            worker.detach(); // スレッドを切り離してバックグラウンド実行
+        },
+        // Token Error (UI Thread)
+        [this](QString error) {
+            refreshKeysBtn_->setEnabled(true);
+            refreshKeysBtn_->setText(tr("Reload Keys"));
+            QMessageBox::critical(this, tr("Auth Error"), error);
+        }
+    );
+}
+
+void SettingsDialog::updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys) {
+    refreshKeysBtn_->setEnabled(true);
+    refreshKeysBtn_->setText(tr("Reload Keys"));
+    streamKeyCombo_->clear();
+
+    if (keys.empty()) {
+        streamKeyCombo_->setPlaceholderText(tr("No RTMP keys found."));
+        return;
+    }
+
+    // 保存済みのIDを確認して、選択状態を復元する
+    QString savedId = loadSavedStreamKeyId();
+    int selectIndex = -1;
+
+    for (const auto &key : keys) {
+        // Pure C++ Struct -> Qt String
+        QString title = QString::fromStdString(key.title);
+        QString id = QString::fromStdString(key.id);
+        QString streamName = QString::fromStdString(key.streamName);
+        QString desc = QString::fromStdString(key.resolution);
+
+        QString displayText = QString("%1 (%2)").arg(title, desc);
+        
+        // ItemDataに ID と StreamName をパイプ区切りで格納
+        // (保存時に両方必要なため)
+        QString itemData = QString("%1|%2").arg(id, streamName);
+        
+        streamKeyCombo_->addItem(displayText, itemData);
+
+        if (id == savedId) {
+            selectIndex = streamKeyCombo_->count() - 1;
+        }
+    }
+
+    if (selectIndex >= 0) {
+        streamKeyCombo_->setCurrentIndex(selectIndex);
+    } else {
+        // 保存されたものが見つからない場合、未選択状態にするか先頭を選ぶ
+        // ここではユーザーに選ばせるため、index 0にはしないでおくことも可能だが
+        // 親切のために0を選んでおく
+        streamKeyCombo_->setCurrentIndex(0);
+        // 自動で保存はしない（ユーザーの明示的な選択を待つ）
+    }
+}
+
+void SettingsDialog::onKeySelectionChanged(int index) {
+    if (index < 0) return;
+    
+    QString data = streamKeyCombo_->itemData(index).toString();
+    QStringList parts = data.split("|");
+    if (parts.size() < 2) return;
+
+    QString id = parts[0];
+    QString streamName = parts[1];
+    QString title = streamKeyCombo_->itemText(index);
+
+    // 選択された瞬間に保存する
+    saveStreamKeySetting(id, streamName, title);
+}
+
+// ---------------------------------------------------------
+//  Config Persistence (config.json)
+// ---------------------------------------------------------
+
+void SettingsDialog::saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title) {
+    QString savePath = getObsConfigPath("config.json");
+    if (savePath.isEmpty()) return;
+    
+    // 既存の設定を読み込んでマージするのが理想だが、
+    // 今回はストリームキー設定が主なので上書きでも可。
+    // 安全のため、もしファイルがあれば読み込んで追記する形にする。
+    QJsonObject root;
+    QFile file(savePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        root = QJsonDocument::fromJson(file.readAll()).object();
+        file.close();
+    }
+
+    root["stream_id"] = id;
+    root["stream_key"] = streamName;
+    root["stream_title"] = title; // UI復元用のキャッシュ（無くても良い）
+    root["updated_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+        file.close();
+    }
+}
+
+QString SettingsDialog::loadSavedStreamKeyId() {
+    QString savePath = getObsConfigPath("config.json");
+    QFile file(savePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+        return root["stream_id"].toString();
+    }
+    return QString();
+}
+
+// ---------------------------------------------------------
+//  Auth / Update Logic
+// ---------------------------------------------------------
+
+void SettingsDialog::updateAuthUI() {
+    // ... (既存ロジック)
+    
+    bool isAuth = authManager_->isAuthenticated();
+    if (isAuth) {
+        statusLabel_->setText(QString("✅ Connected: %1").arg(authManager_->currentChannelName()));
+        statusLabel_->setStyleSheet("color: #4CAF50; padding: 4px; border: 1px solid #4CAF50; border-radius: 4px;");
+        authButton_->setText(tr("Re-Authenticate"));
+        authButton_->setEnabled(true);
+
+        // キー取得ボタンを有効化
+        refreshKeysBtn_->setEnabled(true);
+        streamKeyCombo_->setEnabled(true);
+        
+        // リストが空ならプレフィックスを表示
+        if (streamKeyCombo_->count() == 0) {
+            streamKeyCombo_->setPlaceholderText(tr("Click 'Reload Keys' to fetch list"));
+            
+            // 保存済み設定があれば、とりあえず表示だけでもしておく（API叩かなくても）
+            QString savedId = loadSavedStreamKeyId();
+            if (!savedId.isEmpty()) {
+                 // 保存ファイルから名前も読み出せればベストだが、ここではReloadを促す
+                 streamKeyCombo_->setPlaceholderText(tr("Saved ID: %1 (Click Reload to verify)").arg(savedId));
+            }
+        }
+
+    } else {
+        statusLabel_->setText(tr("⚠️ Not Connected"));
+        statusLabel_->setStyleSheet("color: #F44747; padding: 4px; border: 1px solid #F44747; border-radius: 4px;");
+        authButton_->setText(tr("3. Authenticate"));
+        authButton_->setEnabled(!tempClientId_.isEmpty());
+        
+        // 未認証ならキー操作無効
+        refreshKeysBtn_->setEnabled(false);
+        streamKeyCombo_->setEnabled(false);
+        streamKeyCombo_->setPlaceholderText(tr("Authenticate first"));
+    }
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
