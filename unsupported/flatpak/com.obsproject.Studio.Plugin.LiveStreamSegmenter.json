@@ -34,7 +34,7 @@
         },
         {
           "type": "file",
-          "path": "com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.metainfo.xml"
+          "path": "com.obsproject.Studio.Plugin.LiveStreamSegmenter.metainfo.xml"
         }
       ],
       "post-install": [
