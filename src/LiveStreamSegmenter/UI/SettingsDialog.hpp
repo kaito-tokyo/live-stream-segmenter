@@ -10,7 +10,7 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QJsonObject>
-#include <QComboBox>          // 追加
+#include <QComboBox> // 追加
 
 // Authモジュール
 #include "../Auth/GoogleAuthManager.hpp"
@@ -36,71 +36,71 @@ protected:
 
 // --- SettingsDialog ---
 class SettingsDialog : public QDialog {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
-    ~SettingsDialog() override = default;
+	explicit SettingsDialog(QWidget *parent = nullptr);
+	~SettingsDialog() override = default;
 
 private slots:
-    // --- Existing Slots ---
-    void onJsonFileSelected(const QString &filePath);
-    void onAreaClicked();
-    void onLoadJsonClicked();
-    void onSaveClicked();
-    void onAuthClicked();
-    
-    // Auth Signals
-    void onAuthStateChanged();
-    void onLoginStatusChanged(const QString &status);
-    void onLoginError(const QString &message);
+	// --- Existing Slots ---
+	void onJsonFileSelected(const QString &filePath);
+	void onAreaClicked();
+	void onLoadJsonClicked();
+	void onSaveClicked();
+	void onAuthClicked();
 
-    // --- New Slots for Stream Key ---
-    void onRefreshKeysClicked();           // Reloadボタン
-    void onKeySelectionChanged(int index); // 選択変更
-    void onLinkDocClicked(); // 【追加】 これが抜けていました
+	// Auth Signals
+	void onAuthStateChanged();
+	void onLoginStatusChanged(const QString &status);
+	void onLoginError(const QString &message);
+
+	// --- New Slots for Stream Key ---
+	void onRefreshKeysClicked();           // Reloadボタン
+	void onKeySelectionChanged(int index); // 選択変更
+	void onLinkDocClicked();               // 【追加】 これが抜けていました
 
 private:
-    void setupUi();
-    void initializeData();
-    void updateAuthUI();
-    
-    // --- New Helper: UI更新 ---
-    // 別スレッドから呼ばれるため、スレッドセーフに更新する実体
-    void updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys);
+	void setupUi();
+	void initializeData();
+	void updateAuthUI();
 
-    // --- Helpers ---
-    QString getObsConfigPath(const QString &filename) const;
+	// --- New Helper: UI更新 ---
+	// 別スレッドから呼ばれるため、スレッドセーフに更新する実体
+	void updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys);
 
-    // Credentials
-    bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
-    QJsonObject loadCredentialsFromStorage(); 
-    bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
+	// --- Helpers ---
+	QString getObsConfigPath(const QString &filename) const;
 
-    // --- New Helpers: Stream Key Config ---
-    // config.json に保存する
-    void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
-    QString loadSavedStreamKeyId();
+	// Credentials
+	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
+	QJsonObject loadCredentialsFromStorage();
+	bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
 
-    // Data
-    QString tempClientId_;
-    QString tempClientSecret_;
+	// --- New Helpers: Stream Key Config ---
+	// config.json に保存する
+	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
+	QString loadSavedStreamKeyId();
 
-    // Auth
-    Auth::GoogleAuthManager *authManager_;
+	// Data
+	QString tempClientId_;
+	QString tempClientSecret_;
 
-    // UI Components
-    JsonDropArea *dropArea_;
-    QLineEdit *clientIdDisplay_;
-    QLineEdit *clientSecretDisplay_;
-    QPushButton *loadJsonButton_;
-    QPushButton *saveButton_;
-    QPushButton *authButton_;
-    QLabel *statusLabel_;
+	// Auth
+	Auth::GoogleAuthManager *authManager_;
 
-    // --- New UI Components ---
-    QComboBox *streamKeyCombo_;
-    QPushButton *refreshKeysBtn_;
+	// UI Components
+	JsonDropArea *dropArea_;
+	QLineEdit *clientIdDisplay_;
+	QLineEdit *clientSecretDisplay_;
+	QPushButton *loadJsonButton_;
+	QPushButton *saveButton_;
+	QPushButton *authButton_;
+	QLabel *statusLabel_;
+
+	// --- New UI Components ---
+	QComboBox *streamKeyCombo_;
+	QPushButton *refreshKeysBtn_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
