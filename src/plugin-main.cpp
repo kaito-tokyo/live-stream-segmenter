@@ -28,6 +28,7 @@ using namespace KaitoTokyo::LiveStreamSegmenter::UI;
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
+// This pointer will be freed automatically by OBS on unload
 static StreamSegmenterDock *g_dock_ = nullptr;
 
 bool obs_module_load(void)
