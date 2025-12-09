@@ -16,18 +16,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <obs-module.h>
+#include "StreamSegmenterDock.hpp"
 
-OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
+namespace KaitoTokyo {
+namespace LiveStreamSegmenter {
+namespace UI {
 
-bool obs_module_load(void)
+StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
+	: QWidget(parent),
+	  mainLayout_(new QVBoxLayout(this)),
+	  statusLabel_(new QLabel("Hello, Stream Segmenter Dock!", this))
 {
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version %s)", PLUGIN_VERSION);
-	return true;
+	statusLabel_->setAlignment(Qt::AlignCenter);
+
+	QFont font = statusLabel_->font();
+	font.setPointSize(16);
+	statusLabel_->setFont(font);
+
+	mainLayout_->addWidget(statusLabel_);
+
+	setLayout(mainLayout_);
 }
 
-void obs_module_unload(void)
-{
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
-}
+} // namespace UI
+} // namespace LiveStreamSegmenter
+} // namespace KaitoTokyo
