@@ -309,9 +309,10 @@ void StreamSegmenterDock::updateNextStream(const QString &title, const QString &
 
 // ... (他は変更なし) ...
 
-void StreamSegmenterDock::onSettingsClicked() {
-    SettingsDialog dialog(this);
-    dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
+void StreamSegmenterDock::onSettingsClicked()
+{
+	SettingsDialog dialog(this);
+	dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
 }
 
 void StreamSegmenterDock::updateMonitorLabel()

@@ -7,14 +7,14 @@ namespace LiveStreamSegmenter {
 namespace UI {
 
 class SettingsDialog : public QDialog {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
-    ~SettingsDialog() override = default;
+	explicit SettingsDialog(QWidget *parent = nullptr);
+	~SettingsDialog() override = default;
 
 private:
-    void setupUi();
+	void setupUi();
 };
 
 } // namespace UI
