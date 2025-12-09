@@ -33,7 +33,7 @@ static StreamSegmenterDock *g_dock_ = nullptr;
 
 bool obs_module_load(void)
 {
-	auto *mainWindow = static_cast<QMainWindow*>(obs_frontend_get_main_window());
+	auto *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 
 	if (!mainWindow) {
 		blog(LOG_ERROR, "[" PLUGIN_NAME "] Failed to get main window");
@@ -41,7 +41,7 @@ bool obs_module_load(void)
 	}
 
 	g_dock_ = new StreamSegmenterDock(mainWindow);
-	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), g_dock_);		
+	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), g_dock_);
 
 	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version %s)", PLUGIN_VERSION);
 	return true;

@@ -22,20 +22,20 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(QWidget *parent) 
-    : QWidget(parent),
-      mainLayout_(new QVBoxLayout(this)), 
-      statusLabel_(new QLabel("Hello, Stream Segmenter Dock!", this))
+StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
+	: QWidget(parent),
+	  mainLayout_(new QVBoxLayout(this)),
+	  statusLabel_(new QLabel("Hello, Stream Segmenter Dock!", this))
 {
-    statusLabel_->setAlignment(Qt::AlignCenter);
-    
-    QFont font = statusLabel_->font();
-    font.setPointSize(16);
-    statusLabel_->setFont(font);
+	statusLabel_->setAlignment(Qt::AlignCenter);
 
-    mainLayout_->addWidget(statusLabel_);
+	QFont font = statusLabel_->font();
+	font.setPointSize(16);
+	statusLabel_->setFont(font);
 
-    setLayout(mainLayout_);
+	mainLayout_->addWidget(statusLabel_);
+
+	setLayout(mainLayout_);
 }
 
 } // namespace UI

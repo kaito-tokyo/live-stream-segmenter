@@ -27,15 +27,15 @@ namespace LiveStreamSegmenter {
 namespace UI {
 
 class StreamSegmenterDock : public QWidget {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit StreamSegmenterDock(QWidget *parent = nullptr);
-    ~StreamSegmenterDock() override = default;
+	explicit StreamSegmenterDock(QWidget *parent = nullptr);
+	~StreamSegmenterDock() override = default;
 
 private:
-    QVBoxLayout *const mainLayout_;
-    QLabel *const statusLabel_;
+	QVBoxLayout *const mainLayout_;
+	QLabel *const statusLabel_;
 };
 
 } // namespace UI
