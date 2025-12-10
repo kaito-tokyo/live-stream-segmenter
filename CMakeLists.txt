@@ -91,34 +91,48 @@ target_sources(
     src/BridgeUtils/ObsUnique.hpp
 )
 
+add_library(CurlHelper INTERFACE)
+target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/CurlHelper)
+target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
+target_sources(
+  CurlHelper
+  PRIVATE
+    src/CurlHelper/CurlUrlHandler.hpp
+    src/CurlHelper/CurlWriteFunction.hpp
+)
+
 add_library(UpdateChecker INTERFACE)
 target_include_directories(UpdateChecker INTERFACE ${CMAKE_SOURCE_DIR}/src/UpdateChecker)
-target_link_libraries(UpdateChecker INTERFACE CURL::libcurl)
+target_link_libraries(UpdateChecker INTERFACE CurlHelper)
 target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
+
+# Plugin modules
 
 add_library(
   ${CMAKE_PROJECT_NAME}_Auth
   STATIC
-  src/LiveStreamSegmenter/Auth/GoogleAuthState.cpp
   src/LiveStreamSegmenter/Auth/GoogleAuthManager.cpp
   src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.cpp
+  src/LiveStreamSegmenter/Auth/GoogleTokenStorage.cpp
 )
 target_include_directories(${CMAKE_PROJECT_NAME}_Auth PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Auth
-  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CURL::libcurl
+  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CurlHelper
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Auth
   PRIVATE
-    src/LiveStreamSegmenter/Auth/GoogleAuthState.hpp
     src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
+    src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
+    src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
+    src/LiveStreamSegmenter/Auth/GoogleTokenStorage.hpp
 )
 
 add_library(${CMAKE_PROJECT_NAME}_API STATIC src/LiveStreamSegmenter/API/YouTubeApiClient.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_API PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API PUBLIC OBS::libobs CURL::libcurl)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API PUBLIC OBS::libobs CurlHelper)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp

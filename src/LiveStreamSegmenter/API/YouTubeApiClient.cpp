@@ -31,56 +31,6 @@ using json = nlohmann::json;
 
 namespace KaitoTokyo::LiveStreamSegmenter::API {
 
-class CurlUrlHandle {
-public:
-	CurlUrlHandle() : handle_(curl_url())
-	{
-		if (!handle_) {
-			throw std::runtime_error("InitError(CurlUrlHandle)");
-		}
-	}
-	~CurlUrlHandle()
-	{
-		if (handle_) {
-			curl_url_cleanup(handle_);
-		}
-	}
-
-	CurlUrlHandle(const CurlUrlHandle &) = delete;
-	CurlUrlHandle &operator=(const CurlUrlHandle &) = delete;
-	CurlUrlHandle(CurlUrlHandle &&) = delete;
-	CurlUrlHandle &operator=(CurlUrlHandle &&) = delete;
-
-	void setUrl(const char *url)
-	{
-		CURLUcode uc = curl_url_set(handle_, CURLUPART_URL, url, 0);
-		if (uc != CURLUE_OK) {
-			throw std::runtime_error("URLParseError(CurlUrlHandle):" + std::string(url));
-		}
-	}
-
-	void appendQuery(const std::string &query)
-	{
-		CURLUcode uc = curl_url_set(handle_, CURLUPART_QUERY, query.c_str(), CURLU_APPENDQUERY);
-		if (uc != CURLUE_OK) {
-			throw std::runtime_error("QueryAppendError(CurlUrlHandle):" + query);
-		}
-	}
-
-	std::unique_ptr<char, decltype(&curl_free)> c_str() const
-	{
-		char *urlStr = nullptr;
-		CURLUcode uc = curl_url_get(handle_, CURLUPART_URL, &urlStr, 0);
-		if (uc != CURLUE_OK || !urlStr) {
-			throw std::runtime_error("GetUrlError(CurlUrlHandle)");
-		}
-		return std::unique_ptr<char, decltype(&curl_free)>(urlStr, curl_free);
-	}
-
-private:
-	CURLU *const handle_;
-};
-
 namespace {
 
 inline size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)

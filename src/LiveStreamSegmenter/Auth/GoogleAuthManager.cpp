@@ -1,98 +1,77 @@
-#include "GoogleTokenManager.hpp"
-#include <curl/curl.h>
+/*
+Live Stream Segmenter
+Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#include "GoogleAuthManager.hpp"
+
 #include <stdexcept>
 #include <vector>
 
+#include <curl/curl.h>
+#include <nlohmann/json.hpp>
+
+#include <CurlVectorWriter.hpp>
+
+#include "GoogleAuthResponse.hpp"
+
+using json = nlohmann::json;
+
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-	size_t realsize = size * nmemb;
-	auto *str = static_cast<std::string *>(userp);
-	str->append(static_cast<char *>(contents), realsize);
-	return realsize;
-}
-
-GoogleTokenManager::GoogleTokenManager(std::shared_ptr<Logger::ILogger> logger, std::unique_ptr<TokenStorage> storage)
-	: storage_(std::move(storage)),
-	  logger_(std::move(logger))
-{
-	if (auto loadedState = storage_->load()) {
-		state_ = *loadedState;
-	}
-}
-
-void GoogleTokenManager::setCredentials(const std::string &clientId, const std::string &clientSecret)
-{
-	std::lock_guard<std::mutex> lock(mutex_);
-	clientId_ = clientId;
-	clientSecret_ = clientSecret;
-}
-
-bool GoogleTokenManager::isAuthenticated() const
-{
-	std::lock_guard<std::mutex> lock(mutex_);
-	return state_.isAuthorized();
-}
-
-std::string GoogleTokenManager::currentChannelName() const
-{
-	std::lock_guard<std::mutex> lock(mutex_);
-	return state_.email();
-}
-
-void GoogleTokenManager::updateAuthState(const GoogleAuthState &newState)
+std::string GoogleAuthManager::getAccessToken()
 {
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		state_ = newState;
-	}
-	storage_->save(newState);
-}
-
-void GoogleTokenManager::clear()
-{
-	{
-		std::lock_guard<std::mutex> lock(mutex_);
-		state_.clear();
-	}
-	storage_->clear();
-}
-
-std::string GoogleTokenManager::getAccessToken()
-{
-	{
-		std::lock_guard<std::mutex> lock(mutex_);
-		if (!state_.isAuthorized()) {
+		if (!currentTokenData_.isAuthorized()) {
 			throw std::runtime_error("Not logged in.");
 		}
-		if (state_.isAccessTokenFresh()) {
-			return state_.accessToken();
+		// トークンが有効ならそのまま返す
+		if (currentTokenData_.isAccessTokenFresh()) {
+			return currentTokenData_.access_token;
 		}
+		// リフレッシュに必要な情報があるか確認
 		if (clientId_.empty() || clientSecret_.empty()) {
 			throw std::runtime_error("Client ID/Secret missing for refresh.");
 		}
 	}
 
+	logger_->info("[GoogleAuthManager] Access token expired. Refreshing...");
+
+	// 同期リフレッシュ実行
 	performRefresh();
 
+	// 更新後のトークンを返す
 	std::lock_guard<std::mutex> lock(mutex_);
-	return state_.accessToken();
+	return currentTokenData_.access_token;
 }
 
-void GoogleTokenManager::performRefresh()
+void GoogleAuthManager::performRefresh()
 {
-	std::string cid, csec, rtoken;
+	// 通信に必要な情報をコピー (通信中はロックを保持しない)
+	std::string rtoken;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		cid = clientId_;
-		csec = clientSecret_;
-		rtoken = state_.refreshToken();
+		rtoken = currentTokenData_.refresh_token;
 	}
 
 	CURL *curl = curl_easy_init();
-	if (!curl)
+	if (!curl) {
 		throw std::runtime_error("Failed to init curl");
+	}
 
 	// URL Encoding helper
 	auto urlEncode = [&](const std::string &s) -> std::string {
@@ -106,7 +85,7 @@ void GoogleTokenManager::performRefresh()
 	};
 
 	std::string readBuffer;
-	std::string postDataStr = "client_id=" + urlEncode(cid) + "&client_secret=" + urlEncode(csec) +
+	std::string postDataStr = "client_id=" + urlEncode(clientId_) + "&client_secret=" + urlEncode(clientSecret_) +
 				  "&refresh_token=" + urlEncode(rtoken) + "&grant_type=refresh_token";
 
 	curl_easy_setopt(curl, CURLOPT_URL, "https://oauth2.googleapis.com/token");
@@ -116,6 +95,7 @@ void GoogleTokenManager::performRefresh()
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
 	CURLcode res = curl_easy_perform(curl);
+
 	if (res != CURLE_OK) {
 		std::string err = curl_easy_strerror(res);
 		curl_easy_cleanup(curl);
@@ -123,28 +103,36 @@ void GoogleTokenManager::performRefresh()
 	}
 	curl_easy_cleanup(curl);
 
+	// JSONパース
 	json j = json::parse(readBuffer, nullptr, false);
 	if (j.is_discarded()) {
 		throw std::runtime_error("JSON parse error during refresh");
 	}
 
+	// エラーチェック
 	if (j.contains("error")) {
-		std::string err = j["error_description"].get<std::string>();
-		logger_->error("[TokenManager] Refresh failed: {}", err);
+		std::string err = j.value("error_description", "Unknown error");
+		logger_->error("[GoogleAuthManager] Refresh failed: {}", err);
 
-		if (j["error"].get<std::string>() == "invalid_grant") {
+		// リフレッシュトークンが無効化されていたら強制ログアウト
+		if (j.value("error", "") == "invalid_grant") {
 			clear();
-			throw std::runtime_error("Session expired. Please login again.");
+			throw std::runtime_error("Session expired (Revoked). Please login again.");
 		}
 		throw std::runtime_error("API Error: " + err);
 	}
 
+	// 成功: DTO経由で更新
+	auto response = j.get<GoogleTokenResponse>();
+
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
-		state_.updateFromTokenResponse(j);
-		storage_->save(state_);
+		currentTokenData_.updateFromTokenResponse(response);
+		// 整合性のためロック内でデータをコピーしてから保存へ
+		storage_->save(currentTokenData_);
 	}
-	logger_->info("[TokenManager] Token refreshed.");
+
+	logger_->info("[GoogleAuthManager] Token refreshed successfully.");
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth

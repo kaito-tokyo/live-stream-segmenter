@@ -30,6 +30,11 @@ public:
 	GoogleTokenStorage() = default;
 	virtual ~GoogleTokenStorage() = default;
 
+	GoogleTokenStorage(const GoogleTokenStorage &) = delete;
+	GoogleTokenStorage &operator=(const GoogleTokenStorage &) = delete;
+	GoogleTokenStorage(GoogleTokenStorage &&) = delete;
+	GoogleTokenStorage &operator=(GoogleTokenStorage &&) = delete;
+
 	virtual std::optional<GoogleTokenState> load();
 	virtual void save(const GoogleTokenState &state);
 	virtual void clear();
