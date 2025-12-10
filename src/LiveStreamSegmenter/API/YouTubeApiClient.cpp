@@ -10,148 +10,101 @@ using json = nlohmann::json;
 
 namespace KaitoTokyo::LiveStreamSegmenter::API {
 
-// --- Static Curl Helper ---
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-	size_t realsize = size * nmemb;
-	auto *str = static_cast<std::string *>(userp);
-	str->append(static_cast<char *>(contents), realsize);
-	return realsize;
-}
-
-// --- Implementation ---
-
-void YouTubeApiClient::fetchStreamKeys(const std::string &accessToken, FetchKeysSuccess onSuccess,
-				       ErrorCallback onError)
-{
-	// API URL
-	std::string url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
-
-	performGetRequest(
-		url, accessToken,
-		[onSuccess, onError](const std::string &responseBody) {
-			try {
-				auto j = json::parse(responseBody);
-
-				if (j.contains("error")) {
-					// エラーオブジェクトが文字列かオブジェクトか確認して取得
-					std::string msg = "Unknown API Error";
-					if (j["error"].is_object() && j["error"].contains("message")) {
-						msg = j["error"]["message"].get<std::string>();
-					} else {
-						msg = j["error"].dump();
-					}
-					onError("API Error: " + msg);
-					return;
-				}
-
-				std::vector<YouTubeStreamKey> keys;
-				if (j.contains("items")) {
-					int index = 0;
-					for (const auto &item :
-					     j["items"]) { // トラブルシュート: どの項目の解析中か記録
-						std::string currentField = "unknown";
-						try {
-							// 1. Ingestion Info Check
-							// 【修正】ingestionType は cdn 直下にあります
-							currentField = "cdn.ingestionType";
-							if (!item["cdn"].contains("ingestionType"))
-								continue;
-
-							std::string ingestType =
-								item["cdn"]["ingestionType"].get<std::string>();
-							if (ingestType != "rtmp")
-								continue;
-
-							YouTubeStreamKey key;
-
-							// 2. ID
-							currentField = "id";
-							key.id = item["id"].get<std::string>();
-
-							// 3. Title
-							currentField = "snippet.title";
-							key.title = item["snippet"]["title"].get<std::string>();
-
-							// 4. StreamName
-							currentField = "cdn.ingestionInfo.streamName";
-							key.streamName = item["cdn"]["ingestionInfo"]["streamName"]
-										 .get<std::string>();
-
-							// 5. Resolution (Optional)
-							currentField = "cdn.resolution";
-							if (item["cdn"].contains("resolution")) {
-								auto &res = item["cdn"]["resolution"];
-								if (res.is_string())
-									key.resolution = res.get<std::string>();
-								else
-									key.resolution = res.dump();
-							}
-
-							// 6. FrameRate (Optional)
-							currentField = "cdn.frameRate";
-							if (item["cdn"].contains("frameRate")) {
-								auto &fps = item["cdn"]["frameRate"];
-								if (fps.is_string())
-									key.frameRate = fps.get<std::string>();
-								else
-									key.frameRate = fps.dump();
-							}
-
-							keys.push_back(key);
-							index++;
-
-						} catch (const std::exception &e) {
-							// パース中のアイテム情報をエラーに含める
-							std::stringstream ss;
-							ss << "Parse error at item[" << index << "], field ["
-							   << currentField << "]: " << e.what()
-							   << "\nDump: " << item.dump();
-							onError(ss.str());
-							return;
-						}
-					}
-				}
-
-				onSuccess(keys);
-
-			} catch (const std::exception &e) {
-				// 全体的なJSONパースエラーの場合
-				// 生データの一部をエラーメッセージに含めて原因を特定しやすくする
-				std::string debugInfo = responseBody;
-				if (debugInfo.length() > 500)
-					debugInfo = debugInfo.substr(0, 500) + "...";
-
-				onError(std::string("JSON Error: ") + e.what() + "\nResponse: " + debugInfo);
-			}
-		},
-		onError);
-}
-
-// ... (performGetRequest は変更なし) ...
-void YouTubeApiClient::performGetRequest(const std::string &url, const std::string &accessToken,
-					 std::function<void(const std::string &)> onSuccess, ErrorCallback onError)
-{
-	// (以前のコードのまま)
-	CURL *curl = curl_easy_init();
-	if (!curl) {
-		onError("Failed to initialize libcurl.");
-		return;
+class CurlUrlHandle {
+public:
+	CurlUrlHandle() : handle_(curl_url())
+	{
+		if (!handle_) {
+			throw std::runtime_error("InitError(CurlUrlHandle)");
+		}
+	}
+	~CurlUrlHandle()
+	{
+		if (handle_) {
+			curl_url_cleanup(handle_);
+		}
 	}
 
-	std::string readBuffer;
+	CurlUrlHandle(const CurlUrlHandle &) = delete;
+	CurlUrlHandle &operator=(const CurlUrlHandle &) = delete;
+	CurlUrlHandle(CurlUrlHandle &&) = delete;
+	CurlUrlHandle &operator=(CurlUrlHandle &&) = delete;
+
+	void setUrl(const char *url)
+	{
+		CURLUcode uc = curl_url_set(handle_, CURLUPART_URL, url, 0);
+		if (uc != CURLUE_OK) {
+			throw std::runtime_error("URLParseError(CurlUrlHandle):" + std::string(url));
+		}
+	}
+
+	void appendQuery(const std::string &query)
+	{
+		CURLUcode uc = curl_url_set(handle_, CURLUPART_QUERY, query.c_str(), CURLU_APPENDQUERY);
+		if (uc != CURLUE_OK) {
+			throw std::runtime_error("QueryAppendError(CurlUrlHandle):" + query);
+		}
+	}
+
+	std::unique_ptr<char, decltype(&curl_free)> c_str() const
+	{
+		char *urlStr = nullptr;
+		CURLUcode uc = curl_url_get(handle_, CURLUPART_URL, &urlStr, 0);
+		if (uc != CURLUE_OK || !urlStr) {
+			throw std::runtime_error("GetUrlError(CurlUrlHandle)");
+		}
+		return std::unique_ptr<char, decltype(&curl_free)>(urlStr, curl_free);
+	}
+
+private:
+	CURLU *const handle_;
+};
+
+namespace {
+
+inline size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+	if (size != 0 && nmemb > (std::numeric_limits<size_t>::max() / size)) {
+		return 0; // Signal error
+	}
+
+	size_t totalSize = size * nmemb;
+	try {
+		auto *vec = static_cast<std::vector<char> *>(userp);
+		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
+	} catch (...) {
+		return 0; // Signal error
+	}
+	return totalSize;
+}
+
+inline std::string doGet(const char *url, const std::string &accessToken)
+{
+	if (!url || url[0] == '\0') {
+		throw std::invalid_argument("URLEmptyError(doGet)");
+	}
+
+	CURL *curl = curl_easy_init();
+	if (!curl) {
+		throw std::runtime_error("InitError(doGet)");
+	}
+
+	std::vector<char> readBuffer;
 	struct curl_slist *headers = NULL;
 
 	std::string authHeader = "Authorization: Bearer " + accessToken;
 	headers = curl_slist_append(headers, authHeader.c_str());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);       // 60 second timeout
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);      // Max 5 redirects
 
-	// SSL検証 (開発用)
-	// curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
 	CURLcode res = curl_easy_perform(curl);
 
@@ -159,10 +112,78 @@ void YouTubeApiClient::performGetRequest(const std::string &url, const std::stri
 	curl_easy_cleanup(curl);
 
 	if (res != CURLE_OK) {
-		onError(std::string("Network Error: ") + curl_easy_strerror(res));
-	} else {
-		onSuccess(readBuffer);
+		throw std::runtime_error(std::string("NetworkError(doGet):") + curl_easy_strerror(res));
 	}
+
+	return std::string(readBuffer.begin(), readBuffer.end());
+}
+
+inline std::vector<json> performList(const char *url, const std::string &accessToken, int maxIterations = 20)
+{
+	std::vector<json> items;
+	std::string nextPageToken;
+	do {
+		CurlUrlHandle urlHandle;
+		urlHandle.setUrl(url);
+
+		if (!nextPageToken.empty()) {
+			urlHandle.appendQuery("pageToken=" + nextPageToken);
+		}
+
+		std::string responseBody = doGet(urlHandle.c_str().get(), accessToken);
+		json j = json::parse(responseBody);
+
+		if (j.contains("error")) {
+			throw std::runtime_error("APIError(performList):" + j["error"].dump());
+		}
+
+		json jItems = std::move(j["items"]);
+		for (auto &x : jItems) {
+			items.push_back(std::move(x));
+		}
+
+		if (!j.contains("nextPageToken"))
+			break;
+
+		nextPageToken = j["nextPageToken"].get<std::string>();
+	} while (--maxIterations > 0);
+
+	return items;
+}
+
+} // namespace
+
+std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys()
+{
+	const char *url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
+	std::string accessToken = accessTokenFunc_().get();
+	std::vector<json> items = performList(url, accessToken);
+	std::vector<YouTubeStreamKey> streamKeys;
+	const json emptyObject = json::object();
+	for (const json &item : items) {
+		const json &snippet = item.value("snippet", emptyObject);
+		const json &cdn = item.value("cdn", emptyObject);
+		const json &info = cdn.value("ingestionInfo", emptyObject);
+
+		YouTubeStreamKey key;
+		key.id = item.value("id", "");
+		key.kind = item.value("kind", "");
+		key.snippet_title = snippet.value("title", "");
+		key.snippet_description = snippet.value("description", "");
+		key.snippet_channelId = snippet.value("channelId", "");
+		key.snippet_publishedAt = snippet.value("publishedAt", "");
+		key.snippet_privacyStatus = snippet.value("privacyStatus", "");
+		key.cdn_ingestionType = cdn.value("ingestionType", "");
+		key.cdn_resolution = cdn.value("resolution", "");
+		key.cdn_frameRate = cdn.value("frameRate", "");
+		key.cdn_isReusable = cdn.value("isReusable", "");
+		key.cdn_region = cdn.value("region", "");
+		key.cdn_ingestionInfo_streamName = info.value("streamName", "");
+		key.cdn_ingestionInfo_ingestionAddress = info.value("ingestionAddress", "");
+		key.cdn_ingestionInfo_backupIngestionAddress = info.value("backupIngestionAddress", "");
+		streamKeys.push_back(std::move(key));
+	}
+	return streamKeys;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::API

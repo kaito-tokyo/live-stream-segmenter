@@ -3,6 +3,7 @@ Live Stream Segmenter
 Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 */
 #include <thread> // 【追加】
+#include <future>
 
 #include "SettingsDialog.hpp"
 #include <QDesktopServices>
@@ -18,6 +19,8 @@ Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 #include <QTimer> // 【追加】
 
 #include <YouTubeApiClient.hpp>
+
+using namespace KaitoTokyo::LiveStreamSegmenter::API;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -382,50 +385,17 @@ void SettingsDialog::onRefreshKeysClicked()
 	streamKeyCombo_->clear();
 	streamKeyCombo_->addItem(tr("Loading..."));
 
-	// 1. AuthManagerからトークン取得
-	authManager_->getAccessToken(
-		[this](QString token) {
-			// 2. 別スレッドで実行
-			// std::thread を使うために、ラムダ式でキャプチャ
-			std::thread worker([this, token]() {
-				// Pure C++ Client (スタック上で生成)
-				API::YouTubeApiClient client;
+	YouTubeApiClient client([this]() {
+		auto promise = std::make_shared<std::promise<std::string>>();
+		authManager_->getAccessToken(
+			[promise](const QString &token) { promise->set_value(token.toStdString()); },
+			[promise](const QString &) { promise->set_value(""); });
+		return promise->get_future();
+	});
 
-				// Pure C++ なので std::string に変換
-				std::string stdToken = token.toStdString();
+	auto streamKeys = client.listStreamKeys();
 
-				client.fetchStreamKeys(
-					stdToken,
-					// Success Callback (Worker Threadで呼ばれる)
-					[this](const std::vector<API::YouTubeStreamKey> &keys) {
-						// 3. UIスレッドに戻す
-						// QMetaObject::invokeMethod の代わりに QTimer::singleShot(0, ...) を使うと
-						// ラムダ式の型推論エラーが起きにくい
-						QTimer::singleShot(0, this,
-								   [this, keys]() { updateStreamKeyList(keys); });
-					},
-					// Error Callback (Worker Threadで呼ばれる)
-					[this](const std::string &error) {
-						// UIスレッドに戻す
-						QTimer::singleShot(0, this, [this, error]() {
-							refreshKeysBtn_->setEnabled(true);
-							refreshKeysBtn_->setText(tr("Reload Keys"));
-							streamKeyCombo_->clear();
-							streamKeyCombo_->setPlaceholderText(tr("Error fetching keys"));
-							QMessageBox::critical(this, tr("API Error"),
-									      QString::fromStdString(error));
-						});
-					});
-			});
-
-			worker.detach(); // スレッドを切り離してバックグラウンド実行
-		},
-		// Token Error (UI Thread)
-		[this](QString error) {
-			refreshKeysBtn_->setEnabled(true);
-			refreshKeysBtn_->setText(tr("Reload Keys"));
-			QMessageBox::critical(this, tr("Auth Error"), error);
-		});
+	QTimer::singleShot(0, this, [this, streamKeys]() { updateStreamKeyList(streamKeys); });
 }
 
 void SettingsDialog::updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys)
@@ -445,10 +415,10 @@ void SettingsDialog::updateStreamKeyList(const std::vector<API::YouTubeStreamKey
 
 	for (const auto &key : keys) {
 		// Pure C++ Struct -> Qt String
-		QString title = QString::fromStdString(key.title);
+		QString title = QString::fromStdString(key.snippet_title);
 		QString id = QString::fromStdString(key.id);
-		QString streamName = QString::fromStdString(key.streamName);
-		QString desc = QString::fromStdString(key.resolution);
+		QString streamName = QString::fromStdString(key.cdn_ingestionInfo_streamName);
+		QString desc = QString::fromStdString(key.cdn_resolution);
 
 		QString displayText = QString("%1 (%2)").arg(title, desc);
 
