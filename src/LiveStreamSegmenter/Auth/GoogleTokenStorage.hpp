@@ -21,17 +21,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <string>
 #include <optional>
 
-#include "GoogleAuthState.hpp"
+#include "GoogleTokenState.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-class GoogleAuthStorage {
+class GoogleTokenStorage {
 public:
-	GoogleAuthStorage() = default;
-	virtual ~GoogleAuthStorage() = default;
+	GoogleTokenStorage() = default;
+	virtual ~GoogleTokenStorage() = default;
 
-	virtual std::optional<GoogleAuthState> load();
-	virtual void save(const GoogleAuthState &state);
+	virtual std::optional<GoogleTokenState> load();
+	virtual void save(const GoogleTokenState &state);
 	virtual void clear();
 };
 

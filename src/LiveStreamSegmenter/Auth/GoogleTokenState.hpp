@@ -25,13 +25,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <nlohmann/json.hpp>
 
-#include "GoogleTokenResponse.hpp"
+#include "GoogleAuthResponse.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 using Timestamp = std::int64_t;
 
-struct GoogleAuthState {
+struct GoogleTokenState {
 	std::string access_token;
 	std::string refresh_token;
 	std::string email;
@@ -92,7 +92,7 @@ struct GoogleAuthState {
 		expires_at.reset();
 	}
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleAuthState, access_token, refresh_token, email, scope,
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenState, access_token, refresh_token, email, scope,
 						    expires_at)
 };
 

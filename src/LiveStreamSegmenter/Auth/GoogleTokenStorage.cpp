@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "GoogleAuthStorage.hpp"
+#include "GoogleTokenStorage.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -42,7 +42,7 @@ fs::path getFilePath()
 
 } // namespace
 
-std::optional<GoogleAuthState> GoogleAuthStorage::load()
+std::optional<GoogleTokenState> GoogleTokenStorage::load()
 {
 	fs::path path = getFilePath();
 
@@ -54,24 +54,24 @@ std::optional<GoogleAuthState> GoogleAuthStorage::load()
 	try {
 		json j;
 		file >> j;
-		return j.get<GoogleAuthState>();
+		return j.get<GoogleTokenState>();
 	} catch (...) {
 		return std::nullopt;
 	}
 }
 
-void GoogleAuthStorage::save(const GoogleAuthState &authState)
+void GoogleTokenStorage::save(const GoogleTokenState &tokenState)
 {
 	fs::path path = getFilePath();
 
 	std::ofstream file(path);
 	if (file.is_open()) {
-        json j = authState;
+		json j = tokenState;
 		file << j.dump();
 	}
 }
 
-void GoogleAuthStorage::clear()
+void GoogleTokenStorage::clear()
 {
 	fs::remove(getFilePath());
 }
