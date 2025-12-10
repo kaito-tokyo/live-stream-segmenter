@@ -1,43 +1,81 @@
 #pragma once
 
-#include <string>
 #include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string>
+
 #include <nlohmann/json.hpp>
+
+#include "GoogleTokenResponse.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-using json = nlohmann::json;
+using Timestamp = std::int64_t;
 
-class GoogleAuthState {
-public:
-	GoogleAuthState() = default;
-	~GoogleAuthState() = default;
+struct GoogleAuthState {
+	std::string access_token;
+	std::string refresh_token;
+	std::string email;
+	std::string scope;
 
-	bool isAuthorized() const;
-	bool isAccessTokenFresh() const;
+	std::optional<Timestamp> expires_at;
 
-	void updateFromTokenResponse(const json &j);
-	void setUserEmail(const std::string &email);
-	void clear();
+	std::chrono::system_clock::time_point expirationTimePoint() const
+	{
+		if (expires_at.has_value()) {
+			return std::chrono::system_clock::time_point(std::chrono::seconds(expires_at.value()));
+		} else {
+			return {};
+		}
+	}
 
-	json toJson() const;
-	static GoogleAuthState fromJson(const json &j);
+	bool isAuthorized() const { return !refresh_token.empty(); }
 
-	// Getters
-	std::string accessToken() const { return accessToken_; }
-	std::string refreshToken() const { return refreshToken_; }
-	std::string email() const { return email_; }
+	bool isAccessTokenFresh() const
+	{
+		if (access_token.empty() || !expires_at.has_value()) {
+			return false;
+		}
 
-	std::chrono::system_clock::time_point expirationDate() const { return tokenExpiration_; }
+		auto now = std::chrono::system_clock::now();
 
-private:
-	std::string accessToken_;
-	std::string refreshToken_;
-	std::string email_;
-	std::string scope_;
+		const auto timeMargin = std::chrono::seconds(60);
 
-	// 有効期限 (Epoch time 0 means invalid)
-	std::chrono::system_clock::time_point tokenExpiration_ = std::chrono::system_clock::time_point();
+		return (now + timeMargin) < expirationTimePoint();
+	}
+
+	void updateFromTokenResponse(const GoogleTokenResponse &response)
+	{
+		access_token = response.access_token;
+
+		if (response.expires_in.has_value()) {
+			auto now = std::chrono::duration_cast<std::chrono::seconds>(
+					   std::chrono::system_clock::now().time_since_epoch())
+					   .count();
+			expires_at = now + response.expires_in.value();
+		}
+
+		if (response.scope.has_value()) {
+			scope = response.scope.value();
+		}
+
+		if (response.refresh_token.has_value() && !response.refresh_token->empty()) {
+			refresh_token = response.refresh_token.value();
+		}
+	}
+
+	void clear()
+	{
+		access_token.clear();
+		refresh_token.clear();
+		email.clear();
+		scope.clear();
+		expires_at.reset();
+	}
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleAuthState, access_token, refresh_token, email, scope,
+						    expires_at)
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
