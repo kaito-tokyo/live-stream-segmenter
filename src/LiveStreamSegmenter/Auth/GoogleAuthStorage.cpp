@@ -54,22 +54,7 @@ std::optional<GoogleAuthState> GoogleAuthStorage::load()
 	try {
 		json j;
 		file >> j;
-
-		GoogleAuthState authState;
-		authState.refreshToken = j.value("refresh_token", "");
-		authState.email = j.value("email", "");
-		authState.accessToken = j.value("access_token", "");
-		authState.scope = j.value("scope", "");
-
-		if (j.contains("expires_at")) {
-			int64_t expiresAt = j["expires_at"].get<int64_t>();
-			authState.tokenExpiration =
-				std::chrono::system_clock::time_point(std::chrono::seconds(expiresAt));
-		} else {
-			authState.tokenExpiration = std::chrono::system_clock::time_point();
-		}
-
-		return authState;
+		return j.get<GoogleAuthState>();
 	} catch (...) {
 		return std::nullopt;
 	}
@@ -81,19 +66,8 @@ void GoogleAuthStorage::save(const GoogleAuthState &authState)
 
 	std::ofstream file(path);
 	if (file.is_open()) {
-		json j{{"refresh_token", authState.refreshToken},
-		       {"email", authState.email},
-		       {"access_token", authState.accessToken},
-		       {"scope", authState.scope}};
-
-		if (authState.tokenExpiration.time_since_epoch().count() != 0) {
-			auto expiresAt = std::chrono::duration_cast<std::chrono::seconds>(
-						 authState.tokenExpiration.time_since_epoch())
-						 .count();
-			j["expires_at"] = expiresAt;
-		}
-
-		file << j.dump(4);
+        json j = authState;
+		file << j.dump();
 	}
 }
 
