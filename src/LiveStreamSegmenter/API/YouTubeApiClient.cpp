@@ -99,7 +99,7 @@ inline std::string doGet(const char *url, const std::string &accessToken)
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);       // 10 second timeout
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);       // 60 second timeout
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
 	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);      // Max 5 redirects
 
