@@ -56,6 +56,7 @@ struct YouTubeStreamKey {
  * Includes title, description, scheduled start time, and privacy status.
  */
 struct YouTubeBroadcastParams {
+	YouTubeBroadcastParams() : privacyStatus("private") {}
 	std::string title;
 	std::string description;
 	std::string scheduledStartTime;
