@@ -4,55 +4,45 @@ namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 bool GoogleAuthState::isAuthorized() const
 {
-	// リフレッシュトークンさえあれば、いつでもアクセストークンを再取得できるため
-	// 「認証済み」とみなします。
-	return !refreshToken_.isEmpty();
+	return !refreshToken_.empty();
 }
 
 bool GoogleAuthState::isAccessTokenFresh() const
 {
-	if (accessToken_.isEmpty() || !tokenExpiration_.isValid()) {
+	if (accessToken_.empty() || tokenExpiration_.time_since_epoch().count() == 0) {
 		return false;
 	}
 
-	// 安全マージン: 期限切れの60秒前には「もう使えない」と判断してリフレッシュを促す
-	const qint64 kExpirationMarginSeconds = 60;
-
-	QDateTime now = QDateTime::currentDateTimeUtc();
-	return now.addSecs(kExpirationMarginSeconds) < tokenExpiration_;
+	// 60秒のマージン
+	auto now = std::chrono::system_clock::now();
+	auto margin = std::chrono::seconds(60);
+	return (now + margin) < tokenExpiration_;
 }
 
-void GoogleAuthState::updateFromTokenResponse(const QJsonObject &json)
+void GoogleAuthState::updateFromTokenResponse(const json &j)
 {
-	// 1. アクセストークン (毎回変わる)
-	if (json.contains("access_token")) {
-		accessToken_ = json["access_token"].toString();
+	if (j.contains("access_token")) {
+		accessToken_ = j["access_token"].get<std::string>();
 	}
 
-	// 2. リフレッシュトークン
-	// 初回認証時は返ってくるが、アクセストークン更新(Refresh)時は
-	// 返ってこないことが多い。空の場合は既存のものを消さないようにする。
-	if (json.contains("refresh_token")) {
-		QString newRefresh = json["refresh_token"].toString();
-		if (!newRefresh.isEmpty()) {
+	if (j.contains("refresh_token")) {
+		std::string newRefresh = j["refresh_token"].get<std::string>();
+		if (!newRefresh.empty()) {
 			refreshToken_ = newRefresh;
 		}
 	}
 
-	// 3. 有効期限 (expires_in は "秒数" で返ってくる)
-	if (json.contains("expires_in")) {
-		int expiresInSeconds = json["expires_in"].toInt();
-		// 現在時刻 + 秒数 = 絶対時刻 (UTCで計算・保持する)
-		tokenExpiration_ = QDateTime::currentDateTimeUtc().addSecs(expiresInSeconds);
+	if (j.contains("expires_in")) {
+		int expiresInSeconds = j["expires_in"].get<int>();
+		tokenExpiration_ = std::chrono::system_clock::now() + std::chrono::seconds(expiresInSeconds);
 	}
 
-	// 4. スコープ (権限が変わった場合など)
-	if (json.contains("scope")) {
-		scope_ = json["scope"].toString();
+	if (j.contains("scope")) {
+		scope_ = j["scope"].get<std::string>();
 	}
 }
 
-void GoogleAuthState::setUserEmail(const QString &email)
+void GoogleAuthState::setUserEmail(const std::string &email)
 {
 	email_ = email;
 }
@@ -63,45 +53,37 @@ void GoogleAuthState::clear()
 	refreshToken_.clear();
 	email_.clear();
 	scope_.clear();
-	tokenExpiration_ = QDateTime();
+	tokenExpiration_ = std::chrono::system_clock::time_point();
 }
 
-QJsonObject GoogleAuthState::toJson() const
+json GoogleAuthState::toJson() const
 {
-	QJsonObject json;
+	json j;
+	j["refresh_token"] = refreshToken_;
+	j["email"] = email_;
+	j["access_token"] = accessToken_;
+	j["scope"] = scope_;
 
-	// 必須保存項目
-	json["refresh_token"] = refreshToken_;
-	json["email"] = email_;
-
-	// キャッシュとしての保存項目
-	// (アプリ再起動後も、期限内ならAPIを叩かずに即座に使えるようにするため)
-	json["access_token"] = accessToken_;
-	if (tokenExpiration_.isValid()) {
-		json["expires_at"] = tokenExpiration_.toString(Qt::ISODate);
+	if (tokenExpiration_.time_since_epoch().count() != 0) {
+		auto expiresAt =
+			std::chrono::duration_cast<std::chrono::seconds>(tokenExpiration_.time_since_epoch()).count();
+		j["expires_at"] = expiresAt;
 	}
 
-	if (!scope_.isEmpty()) {
-		json["scope"] = scope_;
-	}
-
-	return json;
+	return j;
 }
 
-GoogleAuthState GoogleAuthState::fromJson(const QJsonObject &json)
+GoogleAuthState GoogleAuthState::fromJson(const json &j)
 {
 	GoogleAuthState state;
+	state.refreshToken_ = j.value("refresh_token", "");
+	state.email_ = j.value("email", "");
+	state.accessToken_ = j.value("access_token", "");
+	state.scope_ = j.value("scope", "");
 
-	state.refreshToken_ = json["refresh_token"].toString();
-	state.email_ = json["email"].toString();
-	state.accessToken_ = json["access_token"].toString();
-
-	if (json.contains("expires_at")) {
-		state.tokenExpiration_ = QDateTime::fromString(json["expires_at"].toString(), Qt::ISODate);
-	}
-
-	if (json.contains("scope")) {
-		state.scope_ = json["scope"].toString();
+	if (j.contains("expires_at")) {
+		int64_t expiresAt = j["expires_at"].get<int64_t>();
+		state.tokenExpiration_ = std::chrono::system_clock::time_point(std::chrono::seconds(expiresAt));
 	}
 
 	return state;

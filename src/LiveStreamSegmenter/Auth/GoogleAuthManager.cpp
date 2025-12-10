@@ -47,7 +47,7 @@ bool GoogleAuthManager::isAuthenticated() const
 
 QString GoogleAuthManager::currentChannelName() const
 {
-	return state_.email(); // AuthState側で email_ にチャンネル名を入れている前提
+	return QString::fromStdString(state_.email()); // AuthState側で email_ にチャンネル名を入れている前提
 }
 
 void GoogleAuthManager::startLogin()
@@ -79,7 +79,7 @@ void GoogleAuthManager::getAccessToken(std::function<void(QString)> onSuccess, s
 
 	// 1. トークンがまだ新鮮なら、そのまま返す
 	if (state_.isAccessTokenFresh()) {
-		onSuccess(state_.accessToken());
+		onSuccess(QString::fromStdString(state_.accessToken()));
 		return;
 	}
 
@@ -107,10 +107,10 @@ void GoogleAuthManager::performRefresh(std::function<void(QString)> onSuccess, s
 
 	// リフレッシュ用パラメータ
 	// grant_type=refresh_token
-	QString postDataStr =
-		QString("client_id=%1&client_secret=%2&refresh_token=%3&grant_type=refresh_token")
-			.arg(QUrl::toPercentEncoding(clientId_), QUrl::toPercentEncoding(clientSecret_),
-			     QUrl::toPercentEncoding(state_.refreshToken())); // 保持しているRefreshTokenを使う
+	QString postDataStr = QString("client_id=%1&client_secret=%2&refresh_token=%3&grant_type=refresh_token")
+				      .arg(QUrl::toPercentEncoding(clientId_), QUrl::toPercentEncoding(clientSecret_),
+					   QUrl::toPercentEncoding(QString::fromStdString(
+						   state_.refreshToken()))); // 保持しているRefreshTokenを使う
 
 	QByteArray postBytes = postDataStr.toUtf8();
 
@@ -132,19 +132,22 @@ void GoogleAuthManager::performRefresh(std::function<void(QString)> onSuccess, s
 	curl_easy_cleanup(curl);
 
 	// JSONパース
-	QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(readBuffer));
-	QJsonObject json = doc.object();
+	auto json = nlohmann::json::parse(readBuffer, nullptr, false);
+	if (json.is_discarded()) {
+		onError("Failed to parse token refresh response.");
+		return;
+	}
 
 	if (json.contains("error")) {
-		QString errMsg = json["error_description"].toString();
-		blog(LOG_ERROR, "[GoogleAuthManager] Refresh API Error: %s", errMsg.toUtf8().constData());
+		std::string errMsg = json.value("error_description", "");
+		blog(LOG_ERROR, "[GoogleAuthManager] Refresh API Error: %s", errMsg.c_str());
 
 		// リフレッシュトークンが無効になった場合（Revokeされた等）
-		if (json["error"].toString() == "invalid_grant") {
+		if (json.value("error", "") == std::string("invalid_grant")) {
 			logout(); // 強制ログアウト
 			onError("Session expired (Revoked). Please login again.");
 		} else {
-			onError(QString("Refresh API Error: %1").arg(errMsg));
+			onError(QString("Refresh API Error: %1").arg(QString::fromStdString(errMsg)));
 		}
 		return;
 	}
@@ -157,7 +160,7 @@ void GoogleAuthManager::performRefresh(std::function<void(QString)> onSuccess, s
 	emit authStateChanged(); // 有効期限が変わったので通知
 
 	// 待っていた呼び出し元に新しいトークンを渡す
-	onSuccess(state_.accessToken());
+	onSuccess(QString::fromStdString(state_.accessToken()));
 }
 
 // ==========================================
@@ -203,8 +206,9 @@ void GoogleAuthManager::saveTokenToDisk()
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly)) {
-		QJsonDocument doc(state_.toJson());
-		file.write(doc.toJson());
+		auto json = state_.toJson();
+		std::string dump = json.dump();
+		file.write(QByteArray::fromStdString(dump));
 		file.close();
 	}
 }
@@ -214,11 +218,17 @@ void GoogleAuthManager::loadTokenFromDisk()
 	QString path = getTokenFilePath();
 	QFile file(path);
 	if (file.open(QIODevice::ReadOnly)) {
-		QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-		state_ = GoogleAuthState::fromJson(doc.object());
-
-		if (state_.isAuthorized()) {
-			emit authStateChanged();
+		QByteArray data = file.readAll();
+		try {
+			auto json = nlohmann::json::parse(data.constData(), nullptr, false);
+			if (!json.is_discarded()) {
+				state_ = GoogleAuthState::fromJson(json);
+				if (state_.isAuthorized()) {
+					emit authStateChanged();
+				}
+			}
+		} catch (...) {
+			// ignore parse error
 		}
 	}
 }

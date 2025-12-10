@@ -143,18 +143,21 @@ void GoogleOAuth2Flow::exchangeCodeForToken(const QString &code)
 	}
 	curl_easy_cleanup(curl);
 
-	QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(readBuffer));
-	QJsonObject json = doc.object();
-
+	auto json = nlohmann::json::parse(readBuffer, nullptr, false);
+	if (json.is_discarded()) {
+		emit flowError("Failed to parse token response.");
+		return;
+	}
 	if (json.contains("error")) {
-		emit flowError(QString("API Error: %1").arg(json["error_description"].toString()));
+		std::string errMsg = json.value("error_description", "");
+		emit flowError(QString("API Error: %1").arg(QString::fromStdString(errMsg)));
 		return;
 	}
 
 	// AuthState にトークン情報を反映
 	tempState_.updateFromTokenResponse(json);
 
-	if (tempState_.refreshToken().isEmpty()) {
+	if (tempState_.refreshToken().empty()) {
 		emit flowError("Failed to get Refresh Token. Please try again.");
 		return;
 	}
@@ -172,7 +175,7 @@ void GoogleOAuth2Flow::fetchChannelInfo()
 
 	std::string readBuffer;
 	struct curl_slist *headers = NULL;
-	QString authHeader = QString("Authorization: Bearer %1").arg(tempState_.accessToken());
+	QString authHeader = QString("Authorization: Bearer %1").arg(QString::fromStdString(tempState_.accessToken()));
 	headers = curl_slist_append(headers, authHeader.toUtf8().constData());
 
 	// 【重要】channels API を使用 (mine=true)
@@ -205,7 +208,7 @@ void GoogleOAuth2Flow::fetchChannelInfo()
 
 	// AuthState にチャンネル名をセット (ここでは便宜上 setUserEmail を利用)
 	// ※ AuthState側で setChannelTitle 等にリネームしても良い
-	tempState_.setUserEmail(channelTitle);
+	tempState_.setUserEmail(channelTitle.toStdString());
 
 	// 全フロー完了：完成した State を返す
 	emit flowSuccess(tempState_);
