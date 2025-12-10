@@ -124,7 +124,7 @@ inline std::string doGet(const char *url, const std::string &accessToken)
 	return std::string(readBuffer.begin(), readBuffer.end());
 }
 
-inline std::vector<json> performList(const char *url, const std::string &accessToken, int maxPages = 20)
+inline std::vector<json> performList(const char *url, const std::string &accessToken, int maxIterations = 20)
 {
 	std::vector<json> items;
 	std::string nextPageToken;
@@ -152,7 +152,7 @@ inline std::vector<json> performList(const char *url, const std::string &accessT
 			break;
 
 		nextPageToken = j["nextPageToken"].get<std::string>();
-	} while (--maxPages > 0);
+	} while (--maxIterations > 0);
 
 	return items;
 }
