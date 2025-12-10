@@ -32,7 +32,7 @@ SOFTWARE.
 #include <limits>
 #include <vector>
 
-namespace KaitoTokyo::LiveStreamSegmenter::CurlHelper {
+namespace KaitoTokyo::CurlHelper {
 
 using CurlVectorWriterType = std::vector<char>;
 
@@ -52,4 +52,4 @@ std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb
 	return totalSize;
 }
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::CurlHelper
+} // namespace KaitoTokyo::CurlHelper

@@ -24,10 +24,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <curl/curl.h>
 
+#include <CurlUrlSearchParams.hpp>
+#include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
 #include "GoogleTokenState.hpp"
 #include "GoogleTokenStorage.hpp"
+
+using namespace KaitoTokyo::CurlHelper;
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
@@ -101,42 +105,40 @@ public:
 		logger_->info("Access token expired. Refreshing...");
 
 		if (refreshToken.has_value()) {
-			performRefresh(*refreshToken);
+			refreshTokenState(*refreshToken);
 		}
 
 		std::lock_guard<std::mutex> lock(mutex_);
-		return currentTokenData_.access_token;
+		return currentTokenState_.access_token;
 	}
 
 private:
-	void performRefresh(const std::string &refreshToken)
+	void refreshTokenState(const std::string &refreshToken)
 	{
-		CURL *curl = curl_easy_init();
+		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
-			throw std::runtime_error("Failed to init curl");
+			throw std::runtime_error("InitError(refreshTokenState)");
 		}
 
-		// URL Encoding helper
-		auto urlEncode = [&](const std::string &s) -> std::string {
-			char *output = curl_easy_escape(curl, s.c_str(), static_cast<int>(s.length()));
-			if (output) {
-				std::string result(output);
-				curl_free(output);
-				return result;
-			}
-			return "";
-		};
+		CurlVectorWriterType readBuffer;
 
-		std::string readBuffer;
-		std::string postDataStr = "client_id=" + urlEncode(clientId_) +
-					  "&client_secret=" + urlEncode(clientSecret_) +
-					  "&refresh_token=" + urlEncode(rtoken) + "&grant_type=refresh_token";
+		CurlUrlSearchParams postData(curl.get());
+		postData.append("client_id", clientId_);
+		postData.append("client_secret", clientSecret_);
+		postData.append("refresh_token", refreshToken);
+		postData.append("grant_type", "refresh_token");
 
-		curl_easy_setopt(curl, CURLOPT_URL, "https://oauth2.googleapis.com/token");
-		curl_easy_setopt(curl, CURLOPT_POST, 1L);
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postDataStr.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
+		curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
+		curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, postData.toString().c_str());
+		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlVectorWriter);
+		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);       // 60 second timeout
+		curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+		curl_easy_setopt(curl.get(), CURLOPT_MAXREDIRS, 5L);      // Max 5 redirects
+
+		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
 		CURLcode res = curl_easy_perform(curl);
 

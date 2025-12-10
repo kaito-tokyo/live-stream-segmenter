@@ -1,25 +1,27 @@
 /*
- * MIT License
- * 
- * Copyright (c) 2025 Kaito Udagawa
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+Live Stream Segmenter
+
+MIT License
+
+Copyright (c) 2025 Kaito Udagawa
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 */
 
 #include "YouTubeApiClient.hpp"
@@ -27,27 +29,16 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include <CurlUrlHandler.hpp>
+#include <CurlVectorWriter.hpp>
+
 using json = nlohmann::json;
+
+using namespace KaitoTokyo::CurlHelper;
 
 namespace KaitoTokyo::LiveStreamSegmenter::API {
 
 namespace {
-
-inline size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-	if (size != 0 && nmemb > (std::numeric_limits<size_t>::max() / size)) {
-		return 0; // Signal error
-	}
-
-	size_t totalSize = size * nmemb;
-	try {
-		auto *vec = static_cast<std::vector<char> *>(userp);
-		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
-	} catch (...) {
-		return 0; // Signal error
-	}
-	return totalSize;
-}
 
 inline std::string doGet(const char *url, const std::string &accessToken)
 {
@@ -60,7 +51,7 @@ inline std::string doGet(const char *url, const std::string &accessToken)
 		throw std::runtime_error("InitError(doGet)");
 	}
 
-	std::vector<char> readBuffer;
+	CurlVectorWriterType readBuffer;
 	struct curl_slist *headers = NULL;
 
 	std::string authHeader = "Authorization: Bearer " + accessToken;
@@ -68,7 +59,7 @@ inline std::string doGet(const char *url, const std::string &accessToken)
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlVectorWriter);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);       // 60 second timeout
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
@@ -98,7 +89,7 @@ inline std::vector<json> performList(const char *url, const std::string &accessT
 		urlHandle.setUrl(url);
 
 		if (!nextPageToken.empty()) {
-			urlHandle.appendQuery("pageToken=" + nextPageToken);
+			urlHandle.appendQuery(("pageToken=" + nextPageToken).c_str());
 		}
 
 		std::string responseBody = doGet(urlHandle.c_str().get(), accessToken);

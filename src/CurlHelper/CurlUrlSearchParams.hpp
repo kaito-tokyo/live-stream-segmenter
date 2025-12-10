@@ -29,19 +29,27 @@ SOFTWARE.
 #include <cstddef>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <curl/curl.h>
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::CurlHelper {
 
-class CurlURLSearchParams {
+class CurlUrlSearchParams {
 public:
-	explicit CurlURLSearchParams(CURL *curl)
-		: curl_(curl ? curl : throw std::invalid_argument("InitError(CurlURLSearchParams)"))
+	explicit CurlUrlSearchParams(CURL *curl)
+		: curl_(curl ? curl : throw std::invalid_argument("InitError(CurlUrlSearchParams)"))
 	{
 	}
+
+    ~CurlUrlSearchParams() noexcept = default;
+
+    CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
+    CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
+    CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
+    CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
 
 	void append(const std::string &name, const std::string &value) { params_.emplace_back(name, value); }
 
@@ -60,7 +68,10 @@ public:
 				curl_easy_escape(curl_, key.c_str(), static_cast<int>(key.length())), curl_free);
 			std::unique_ptr<char, decltype(&curl_free)> escapedValue(
 				curl_easy_escape(curl_, value.c_str(), static_cast<int>(value.length())), curl_free);
-
+			if (!escapedKey || !escapedValue) {
+				throw std::runtime_error("EncodeError(CurlUrlSearchParams)");
+			}
+		
 			oss << escapedKey.get() << "=" << escapedValue.get();
 		}
 		return oss.str();
@@ -71,4 +82,4 @@ private:
 	std::vector<std::pair<std::string, std::string>> params_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::CurlHelper

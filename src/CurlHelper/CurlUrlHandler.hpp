@@ -32,7 +32,7 @@ SOFTWARE.
 #include <stdexcept>
 #include <string>
 
-namespace KaitoTokyo::LiveStreamSegmenter::CurlHelper {
+namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlHandle {
 public:
@@ -85,4 +85,4 @@ private:
 	CURLU *const handle_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::CurlHelper
+} // namespace KaitoTokyo::CurlHelper
