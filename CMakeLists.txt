@@ -26,14 +26,6 @@ endif()
 
 if(ENABLE_QT)
   find_package(Qt6 COMPONENTS Widgets Core Network REQUIRED)
-  target_compile_options(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
-  )
-  set_target_properties(
-    ${CMAKE_PROJECT_NAME}
-    PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
-  )
 endif()
 
 if(VCPKG_TARGET_TRIPLET)
@@ -43,6 +35,7 @@ if(VCPKG_TARGET_TRIPLET)
 
   find_package(CURL CONFIG REQUIRED)
   find_package(fmt CONFIG REQUIRED)
+  find_package(httplib CONFIG REQUIRED)
   find_package(nlohmann_json CONFIG REQUIRED)
 elseif(USE_PKGCONFIG)
   find_package(PkgConfig REQUIRED)
@@ -63,6 +56,14 @@ elseif(USE_PKGCONFIG)
   target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
   target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
 
+  # --- httplib ---
+  pkg_check_modules(PC_HTTPLIB REQUIRED httplib)
+  add_library(httplib::httplib INTERFACE IMPORTED)
+  target_link_libraries(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARIES})
+  target_include_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_INCLUDE_DIRS})
+  target_compile_definitions(httplib::httplib INTERFACE ${PC_HTTPLIB_CFLAGS_OTHER})
+  target_link_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARY_DIRS})
+
   # --- nlohmann_json ---
   pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
   add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
@@ -73,6 +74,9 @@ elseif(USE_PKGCONFIG)
 else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
+
+add_library(jthread::jthread INTERFACE IMPORTED)
+target_include_directories(jthread::jthread INTERFACE ${CMAKE_SOURCE_DIR}/vendor/josuttis-jthread)
 
 add_library(Logger INTERFACE)
 target_include_directories(Logger INTERFACE ${CMAKE_SOURCE_DIR}/src/Logger)
@@ -98,7 +102,8 @@ target_sources(
   CurlHelper
   PRIVATE
     src/CurlHelper/CurlUrlHandler.hpp
-    src/CurlHelper/CurlWriteFunction.hpp
+    src/CurlHelper/CurlUrlSearchParams.hpp
+    src/CurlHelper/CurlVectorWriter.hpp
 )
 
 add_library(UpdateChecker INTERFACE)
@@ -106,18 +111,16 @@ target_include_directories(UpdateChecker INTERFACE ${CMAKE_SOURCE_DIR}/src/Updat
 target_link_libraries(UpdateChecker INTERFACE CurlHelper)
 target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
-# Plugin modules
+# --- Plugin modules ---
 
 add_library(
   ${CMAKE_PROJECT_NAME}_Auth
-  STATIC
-  src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.cpp
-  src/LiveStreamSegmenter/Auth/GoogleTokenStorage.cpp
+  INTERFACE
 )
-target_include_directories(${CMAKE_PROJECT_NAME}_Auth PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
+target_include_directories(${CMAKE_PROJECT_NAME}_Auth INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Auth
-  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CurlHelper
+  INTERFACE httplib::httplib jthread::jthread CurlHelper Logger
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Auth
@@ -165,10 +168,14 @@ target_sources(
     src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
 )
 
-foreach(TARGET ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_API ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
+foreach(TARGET ${CMAKE_PROJECT_NAME}_API ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
+  target_compile_options(
+    ${TARGET}
+    PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
+  )
   target_compile_definitions(
     ${TARGET}
-    PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
+    PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
   )
   set_target_properties(
     ${TARGET}

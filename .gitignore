@@ -21,6 +21,7 @@
 !/unsupported/flatpak/README.md
 !/vcpkg-overlay-ports
 !/vcpkg-triplets
+!/vendor
 !.aiexclude
 !.clang-format
 !.gersemirc
