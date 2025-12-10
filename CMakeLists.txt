@@ -152,12 +152,7 @@ target_sources(
     src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
 )
 
-foreach(TARGET
-        ${CMAKE_PROJECT_NAME}_Auth
-        ${CMAKE_PROJECT_NAME}_API
-        ${CMAKE_PROJECT_NAME}_UI
-        ${CMAKE_PROJECT_NAME}
-      )
+foreach(TARGET ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_API ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_definitions(
     ${TARGET}
     PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
