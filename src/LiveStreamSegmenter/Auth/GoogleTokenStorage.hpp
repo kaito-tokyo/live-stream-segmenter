@@ -39,7 +39,10 @@ namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 class GoogleTokenStorage {
 public:
-	explicit GoogleTokenStorage(std::filesystem::path configFilePath) noexcept : configFilePath_(std::move(configFilePath)) {}
+	explicit GoogleTokenStorage(std::filesystem::path configFilePath) noexcept
+		: configFilePath_(std::move(configFilePath))
+	{
+	}
 
 	virtual ~GoogleTokenStorage() noexcept = default;
 
@@ -48,7 +51,8 @@ public:
 	GoogleTokenStorage(GoogleTokenStorage &&) = delete;
 	GoogleTokenStorage &operator=(GoogleTokenStorage &&) = delete;
 
-	virtual std::optional<GoogleTokenState> load() {
+	virtual std::optional<GoogleTokenState> load()
+	{
 		std::ifstream file(configFilePath_);
 		if (!file.is_open()) {
 			return std::nullopt;
@@ -63,7 +67,8 @@ public:
 		}
 	}
 
-	virtual void save(const GoogleTokenState &tokenState) {
+	virtual void save(const GoogleTokenState &tokenState)
+	{
 		if (auto parentDirectory = configFilePath_.parent_path(); !parentDirectory.empty()) {
 			std::filesystem::create_directories(parentDirectory);
 		}
@@ -75,9 +80,7 @@ public:
 		}
 	}
 
-	virtual void clear() {
-		std::filesystem::remove(configFilePath_);
-	}
+	virtual void clear() { std::filesystem::remove(configFilePath_); }
 
 private:
 	const std::filesystem::path configFilePath_;
