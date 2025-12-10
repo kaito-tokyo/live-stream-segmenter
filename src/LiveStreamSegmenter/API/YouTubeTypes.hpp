@@ -35,11 +35,20 @@ namespace KaitoTokyo::LiveStreamSegmenter::API {
  */
 struct YouTubeStreamKey {
 	std::string id;
-	std::string title;
-	std::string streamName;
-
-	std::string resolution;
-	std::string frameRate;
+	std::string kind;
+	std::string snippet_title;
+	std::string snippet_description;
+	std::string snippet_channelId;
+	std::string snippet_publishedAt;
+	std::string snippet_privacyStatus;
+	std::string cdn_ingestionType;
+	std::string cdn_resolution;
+	std::string cdn_frameRate;
+	std::string cdn_isReusable;
+	std::string cdn_region;
+	std::string cdn_ingestionInfo_streamName;
+	std::string cdn_ingestionInfo_ingestionAddress;
+	std::string cdn_ingestionInfo_backupIngestionAddress;
 };
 
 /**
