@@ -1,4 +1,3 @@
-
 /*
  * MIT License
  * 
@@ -49,18 +48,6 @@ struct YouTubeStreamKey {
 	std::string cdn_ingestionInfo_streamName;
 	std::string cdn_ingestionInfo_ingestionAddress;
 	std::string cdn_ingestionInfo_backupIngestionAddress;
-};
-
-/**
- * @brief Parameters for creating or updating a YouTube broadcast.
- * Includes title, description, scheduled start time, and privacy status.
- */
-struct YouTubeBroadcastParams {
-	YouTubeBroadcastParams() : privacyStatus("private") {}
-	std::string title;
-	std::string description;
-	std::string scheduledStartTime;
-	std::string privacyStatus;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::API
