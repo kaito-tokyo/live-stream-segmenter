@@ -106,9 +106,9 @@ inline std::string doGet(const char *url, const std::string &accessToken)
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-	double contentLength = 0;
-	curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &contentLength);
-	if (contentLength > 0 && contentLength < static_cast<double>(std::numeric_limits<size_t>::max())) {
+	curl_off_t contentLength = 0;
+	curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &contentLength);
+	if (contentLength > 0 && contentLength < static_cast<curl_off_t>(std::numeric_limits<size_t>::max())) {
 		readBuffer.reserve(static_cast<size_t>(contentLength));
 	}
 
@@ -153,6 +153,8 @@ inline std::vector<json> performList(const char *url, const std::string &accessT
 
 		nextPageToken = j["nextPageToken"].get<std::string>();
 	} while (--maxPages > 0);
+
+	return items;
 }
 
 } // namespace
