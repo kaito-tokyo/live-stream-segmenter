@@ -18,11 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <string>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <optional>
+#include <string>
 
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
 #include <CurlUrlSearchParams.hpp>
 #include <CurlVectorWriter.hpp>
@@ -45,6 +47,7 @@ public:
 		  storage_(std::move(storage))
 	{
 		if (auto savedTokenState = storage_->load()) {
+			std::lock_guard<std::mutex> lock(mutex_);
 			currentTokenState_ = *savedTokenState;
 		}
 	}
@@ -99,22 +102,32 @@ public:
 		}
 
 		if (clientId_.empty() || clientSecret_.empty()) {
-			throw std::runtime_error("Client ID/Secret missing for refresh.");
+			throw std::runtime_error("CredentialMissingError(getAccessToken)");
 		}
-
-		logger_->info("Access token expired. Refreshing...");
 
 		if (refreshToken.has_value()) {
-			refreshTokenState(*refreshToken);
-		}
+			GoogleTokenResponse tokenResponse = refreshTokenState(*refreshToken);
 
-		std::lock_guard<std::mutex> lock(mutex_);
-		return currentTokenState_.access_token;
+			GoogleTokenState tokenState;
+			{
+				std::lock_guard<std::mutex> lock(mutex_);
+				currentTokenState_.updateFromTokenResponse(tokenResponse);
+				tokenState = currentTokenState_;
+			}
+
+			storage_->save(tokenState);
+
+			return tokenState.access_token;
+		} else {
+			throw std::runtime_error("TokenRefreshError(getAccessToken)");
+		}
 	}
 
 private:
-	void refreshTokenState(const std::string &refreshToken)
+	GoogleTokenResponse refreshTokenState(const std::string &refreshToken)
 	{
+		using nlohmann::json;
+
 		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
 			throw std::runtime_error("InitError(refreshTokenState)");
@@ -122,15 +135,17 @@ private:
 
 		CurlVectorWriterType readBuffer;
 
-		CurlUrlSearchParams postData(curl.get());
-		postData.append("client_id", clientId_);
-		postData.append("client_secret", clientSecret_);
-		postData.append("refresh_token", refreshToken);
-		postData.append("grant_type", "refresh_token");
+		CurlUrlSearchParams postParams(curl.get());
+		postParams.append("client_id", clientId_);
+		postParams.append("client_secret", clientSecret_);
+		postParams.append("refresh_token", refreshToken);
+		postParams.append("grant_type", "refresh_token");
+
+		std::string postData = postParams.toString();
 
 		curl_easy_setopt(curl.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
 		curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
-		curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, postData.toString().c_str());
+		curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, postData.c_str());
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlVectorWriter);
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);       // 60 second timeout
@@ -140,45 +155,20 @@ private:
 		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
 		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
-		CURLcode res = curl_easy_perform(curl);
+		CURLcode res = curl_easy_perform(curl.get());
 
 		if (res != CURLE_OK) {
 			std::string err = curl_easy_strerror(res);
-			curl_easy_cleanup(curl);
-			throw std::runtime_error("Network error during refresh: " + err);
-		}
-		curl_easy_cleanup(curl);
-
-		// JSONパース
-		json j = json::parse(readBuffer, nullptr, false);
-		if (j.is_discarded()) {
-			throw std::runtime_error("JSON parse error during refresh");
+			throw std::runtime_error("NetworkError:" + err);
 		}
 
-		// エラーチェック
+		json j = json::parse(readBuffer.begin(), readBuffer.end());
+
 		if (j.contains("error")) {
-			std::string err = j.value("error_description", "Unknown error");
-			logger_->error("[GoogleAuthManager] Refresh failed: {}", err);
-
-			// リフレッシュトークンが無効化されていたら強制ログアウト
-			if (j.value("error", "") == "invalid_grant") {
-				clear();
-				throw std::runtime_error("Session expired (Revoked). Please login again.");
-			}
-			throw std::runtime_error("API Error: " + err);
+			throw std::runtime_error("APIError(refreshTokenState):" + j["error"].dump());
 		}
 
-		// 成功: DTO経由で更新
-		auto response = j.get<GoogleTokenResponse>();
-
-		{
-			std::lock_guard<std::mutex> lock(mutex_);
-			currentTokenData_.updateFromTokenResponse(response);
-			// 整合性のためロック内でデータをコピーしてから保存へ
-			storage_->save(currentTokenData_);
-		}
-
-		logger_->info("[GoogleAuthManager] Token refreshed successfully.");
+		return j.get<GoogleTokenResponse>();
 	}
 
 	const std::string clientId_;

@@ -111,7 +111,6 @@ target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 add_library(
   ${CMAKE_PROJECT_NAME}_Auth
   STATIC
-  src/LiveStreamSegmenter/Auth/GoogleAuthManager.cpp
   src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.cpp
   src/LiveStreamSegmenter/Auth/GoogleTokenStorage.cpp
 )

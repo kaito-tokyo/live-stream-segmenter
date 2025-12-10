@@ -44,12 +44,10 @@ public:
 	{
 	}
 
-    ~CurlUrlSearchParams() noexcept = default;
+	~CurlUrlSearchParams() noexcept = default;
 
-    CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
-    CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
-    CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
-    CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
+	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
+	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
 
 	void append(const std::string &name, const std::string &value) { params_.emplace_back(name, value); }
 
@@ -71,7 +69,7 @@ public:
 			if (!escapedKey || !escapedValue) {
 				throw std::runtime_error("EncodeError(CurlUrlSearchParams)");
 			}
-		
+
 			oss << escapedKey.get() << "=" << escapedValue.get();
 		}
 		return oss.str();

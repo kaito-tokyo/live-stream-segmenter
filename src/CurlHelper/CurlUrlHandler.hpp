@@ -52,8 +52,6 @@ public:
 
 	CurlUrlHandle(const CurlUrlHandle &) = delete;
 	CurlUrlHandle &operator=(const CurlUrlHandle &) = delete;
-	CurlUrlHandle(CurlUrlHandle &&) = delete;
-	CurlUrlHandle &operator=(CurlUrlHandle &&) = delete;
 
 	void setUrl(const char *url)
 	{
