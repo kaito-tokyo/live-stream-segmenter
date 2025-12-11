@@ -100,7 +100,8 @@ public:
 							logger->info(
 								"GoogleOAuth2Flow received authorization code. Exchanging for token...");
 
-							result = exchangeCode(code, redirectUri);
+							result =
+								exchangeCode(clientId, clientSecret, code, redirectUri);
 
 							logger->info("GoogleOAuth2Flow exchanged token successfully.");
 
