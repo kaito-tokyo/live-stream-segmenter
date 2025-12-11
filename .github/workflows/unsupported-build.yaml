@@ -3,6 +3,8 @@ name: Unsupported Build
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -61,6 +63,12 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chown -R builder:builder .
           pacman -Sy --noconfirm
+
+      - name: Install AUR dependencies
+        run: |
+          git clone https://aur.archlinux.org/cpp-httplib.git
+          cd cpp-httplib
+          sudo makepkg -si --noconfirm
 
       - name: Build
         working-directory: unsupported/arch/live-stream-segmenter-git
