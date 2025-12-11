@@ -100,10 +100,7 @@ target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStre
 target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
 target_sources(
   CurlHelper
-  PRIVATE
-    src/CurlHelper/CurlUrlHandler.hpp
-    src/CurlHelper/CurlUrlSearchParams.hpp
-    src/CurlHelper/CurlVectorWriter.hpp
+  PRIVATE src/CurlHelper/CurlUrlHandler.hpp src/CurlHelper/CurlUrlSearchParams.hpp src/CurlHelper/CurlVectorWriter.hpp
 )
 
 add_library(UpdateChecker INTERFACE)
@@ -113,15 +110,9 @@ target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
 # --- Plugin modules ---
 
-add_library(
-  ${CMAKE_PROJECT_NAME}_Auth
-  INTERFACE
-)
+add_library(${CMAKE_PROJECT_NAME}_Auth INTERFACE)
 target_include_directories(${CMAKE_PROJECT_NAME}_Auth INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Auth
-  INTERFACE httplib::httplib jthread::jthread CurlHelper Logger
-)
+target_link_libraries(${CMAKE_PROJECT_NAME}_Auth INTERFACE httplib::httplib CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_Auth
   PRIVATE
@@ -132,9 +123,9 @@ target_sources(
     src/LiveStreamSegmenter/Auth/GoogleTokenStorage.hpp
 )
 
-add_library(${CMAKE_PROJECT_NAME}_API STATIC src/LiveStreamSegmenter/API/YouTubeApiClient.cpp)
-target_include_directories(${CMAKE_PROJECT_NAME}_API PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API PUBLIC OBS::libobs CurlHelper)
+add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
