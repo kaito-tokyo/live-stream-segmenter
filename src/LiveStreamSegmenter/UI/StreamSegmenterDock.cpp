@@ -24,6 +24,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <QUrl>
 #include <fmt/format.h>
 
+#include <NullLogger.hpp>
+
 #include "SettingsDialog.hpp"
 
 namespace KaitoTokyo {

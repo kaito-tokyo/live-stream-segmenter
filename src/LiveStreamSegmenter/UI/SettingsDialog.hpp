@@ -45,7 +45,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	explicit SettingsDialog(std::shared_ptr<Auth::GoogleAuthManager> authManager,
+				std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
 	~SettingsDialog() override;
 
 private slots:
@@ -70,7 +71,6 @@ private slots:
 	void onLinkDocClicked();
 
 private:
-	std::shared_ptr<Logger::ILogger> logger_;
 	void setupUi();
 	void initializeData();
 	void updateAuthUI();
@@ -86,12 +86,14 @@ private:
 	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
 	QString loadSavedStreamKeyId();
 
+	std::shared_ptr<Auth::GoogleAuthManager> authManager_;
+	std::shared_ptr<Logger::ILogger> logger_;
+
 	// Data
 	QString tempClientId_;
 	QString tempClientSecret_;
 
 	// Managers
-	Auth::GoogleAuthManager *authManager_;
 
 	// --- New Auth Flow Management ---
 	// SettingsDialogのライフサイクルとフローのライフサイクルを管理するため

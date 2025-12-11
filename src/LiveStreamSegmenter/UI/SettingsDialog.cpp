@@ -20,7 +20,6 @@ Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
 #include <QTimer>
 
 #include <YouTubeApiClient.hpp>
-// GoogleTokenStateへの変換用
 #include "../Auth/GoogleTokenState.hpp"
 
 using namespace KaitoTokyo::LiveStreamSegmenter::API;
@@ -30,7 +29,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::UI {
 // ==========================================
 //  JsonDropArea (変更なし)
 // ==========================================
-// ... (JsonDropAreaの実装はそのまま) ...
+
 JsonDropArea::JsonDropArea(QWidget *parent) : QLabel(parent)
 {
 	setText(tr("<b>Drag & Drop</b> credentials.json here<br>"
@@ -88,11 +87,12 @@ void JsonDropArea::mousePressEvent(QMouseEvent *event)
 //  SettingsDialog
 // ==========================================
 
-SettingsDialog::SettingsDialog(std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
+SettingsDialog::SettingsDialog(std::shared_ptr<Auth::GoogleAuthManager> authManager,
+			       std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  logger_(std::move(logger)),
-	  authManager_(new Auth::GoogleAuthManager(this)),
-	  authPollTimer_(new QTimer(this)), // Timer初期化
+	  authManager_(std::move(authManager)), // 注入されたインスタンスを使用
+	  logger_(std::move(logger)),           // 注入されたロガーを使用
+	  authPollTimer_(new QTimer(this)),
 	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),
 	  clientSecretDisplay_(new QLineEdit(this)),
@@ -122,33 +122,33 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Logger::ILogger> logger, QWidget 
 	connect(authPollTimer_, &QTimer::timeout, this, &SettingsDialog::onAuthPollTimer);
 
 	// Auth Manager Signals
-	connect(authManager_, &Auth::GoogleAuthManager::authStateChanged, this, &SettingsDialog::onAuthStateChanged);
-	connect(authManager_, &Auth::GoogleAuthManager::loginStatusChanged, this,
-		&SettingsDialog::onLoginStatusChanged);
-	connect(authManager_, &Auth::GoogleAuthManager::loginError, this, &SettingsDialog::onLoginError);
+	// shared_ptr なので .get() で生のポインタを取り出して connect に渡す
+	if (authManager_) {
+		connect(authManager_.get(), &Auth::GoogleAuthManager::authStateChanged, this,
+			&SettingsDialog::onAuthStateChanged);
+		connect(authManager_.get(), &Auth::GoogleAuthManager::loginStatusChanged, this,
+			&SettingsDialog::onLoginStatusChanged);
+		connect(authManager_.get(), &Auth::GoogleAuthManager::loginError, this, &SettingsDialog::onLoginError);
+	}
 
 	// Stream Key
 	connect(refreshKeysBtn_, &QPushButton::clicked, this, &SettingsDialog::onRefreshKeysClicked);
 	connect(streamKeyCombo_, QOverload<int>::of(&QComboBox::activated), this,
 		&SettingsDialog::onKeySelectionChanged);
-	connect(new QPushButton(this), &QPushButton::clicked, this,
-		&SettingsDialog::onLinkDocClicked); // ダミー接続(UI定義側で接続してるので実際は不要だが念のため)
+	connect(new QPushButton(this), &QPushButton::clicked, this, &SettingsDialog::onLinkDocClicked);
 
 	initializeData();
 }
 
 SettingsDialog::~SettingsDialog()
 {
-	// フロー実行中なら停止
 	if (oauthFlow_) {
 		oauthFlow_->stop();
 	}
 }
 
-// ... (setupUi, Helpersの実装は変更なしのため省略。initializeData等は変更なし) ...
 void SettingsDialog::setupUi()
 {
-	// (元の実装と同じ)
 	auto *mainLayout = new QVBoxLayout(this);
 	mainLayout->setSpacing(16);
 	mainLayout->setContentsMargins(24, 24, 24, 24);
@@ -210,7 +210,10 @@ void SettingsDialog::setupUi()
 	resize(420, 600);
 }
 
-// ... (Helpers: getObsConfigPath, saveCredentialsToStorage, loadCredentialsFromStorage, parseCredentialJson, saveStreamKeySetting, loadSavedStreamKeyId は変更なし) ...
+// ---------------------------------------------------------
+//  Helpers
+// ---------------------------------------------------------
+
 QString SettingsDialog::getObsConfigPath(const QString &filename) const
 {
 	char *path = obs_module_get_config_path(obs_current_module(), filename.toUtf8().constData());
@@ -223,15 +226,16 @@ QString SettingsDialog::getObsConfigPath(const QString &filename) const
 
 bool SettingsDialog::saveCredentialsToStorage(const QString &clientId, const QString &clientSecret)
 {
-	// ... (元の実装と同じ)
 	QString savePath = getObsConfigPath("credentials.json");
 	if (savePath.isEmpty())
 		return false;
 	QFileInfo fileInfo(savePath);
 	QDir().mkpath(fileInfo.dir().path());
+
 	QJsonObject root;
 	root["client_id"] = clientId;
 	root["client_secret"] = clientSecret;
+
 	QFile outFile(savePath);
 	if (!outFile.open(QIODevice::WriteOnly))
 		return false;
@@ -241,7 +245,6 @@ bool SettingsDialog::saveCredentialsToStorage(const QString &clientId, const QSt
 
 QJsonObject SettingsDialog::loadCredentialsFromStorage()
 {
-	// ... (元の実装と同じ)
 	QString savePath = getObsConfigPath("credentials.json");
 	QFile file(savePath);
 	if (!file.open(QIODevice::ReadOnly))
@@ -251,25 +254,26 @@ QJsonObject SettingsDialog::loadCredentialsFromStorage()
 
 bool SettingsDialog::parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret)
 {
-	// ... (元の実装と同じ)
 	QJsonDocument doc = QJsonDocument::fromJson(jsonData);
 	if (!doc.isObject())
 		return false;
 	QJsonObject root = doc.object();
 	QJsonObject creds;
+
 	if (root.contains("installed"))
 		creds = root["installed"].toObject();
 	else if (root.contains("web"))
 		creds = root["web"].toObject();
 	else
 		return false;
+
 	outId = creds["client_id"].toString();
 	outSecret = creds["client_secret"].toString();
 	return (!outId.isEmpty() && !outSecret.isEmpty());
 }
 
 // ---------------------------------------------------------
-//  Logic (Updated for GoogleOAuth2Flow)
+//  Logic
 // ---------------------------------------------------------
 
 void SettingsDialog::initializeData()
@@ -288,7 +292,9 @@ void SettingsDialog::initializeData()
 		saveButton_->setEnabled(true);
 		dropArea_->setText(tr("<b>Credentials Loaded.</b><br>Drag & Drop to update."));
 
-		authManager_->setCredentials(cid, csecret);
+		if (authManager_) {
+			authManager_->setCredentials(cid, csecret);
+		}
 	}
 
 	updateAuthUI();
@@ -298,6 +304,7 @@ void SettingsDialog::onAreaClicked()
 {
 	onLoadJsonClicked();
 }
+
 void SettingsDialog::onLoadJsonClicked()
 {
 	QString fileName =
@@ -305,6 +312,7 @@ void SettingsDialog::onLoadJsonClicked()
 	if (!fileName.isEmpty())
 		onJsonFileSelected(fileName);
 }
+
 void SettingsDialog::onJsonFileSelected(const QString &filePath)
 {
 	QFile file(filePath);
@@ -312,25 +320,32 @@ void SettingsDialog::onJsonFileSelected(const QString &filePath)
 		QMessageBox::warning(this, tr("Error"), tr("Could not open file."));
 		return;
 	}
+
 	QString cid, csecret;
 	if (!parseCredentialJson(file.readAll(), cid, csecret)) {
 		QMessageBox::warning(this, tr("Error"), tr("Invalid JSON format."));
 		return;
 	}
+
 	tempClientId_ = cid;
 	tempClientSecret_ = csecret;
 	clientIdDisplay_->setText(cid);
 	clientSecretDisplay_->setText(csecret);
+
 	saveButton_->setEnabled(true);
 	authButton_->setEnabled(false);
+
 	dropArea_->setText(tr("<b>File Loaded!</b><br>Please click 'Save Credentials'."));
 	dropArea_->setStyleSheet(
 		"QLabel { border: 2px solid #4CAF50; background-color: #2a3a2a; border-radius: 8px; color: #fff; padding: 20px; }");
 }
+
 void SettingsDialog::onSaveClicked()
 {
 	if (saveCredentialsToStorage(tempClientId_, tempClientSecret_)) {
-		authManager_->setCredentials(tempClientId_, tempClientSecret_);
+		if (authManager_) {
+			authManager_->setCredentials(tempClientId_, tempClientSecret_);
+		}
 		updateAuthUI();
 		QMessageBox::information(this, tr("Saved"), tr("Credentials saved successfully."));
 	} else {
@@ -344,20 +359,16 @@ void SettingsDialog::onSaveClicked()
 
 void SettingsDialog::onAuthClicked()
 {
-	// UIロック
 	authButton_->setEnabled(false);
 	authButton_->setText(tr("Waiting for Browser..."));
 	statusLabel_->setText(tr("Auth flow started..."));
 
-	// 1. UserAgent (UI callbacks) の設定
 	Auth::GoogleOAuth2FlowUserAgent userAgent;
 
-	// ブラウザ起動
 	userAgent.openBrowser = [](const std::string &url) {
 		QDesktopServices::openUrl(QUrl(QString::fromStdString(url)));
 	};
 
-	// 成功画面
 	userAgent.onLoginSuccess = [](const auto &, auto &res) {
 		res.set_content(
 			"<html><head><title>Success</title><style>"
@@ -375,7 +386,6 @@ void SettingsDialog::onAuthClicked()
 			"text/html");
 	};
 
-	// 失敗画面
 	userAgent.onLoginFailure = [](const auto &, auto &res) {
 		res.status = 400;
 		res.set_content(
@@ -386,86 +396,74 @@ void SettingsDialog::onAuthClicked()
 			"text/html");
 	};
 
-	// 2. Flow作成
-	// 必要権限
 	std::string scopes = "https://www.googleapis.com/auth/youtube.readonly";
 
-	oauthFlow_ = std::make_unique<Auth::GoogleOAuth2Flow>(tempClientId_.toStdString(),
-							      tempClientSecret_.toStdString(), scopes, userAgent,
-							      logger_ // コンストラクタで受け取ったロガーを渡す
-	);
+	oauthFlow_ = std::make_unique<Auth::GoogleOAuth2Flow>(
+		tempClientId_.toStdString(), tempClientSecret_.toStdString(), scopes, userAgent, logger_);
 
-	// 3. 開始 (非同期)
 	pendingAuthFuture_ = oauthFlow_->start();
-
-	// 4. 完了監視用ポーリング開始 (100msごとに確認)
 	authPollTimer_->start(100);
 }
 
 void SettingsDialog::onAuthPollTimer()
 {
-	// Futureが完了したかチェック
-	// wait_for(0) で即時チェック
 	if (pendingAuthFuture_.valid() &&
 	    pendingAuthFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 
-		// 完了したのでタイマー停止
 		authPollTimer_->stop();
 
 		try {
-			// 結果取得
 			auto result = pendingAuthFuture_.get();
 
 			if (result.has_value()) {
-				// 成功: Managerにトークンを渡す
 				Auth::GoogleTokenResponse resp = result.value();
-
-				// TokenResponse -> TokenState 変換
 				Auth::GoogleTokenState state;
 				state.updateFromTokenResponse(resp);
-				// Email等の取得はManager側でやるか、Flow側でやるかだが、
-				// Flowはシンプル化されたので、必要ならManagerが後でUserInfoを叩く
 
-				authManager_->updateTokenState(state);
+				if (authManager_) {
+					authManager_->updateTokenState(state);
+				}
 
 				QMessageBox::information(this, tr("Auth"), tr("Authentication succeeded!"));
 			} else {
-				// 失敗/キャンセル
 				QMessageBox::warning(this, tr("Auth"), tr("Authentication was cancelled or failed."));
 			}
 		} catch (const std::exception &e) {
 			QMessageBox::critical(this, tr("Auth Error"), QString("Error: %1").arg(e.what()));
 		}
 
-		// UI復帰
 		updateAuthUI();
-
-		// Flow破棄 (再実行に備える)
 		oauthFlow_.reset();
 	}
 }
 
-// ... (残りのスロット実装は変更なし) ...
+// ... (Signals from AuthManager) ...
 
 void SettingsDialog::onAuthStateChanged()
 {
 	updateAuthUI();
 }
+
 void SettingsDialog::onLoginStatusChanged(const QString &status)
 {
 	statusLabel_->setText(status);
 }
+
 void SettingsDialog::onLoginError(const QString &message)
 {
 	updateAuthUI();
 	QMessageBox::critical(this, tr("Error"), message);
 }
+
 void SettingsDialog::onLinkDocClicked()
 {
 	QDesktopServices::openUrl(QUrl("https://console.cloud.google.com/apis/credentials"));
 }
 
-// Stream Key Logic
+// ---------------------------------------------------------
+//  Stream Key Logic
+// ---------------------------------------------------------
+
 void SettingsDialog::onRefreshKeysClicked()
 {
 	refreshKeysBtn_->setEnabled(false);
@@ -473,20 +471,20 @@ void SettingsDialog::onRefreshKeysClicked()
 	streamKeyCombo_->clear();
 	streamKeyCombo_->addItem(tr("Loading..."));
 
-	// 新しいApiClientを使って取得 (同期/非同期はClientの実装次第だが、ここでは簡易的に)
 	YouTubeApiClient client([this]() {
 		auto promise = std::make_shared<std::promise<std::string>>();
-		// Managerから現在の有効なトークンをもらう
-		QString token = authManager_->getAccessToken();
-		promise->set_value(token.toStdString());
+		if (authManager_) {
+			QString token = authManager_->getAccessToken();
+			promise->set_value(token.toStdString());
+		} else {
+			promise->set_value("");
+		}
 		return promise->get_future();
 	});
 
-	// GUIスレッドでブロックしないように別スレッドで実行推奨だが、今回はそのまま
 	std::thread([this, client]() mutable {
 		try {
 			auto keys = client.listStreamKeys();
-			// UI更新はメインスレッドで
 			QTimer::singleShot(0, this, [this, keys]() { updateStreamKeyList(keys); });
 		} catch (...) {
 			QTimer::singleShot(0, this, [this]() {
@@ -501,60 +499,72 @@ void SettingsDialog::onRefreshKeysClicked()
 
 void SettingsDialog::updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys)
 {
-	// ... (元の実装と同じ)
 	refreshKeysBtn_->setEnabled(true);
 	refreshKeysBtn_->setText(tr("Reload Keys"));
 	streamKeyCombo_->clear();
+
 	if (keys.empty()) {
 		streamKeyCombo_->setPlaceholderText(tr("No RTMP keys found."));
 		return;
 	}
+
 	QString savedId = loadSavedStreamKeyId();
 	int selectIndex = -1;
+
 	for (const auto &key : keys) {
 		QString title = QString::fromStdString(key.snippet_title);
 		QString id = QString::fromStdString(key.id);
 		QString streamName = QString::fromStdString(key.cdn_ingestionInfo_streamName);
 		QString desc = QString::fromStdString(key.cdn_resolution);
+
 		QString displayText = QString("%1 (%2)").arg(title, desc);
 		QString itemData = QString("%1|%2").arg(id, streamName);
+
 		streamKeyCombo_->addItem(displayText, itemData);
-		if (id == savedId)
+
+		if (id == savedId) {
 			selectIndex = streamKeyCombo_->count() - 1;
+		}
 	}
-	if (selectIndex >= 0)
+
+	if (selectIndex >= 0) {
 		streamKeyCombo_->setCurrentIndex(selectIndex);
-	else
+	} else {
 		streamKeyCombo_->setCurrentIndex(0);
+	}
 }
 
 void SettingsDialog::onKeySelectionChanged(int index)
 {
 	if (index < 0)
 		return;
+
 	QString data = streamKeyCombo_->itemData(index).toString();
 	QStringList parts = data.split("|");
 	if (parts.size() < 2)
 		return;
+
 	saveStreamKeySetting(parts[0], parts[1], streamKeyCombo_->itemText(index));
 }
 
 void SettingsDialog::saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title)
 {
-	// ... (元の実装と同じ)
 	QString savePath = getObsConfigPath("config.json");
 	if (savePath.isEmpty())
 		return;
+
 	QJsonObject root;
 	QFile file(savePath);
 	if (file.open(QIODevice::ReadOnly)) {
 		root = QJsonDocument::fromJson(file.readAll()).object();
 		file.close();
 	}
+
 	root["stream_id"] = id;
 	root["stream_key"] = streamName;
 	root["stream_title"] = title;
 	root["updated_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
 	if (file.open(QIODevice::WriteOnly)) {
 		file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
 		file.close();
@@ -574,23 +584,28 @@ QString SettingsDialog::loadSavedStreamKeyId()
 
 void SettingsDialog::updateAuthUI()
 {
-	bool isAuth = authManager_->isAuthenticated();
+	bool isAuth = authManager_ && authManager_->isAuthenticated();
 	if (isAuth) {
 		statusLabel_->setText(QString("✅ Connected"));
 		statusLabel_->setStyleSheet(
 			"color: #4CAF50; padding: 4px; border: 1px solid #4CAF50; border-radius: 4px;");
 		authButton_->setText(tr("Re-Authenticate"));
 		authButton_->setEnabled(true);
+
 		refreshKeysBtn_->setEnabled(true);
 		streamKeyCombo_->setEnabled(true);
-		if (streamKeyCombo_->count() == 0)
+
+		if (streamKeyCombo_->count() == 0) {
 			streamKeyCombo_->setPlaceholderText(tr("Click 'Reload Keys' to fetch list"));
+		}
+
 	} else {
 		statusLabel_->setText(tr("⚠️ Not Connected"));
 		statusLabel_->setStyleSheet(
 			"color: #F44747; padding: 4px; border: 1px solid #F44747; border-radius: 4px;");
 		authButton_->setText(tr("3. Authenticate"));
 		authButton_->setEnabled(!tempClientId_.isEmpty());
+
 		refreshKeysBtn_->setEnabled(false);
 		streamKeyCombo_->setEnabled(false);
 		streamKeyCombo_->setPlaceholderText(tr("Authenticate first"));
