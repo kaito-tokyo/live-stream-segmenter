@@ -57,12 +57,7 @@ elseif(USE_PKGCONFIG)
   target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
 
   # --- httplib ---
-  pkg_check_modules(PC_HTTPLIB REQUIRED httplib)
-  add_library(httplib::httplib INTERFACE IMPORTED)
-  target_link_libraries(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARIES})
-  target_include_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_INCLUDE_DIRS})
-  target_compile_definitions(httplib::httplib INTERFACE ${PC_HTTPLIB_CFLAGS_OTHER})
-  target_link_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARY_DIRS})
+  find_package(httplib CONFIG REQUIRED)
 
   # --- nlohmann_json ---
   pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
