@@ -11,6 +11,23 @@
   },
   "modules": [
     {
+      "name": "cpp-httplib",
+      "buildsystem": "cmake-ninja",
+      "builddir": true,
+      "config-opts": [
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_INCLUDEDIR=include"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/yhirose/cpp-httplib.git",
+          "tag": "v0.28.0",
+          "commit": "adf58bf474fac638160592d6c3f67da4ebc7df20"
+        }
+      ]
+    },
+    {
       "name": "nlohmann-json",
       "buildsystem": "cmake-ninja",
       "builddir": true,
