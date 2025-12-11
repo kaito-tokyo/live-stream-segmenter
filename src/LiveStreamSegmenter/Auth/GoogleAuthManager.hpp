@@ -141,7 +141,7 @@ private:
 			throw std::runtime_error("InitError(refreshTokenState)");
 		}
 
-		CurlVectorWriterType readBuffer;
+		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams postParams(curl.get());
 		postParams.append("client_id", clientId_);

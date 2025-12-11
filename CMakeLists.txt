@@ -96,7 +96,7 @@ target_sources(
 )
 
 add_library(CurlHelper INTERFACE)
-target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/CurlHelper)
+target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/CurlHelper)
 target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
 target_sources(
   CurlHelper
@@ -125,7 +125,7 @@ target_sources(
 
 add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
 target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
@@ -159,7 +159,7 @@ target_sources(
     src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
 )
 
-foreach(TARGET ${CMAKE_PROJECT_NAME}_API ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
+foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_options(
     ${TARGET}
     PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
