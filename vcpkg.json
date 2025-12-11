@@ -3,6 +3,13 @@
   "dependencies": [
     "backward-cpp",
     {
+      "name": "cpp-httplib",
+      "default-features": false,
+      "features": [
+        "zlib"
+      ]
+    },
+    {
       "name": "curl",
       "default-features": false,
       "features": [

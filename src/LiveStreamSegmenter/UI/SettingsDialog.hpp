@@ -10,11 +10,17 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QJsonObject>
-#include <QComboBox> // 追加
+#include <QComboBox>
+#include <QTimer> // 追加
+
+#include <memory>
+#include <future>
+#include <optional>
 
 // Authモジュール
 #include "../Auth/GoogleAuthManager.hpp"
-#include "../API/YouTubeTypes.hpp" // データ型
+#include "../Auth/GoogleOAuth2Flow.hpp" // 追加
+#include "../API/YouTubeTypes.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -39,8 +45,9 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(QWidget *parent = nullptr);
-	~SettingsDialog() override = default;
+	explicit SettingsDialog(std::shared_ptr<Auth::GoogleAuthManager> authManager,
+				std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	~SettingsDialog() override;
 
 private slots:
 	// --- Existing Slots ---
@@ -48,46 +55,51 @@ private slots:
 	void onAreaClicked();
 	void onLoadJsonClicked();
 	void onSaveClicked();
-	void onAuthClicked();
 
-	// Auth Signals
+	// Auth
+	void onAuthClicked();
+	void onAuthPollTimer(); // 追加: フロー完了監視用
+
+	// Auth Signals (Managerからの通知)
 	void onAuthStateChanged();
 	void onLoginStatusChanged(const QString &status);
 	void onLoginError(const QString &message);
 
-	// --- New Slots for Stream Key ---
-	void onRefreshKeysClicked();           // Reloadボタン
-	void onKeySelectionChanged(int index); // 選択変更
-	void onLinkDocClicked();               // 【追加】 これが抜けていました
+	// Stream Key
+	void onRefreshKeysClicked();
+	void onKeySelectionChanged(int index);
+	void onLinkDocClicked();
 
 private:
 	void setupUi();
 	void initializeData();
 	void updateAuthUI();
 
-	// --- New Helper: UI更新 ---
-	// 別スレッドから呼ばれるため、スレッドセーフに更新する実体
 	void updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys);
 
-	// --- Helpers ---
+	// Helpers
 	QString getObsConfigPath(const QString &filename) const;
-
-	// Credentials
 	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
 	QJsonObject loadCredentialsFromStorage();
 	bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
 
-	// --- New Helpers: Stream Key Config ---
-	// config.json に保存する
 	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
 	QString loadSavedStreamKeyId();
+
+	std::shared_ptr<Auth::GoogleAuthManager> authManager_;
+	std::shared_ptr<Logger::ILogger> logger_;
 
 	// Data
 	QString tempClientId_;
 	QString tempClientSecret_;
 
-	// Auth
-	Auth::GoogleAuthManager *authManager_;
+	// Managers
+
+	// --- New Auth Flow Management ---
+	// SettingsDialogのライフサイクルとフローのライフサイクルを管理するため
+	std::unique_ptr<Auth::GoogleOAuth2Flow> oauthFlow_;
+	std::future<std::optional<Auth::GoogleTokenResponse>> pendingAuthFuture_;
+	QTimer *authPollTimer_;
 
 	// UI Components
 	JsonDropArea *dropArea_;
@@ -98,7 +110,6 @@ private:
 	QPushButton *authButton_;
 	QLabel *statusLabel_;
 
-	// --- New UI Components ---
 	QComboBox *streamKeyCombo_;
 	QPushButton *refreshKeysBtn_;
 };

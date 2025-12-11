@@ -28,28 +28,19 @@ SOFTWARE.
 
 #include <string>
 
-namespace KaitoTokyo::LiveStreamSegmenter::API {
+#include <nlohmann/json.hpp>
 
-/**
- * @brief Represents a YouTube stream key and its associated metadata.
- * Contains stream ID, title, stream name, resolution, and frame rate.
- */
-struct YouTubeStreamKey {
-	std::string id;
-	std::string kind;
-	std::string snippet_title;
-	std::string snippet_description;
-	std::string snippet_channelId;
-	std::string snippet_publishedAt;
-	std::string snippet_privacyStatus;
-	std::string cdn_ingestionType;
-	std::string cdn_resolution;
-	std::string cdn_frameRate;
-	std::string cdn_isReusable;
-	std::string cdn_region;
-	std::string cdn_ingestionInfo_streamName;
-	std::string cdn_ingestionInfo_ingestionAddress;
-	std::string cdn_ingestionInfo_backupIngestionAddress;
+namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+
+struct GoogleTokenResponse {
+	std::string access_token;
+	std::optional<int> expires_in;
+	std::optional<std::string> token_type;
+	std::optional<std::string> refresh_token;
+	std::optional<std::string> scope;
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenResponse, access_token, expires_in, token_type,
+						    refresh_token, scope)
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::API
+} // namespace KaitoTokyo::LiveStreamSegmenter::Auth

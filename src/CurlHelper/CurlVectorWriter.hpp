@@ -26,30 +26,30 @@ SOFTWARE.
 
 #pragma once
 
-#include <string>
+#include <curl/curl.h>
 
-namespace KaitoTokyo::LiveStreamSegmenter::API {
+#include <cstddef>
+#include <limits>
+#include <vector>
 
-/**
- * @brief Represents a YouTube stream key and its associated metadata.
- * Contains stream ID, title, stream name, resolution, and frame rate.
- */
-struct YouTubeStreamKey {
-	std::string id;
-	std::string kind;
-	std::string snippet_title;
-	std::string snippet_description;
-	std::string snippet_channelId;
-	std::string snippet_publishedAt;
-	std::string snippet_privacyStatus;
-	std::string cdn_ingestionType;
-	std::string cdn_resolution;
-	std::string cdn_frameRate;
-	std::string cdn_isReusable;
-	std::string cdn_region;
-	std::string cdn_ingestionInfo_streamName;
-	std::string cdn_ingestionInfo_ingestionAddress;
-	std::string cdn_ingestionInfo_backupIngestionAddress;
-};
+namespace KaitoTokyo::CurlHelper {
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::API
+using CurlVectorWriterBuffer = std::vector<char>;
+
+inline std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
+{
+	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
+		return 0; // Signal error
+	}
+
+	std::size_t totalSize = size * nmemb;
+	try {
+		auto *vec = static_cast<CurlVectorWriterBuffer *>(userp);
+		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
+	} catch (...) {
+		return 0; // Signal error
+	}
+	return totalSize;
+}
+
+} // namespace KaitoTokyo::CurlHelper

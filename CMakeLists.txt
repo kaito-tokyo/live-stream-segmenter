@@ -26,14 +26,6 @@ endif()
 
 if(ENABLE_QT)
   find_package(Qt6 COMPONENTS Widgets Core Network REQUIRED)
-  target_compile_options(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
-  )
-  set_target_properties(
-    ${CMAKE_PROJECT_NAME}
-    PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
-  )
 endif()
 
 if(VCPKG_TARGET_TRIPLET)
@@ -43,6 +35,7 @@ if(VCPKG_TARGET_TRIPLET)
 
   find_package(CURL CONFIG REQUIRED)
   find_package(fmt CONFIG REQUIRED)
+  find_package(httplib CONFIG REQUIRED)
   find_package(nlohmann_json CONFIG REQUIRED)
 elseif(USE_PKGCONFIG)
   find_package(PkgConfig REQUIRED)
@@ -62,6 +55,14 @@ elseif(USE_PKGCONFIG)
   target_include_directories(fmt::fmt INTERFACE ${PC_FMT_INCLUDE_DIRS})
   target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
   target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
+
+  # --- httplib ---
+  pkg_check_modules(PC_HTTPLIB REQUIRED httplib)
+  add_library(httplib::httplib INTERFACE IMPORTED)
+  target_link_libraries(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARIES})
+  target_include_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_INCLUDE_DIRS})
+  target_compile_definitions(httplib::httplib INTERFACE ${PC_HTTPLIB_CFLAGS_OTHER})
+  target_link_directories(httplib::httplib INTERFACE ${PC_HTTPLIB_LIBRARY_DIRS})
 
   # --- nlohmann_json ---
   pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
@@ -91,46 +92,43 @@ target_sources(
     src/BridgeUtils/ObsUnique.hpp
 )
 
+add_library(CurlHelper INTERFACE)
+target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/CurlHelper)
+target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
+target_sources(
+  CurlHelper
+  PRIVATE src/CurlHelper/CurlUrlHandler.hpp src/CurlHelper/CurlUrlSearchParams.hpp src/CurlHelper/CurlVectorWriter.hpp
+)
+
 add_library(UpdateChecker INTERFACE)
 target_include_directories(UpdateChecker INTERFACE ${CMAKE_SOURCE_DIR}/src/UpdateChecker)
-target_link_libraries(UpdateChecker INTERFACE CURL::libcurl)
+target_link_libraries(UpdateChecker INTERFACE CurlHelper)
 target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
 
-add_library(
-  ${CMAKE_PROJECT_NAME}_Auth
-  STATIC
-  src/LiveStreamSegmenter/Auth/GoogleAuthState.cpp
-  src/LiveStreamSegmenter/Auth/GoogleAuthManager.cpp
-  src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.cpp
-)
-target_include_directories(${CMAKE_PROJECT_NAME}_Auth PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Auth
-  PUBLIC OBS::libobs Qt6::Core Qt6::Widgets Qt6::Network Logger CURL::libcurl
-)
+# --- Plugin modules ---
+
+add_library(${CMAKE_PROJECT_NAME}_Auth INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_Auth INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
+target_link_libraries(${CMAKE_PROJECT_NAME}_Auth INTERFACE httplib::httplib CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_Auth
   PRIVATE
-    src/LiveStreamSegmenter/Auth/GoogleAuthState.hpp
     src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
+    src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
+    src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
+    src/LiveStreamSegmenter/Auth/GoogleTokenStorage.hpp
 )
 
-add_library(${CMAKE_PROJECT_NAME}_API STATIC src/LiveStreamSegmenter/API/YouTubeApiClient.cpp)
-target_include_directories(${CMAKE_PROJECT_NAME}_API PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API PUBLIC OBS::libobs CURL::libcurl)
+add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
 )
 
-add_library(
-  ${CMAKE_PROJECT_NAME}_UI
-  STATIC
-  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
-  src/LiveStreamSegmenter/UI/SettingsDialog.cpp
-  src/LiveStreamSegmenter/UI/OAuth2Handler.cpp
-)
+add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
@@ -144,18 +142,16 @@ target_link_libraries(
     ${CMAKE_PROJECT_NAME}_Auth
     ${CMAKE_PROJECT_NAME}_API
 )
-target_sources(
-  ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE
-    src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
-    src/LiveStreamSegmenter/UI/SettingsDialog.hpp
-    src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
-)
+target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
 
-foreach(TARGET ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_API ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
+foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
+  target_compile_options(
+    ${TARGET}
+    PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
+  )
   target_compile_definitions(
     ${TARGET}
-    PRIVATE PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
+    PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
   )
   set_target_properties(
     ${TARGET}

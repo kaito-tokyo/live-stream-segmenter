@@ -20,7 +20,7 @@ class StreamSegmenterDock : public QDockWidget, public Logger::ILogger {
 	Q_OBJECT
 
 public:
-	explicit StreamSegmenterDock(QWidget *parent = nullptr);
+	explicit StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	void setSystemStatus(const QString &statusText, const QString &colorCode);
@@ -48,6 +48,8 @@ private slots:
 private:
 	void setupUi();
 	void updateMonitorLabel();
+
+	std::shared_ptr<Logger::ILogger> logger_;
 
 	// Data Cache
 	QString currentStatusText_;
