@@ -146,8 +146,6 @@ target_sources(
   ${CMAKE_PROJECT_NAME}_UI
   PRIVATE
     src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
-    src/LiveStreamSegmenter/UI/SettingsDialog.hpp
-    src/LiveStreamSegmenter/UI/OAuth2Handler.hpp
 )
 
 foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
