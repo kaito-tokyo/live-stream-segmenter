@@ -131,11 +131,7 @@ target_sources(
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
 )
 
-add_library(
-  ${CMAKE_PROJECT_NAME}_UI
-  STATIC
-  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
-)
+add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
