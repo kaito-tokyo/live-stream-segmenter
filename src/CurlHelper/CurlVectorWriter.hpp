@@ -34,7 +34,7 @@ SOFTWARE.
 
 namespace KaitoTokyo::CurlHelper {
 
-using CurlVectorWriterType = std::vector<char>;
+using CurlVectorWriterBuffer = std::vector<char>;
 
 std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
 {
@@ -44,7 +44,7 @@ std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb
 
 	std::size_t totalSize = size * nmemb;
 	try {
-		auto *vec = static_cast<CurlVectorWriterType *>(userp);
+		auto *vec = static_cast<CurlVectorWriterBuffer *>(userp);
 		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
 	} catch (...) {
 		return 0; // Signal error
