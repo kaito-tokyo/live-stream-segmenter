@@ -75,74 +75,80 @@ public:
 	[[nodiscard]]
 	std::future<std::optional<GoogleTokenResponse>> startOAuth2Flow()
 	{
+		using namespace KaitoTokyo::CurlHelper;
+
 		server_ = std::make_shared<httplib::Server>();
 
-		return std::async(std::launch::async, [this, server = server_]() -> std::optional<GoogleTokenResponse> {
-			std::optional<GoogleTokenResponse> result = std::nullopt;
+		return std::async(
+			std::launch::async,
+			[logger = logger_, server = server_, userAgent = userAgent_, clientId = clientId_,
+			 clientSecret = clientSecret_, scopes = scopes_]() -> std::optional<GoogleTokenResponse> {
+				std::optional<GoogleTokenResponse> result = std::nullopt;
 
-			const int port = server->bind_to_any_port("127.0.0.1");
-			if (port < 0)
-				throw std::runtime_error("ServerBindError(startOAuth2Flow)");
+				const int port = server->bind_to_any_port("127.0.0.1");
+				if (port < 0)
+					throw std::runtime_error("ServerBindError(startOAuth2Flow)");
 
-			logger_->info("GoogleOAuth2Flow's local server listening on port {}...", port);
-			const std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
+				logger->info("GoogleOAuth2Flow's local server listening on port {}...", port);
+				const std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 
-			server->Get("/callback", [this, server, redirectUri, &result](const httplib::Request &req,
-										      httplib::Response &res) {
-				if (req.has_param("code")) {
-					try {
-						const auto code = req.get_param_value("code");
-						logger_->info(
-							"GoogleOAuth2Flow received authorization code. Exchanging for token...");
+				server->Get("/callback", [server, userAgent, logger, redirectUri, &result](
+								 const httplib::Request &req, httplib::Response &res) {
+					if (req.has_param("code")) {
+						try {
+							const auto code = req.get_param_value("code");
+							logger->info(
+								"GoogleOAuth2Flow received authorization code. Exchanging for token...");
 
-						result = this->exchangeCode(code, redirectUri);
+							result = exchangeCode(code, redirectUri);
 
-						logger_->info("GoogleOAuth2Flow exchanged token successfully.");
+							logger->info("GoogleOAuth2Flow exchanged token successfully.");
 
-						userAgent_.onLoginSuccess(req, res);
-					} catch (const std::exception &e) {
-						logger_->logException(e, "GoogleOAuth2Flow failed to exchange token.");
+							userAgent.onLoginSuccess(req, res);
+						} catch (const std::exception &e) {
+							logger->logException(
+								e, "GoogleOAuth2Flow failed to exchange token.");
 
-						userAgent_.onLoginFailure(req, res);
+							userAgent.onLoginFailure(req, res);
+						}
+					} else if (req.has_param("error")) {
+						logger->error("GoogleOAuth2Flow received OAuth error: {}",
+							      req.get_param_value("error"));
+
+						userAgent.onLoginFailure(req, res);
 					}
-				} else if (req.has_param("error")) {
-					logger_->error("GoogleOAuth2Flow received OAuth error: {}",
-						       req.get_param_value("error"));
 
-					userAgent_.onLoginFailure(req, res);
+					server->stop();
+				});
+
+				{
+					const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(
+						curl_easy_init(), &curl_easy_cleanup);
+					if (!curl)
+						throw std::runtime_error("InitError(startOAuth2Flow)");
+
+					KaitoTokyo::CurlHelper::CurlUrlSearchParams qp(curl.get());
+					qp.append("client_id", clientId);
+					qp.append("redirect_uri", redirectUri);
+					qp.append("response_type", "code");
+					qp.append("scope", scopes);
+					qp.append("access_type", "offline");
+					qp.append("prompt", "consent");
+
+					const std::string authUrl = fmt::format(
+						"https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
+					logger->info("GoogleOAuth2Flow opening {}", authUrl);
+
+					userAgent.openBrowser(authUrl);
 				}
 
-				server->stop();
+				server->listen_after_bind();
+
+				return result;
 			});
-
-			{
-				const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(),
-											       &curl_easy_cleanup);
-				if (!curl)
-					throw std::runtime_error("InitError(startOAuth2Flow)");
-
-				KaitoTokyo::CurlHelper::CurlUrlSearchParams qp(curl.get());
-				qp.append("client_id", clientId_);
-				qp.append("redirect_uri", redirectUri);
-				qp.append("response_type", "code");
-				qp.append("scope", scopes_);
-				qp.append("access_type", "offline");
-				qp.append("prompt", "consent");
-
-				const std::string authUrl =
-					fmt::format("https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
-				logger_->info("GoogleOAuth2Flow opening {}", authUrl);
-
-				userAgent_.openBrowser(authUrl);
-			}
-
-			server->listen_after_bind();
-
-			return result;
-		});
 	}
 
-	void stop()
+	void stopOAuth2Flow()
 	{
 		if (server_ && server_->is_running()) {
 			server_->stop();
@@ -150,7 +156,8 @@ public:
 	}
 
 private:
-	GoogleTokenResponse exchangeCode(const std::string &code, const std::string &redirectUri)
+	static GoogleTokenResponse exchangeCode(const std::string &clientId, const std::string &clientSecret,
+						const std::string &code, const std::string &redirectUri)
 	{
 		using namespace KaitoTokyo::CurlHelper;
 		using nlohmann::json;
@@ -162,8 +169,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams params(curl.get());
-		params.append("client_id", clientId_);
-		params.append("client_secret", clientSecret_);
+		params.append("client_id", clientId);
+		params.append("client_secret", clientSecret);
 		params.append("code", code);
 		params.append("grant_type", "authorization_code");
 		params.append("redirect_uri", redirectUri);
