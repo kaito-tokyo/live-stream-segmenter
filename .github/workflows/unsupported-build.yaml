@@ -41,6 +41,12 @@ jobs:
           chown -R builder:builder .
           pacman -Sy --noconfirm
 
+      - name: Install cpp-httplib
+        run: |
+          git clone https://aur.archlinux.org/cpp-httplib.git
+          cd cpp-httplib
+          sudo makepkg -si --noconfirm
+
       - name: Build
         working-directory: unsupported/arch/live-stream-segmenter
         run: sudo -u builder makepkg -s --noconfirm
@@ -64,7 +70,7 @@ jobs:
           chown -R builder:builder .
           pacman -Sy --noconfirm
 
-      - name: Install AUR dependencies
+      - name: Install cpp-httplib
         run: |
           git clone https://aur.archlinux.org/cpp-httplib.git
           cd cpp-httplib
