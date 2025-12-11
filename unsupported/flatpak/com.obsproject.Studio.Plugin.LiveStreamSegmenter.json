@@ -43,8 +43,8 @@
         {
           "type": "git",
           "url": "https://github.com/kaito-tokyo/live-stream-segmenter.git",
-          "tag": "0.1.1",
-          "commit": "9a202c5aa8d88b6bcaf9ec90d970fb989b099cfb",
+          "tag": "0.1.2",
+          "commit": "2ec74b320da02fd6a740ef8721695d82627f8f83",
           "x-checker-data": {
             "type": "git",
             "tag-pattern": "^([\\d.]+)$"
