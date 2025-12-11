@@ -142,11 +142,7 @@ target_link_libraries(
     ${CMAKE_PROJECT_NAME}_Auth
     ${CMAKE_PROJECT_NAME}_API
 )
-target_sources(
-  ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE
-    src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
-)
+target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
 
 foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_options(
