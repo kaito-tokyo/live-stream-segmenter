@@ -45,7 +45,7 @@ jobs:
         run: |
           git clone https://aur.archlinux.org/cpp-httplib.git
           cd cpp-httplib
-          sudo makepkg -si --noconfirm
+          sudo  -u builder makepkg -si --noconfirm
 
       - name: Build
         working-directory: unsupported/arch/live-stream-segmenter
@@ -74,7 +74,7 @@ jobs:
         run: |
           git clone https://aur.archlinux.org/cpp-httplib.git
           cd cpp-httplib
-          sudo makepkg -si --noconfirm
+          sudo -u builder makepkg -si --noconfirm
 
       - name: Build
         working-directory: unsupported/arch/live-stream-segmenter-git
