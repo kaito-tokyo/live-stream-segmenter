@@ -65,7 +65,7 @@ public:
 	{
 	}
 
-	~GoogleOAuth2Flow() { stop(); }
+	~GoogleOAuth2Flow() { stopOAuth2Flow(); }
 
 	GoogleOAuth2Flow(const GoogleOAuth2Flow &) = delete;
 	GoogleOAuth2Flow &operator=(const GoogleOAuth2Flow &) = delete;
