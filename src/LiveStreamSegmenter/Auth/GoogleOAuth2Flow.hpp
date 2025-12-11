@@ -92,7 +92,7 @@ public:
 				logger->info("GoogleOAuth2Flow's local server listening on port {}...", port);
 				const std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 
-				server->Get("/callback", [server, userAgent, logger, redirectUri, &result](
+				server->Get("/callback", [logger, server, userAgent, clientId, clientSecret, redirectUri, &result](
 								 const httplib::Request &req, httplib::Response &res) {
 					if (req.has_param("code")) {
 						try {
