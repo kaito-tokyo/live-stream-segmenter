@@ -135,8 +135,6 @@ add_library(
   ${CMAKE_PROJECT_NAME}_UI
   STATIC
   src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
-  src/LiveStreamSegmenter/UI/SettingsDialog.cpp
-  src/LiveStreamSegmenter/UI/OAuth2Handler.cpp
 )
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(

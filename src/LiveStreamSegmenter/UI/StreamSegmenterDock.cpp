@@ -28,14 +28,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "SettingsDialog.hpp"
 
+using namespace KaitoTokyo::Logger;
+
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-using namespace KaitoTokyo::Logger;
+namespace {
 
-StreamSegmenterDock::StreamSegmenterDock(QWidget *parent)
+}
+
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
 	: QDockWidget(parent),
+	  logger_(std::move(logger)),
 	  // --- Member Initialization List ---
 	  mainWidget_(new QWidget(this)),
 	  titleBarWidget_(new QWidget(this)),
@@ -313,9 +318,9 @@ void StreamSegmenterDock::updateNextStream(const QString &title, const QString &
 
 void StreamSegmenterDock::onSettingsClicked()
 {
-	auto logger = std::make_shared<KaitoTokyo::Logger::NullLogger>();
-	SettingsDialog dialog(this, logger);
-	dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
+	// auto authManager = std::make_shared<KaitoTokyo::LiveStreamSegmenter::Auth::GoogleAuthManager>("", "", logger_);
+	// SettingsDialog dialog(authManager, logger, this);
+	// dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
 }
 
 void StreamSegmenterDock::updateMonitorLabel()
