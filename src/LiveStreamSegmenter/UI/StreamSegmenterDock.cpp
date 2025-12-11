@@ -26,8 +26,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <NullLogger.hpp>
 
-#include "SettingsDialog.hpp"
-
 using namespace KaitoTokyo::Logger;
 
 namespace KaitoTokyo {
