@@ -158,6 +158,20 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs BridgeUtils UpdateChecker ${CMAKE_PROJECT_NAME}_UI)
 
+if(APPLE)
+  target_link_options(
+    ${CMAKE_PROJECT_NAME}
+    PRIVATE "-Wl,-exported_symbols_list,${CMAKE_SOURCE_DIR}/cmake/macos/exported_symbols_list.txt"
+  )
+elseif(MSVC)
+  target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/cmake/windows/export_symbols.def")
+else()
+  target_link_options(
+    ${CMAKE_PROJECT_NAME}
+    PRIVATE "-Wl,--version-script,${CMAKE_SOURCE_DIR}/cmake/linux/version_script.map"
+  )
+endif()
+
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
 if(BUILD_TESTING)
