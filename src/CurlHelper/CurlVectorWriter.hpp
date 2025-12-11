@@ -36,7 +36,7 @@ namespace KaitoTokyo::CurlHelper {
 
 using CurlVectorWriterBuffer = std::vector<char>;
 
-std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
+inline std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
 {
 	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
 		return 0; // Signal error
