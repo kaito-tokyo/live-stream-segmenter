@@ -45,8 +45,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(QWidget *parent = nullptr);
-	~SettingsDialog() override; // デストラクタの実装が必要（unique_ptrのため）
+	explicit SettingsDialog(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	~SettingsDialog() override;
 
 private slots:
 	// --- Existing Slots ---
@@ -54,7 +54,7 @@ private slots:
 	void onAreaClicked();
 	void onLoadJsonClicked();
 	void onSaveClicked();
-	
+
 	// Auth
 	void onAuthClicked();
 	void onAuthPollTimer(); // 追加: フロー完了監視用
@@ -70,6 +70,7 @@ private slots:
 	void onLinkDocClicked();
 
 private:
+	std::shared_ptr<Logger::ILogger> logger_;
 	void setupUi();
 	void initializeData();
 	void updateAuthUI();

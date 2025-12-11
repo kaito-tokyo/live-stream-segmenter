@@ -311,7 +311,8 @@ void StreamSegmenterDock::updateNextStream(const QString &title, const QString &
 
 void StreamSegmenterDock::onSettingsClicked()
 {
-	SettingsDialog dialog(this);
+	auto logger = std::make_shared<KaitoTokyo::Logger::NullLogger>();
+	SettingsDialog dialog(this, logger);
 	dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
 }
 
