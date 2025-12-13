@@ -1,5 +1,5 @@
 /*
- * YouTube API Client
+ * Live Stream Segmenter
  * Copyright (c) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * This software is licensed under the MIT License.
