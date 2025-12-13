@@ -24,7 +24,6 @@ or later. See LICENSE.GPL-3.0-or-later for the full license text.
 - Main plugin integration code (src/plugin-main.cpp)
 - OBS Bridge utilities (src/BridgeUtils/*)
 - UI components (src/LiveStreamSegmenter/UI/*)
-- YouTube API client (src/LiveStreamSegmenter/API/YouTubeApiClient.hpp)
 
 These components interact directly with OBS Studio, which is licensed under
 GPL-2.0-or-later, and therefore must be GPL-compatible.
@@ -37,7 +36,7 @@ for the full license text.
 - Logger framework (src/Logger/*)
 - cURL helper utilities (src/CurlHelper/*)
 - Update checker (src/UpdateChecker/*)
-- YouTube API types (src/LiveStreamSegmenter/API/YouTubeTypes.hpp)
+- YouTube API components (src/LiveStreamSegmenter/API/*)
 - Google OAuth2 and authentication components (src/LiveStreamSegmenter/Auth/*)
 
 These components are designed to be reusable in other projects and are licensed
