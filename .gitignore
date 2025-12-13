@@ -29,6 +29,7 @@
 !CMakeLists.txt
 !CMakePresets.json
 !LICENSE
+!LICENSE.*
 !README.md
 !vcpkg-configuration.json
 !vcpkg.json
