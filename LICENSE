@@ -1,0 +1,71 @@
+Live Stream Segmenter - Dual License Notice
+============================================
+
+This project contains software licensed under different licenses depending on
+the component. The applicable license for each component is indicated in the
+file headers.
+
+Overall License Structure
+-------------------------
+
+The project is licensed under a dual license model:
+
+1. GNU General Public License v3.0 or later (GPL-3.0-or-later)
+2. MIT License
+
+Which License Applies Where
+----------------------------
+
+### GPL-3.0-or-later Licensed Components
+
+The following components are licensed under the GNU General Public License v3.0
+or later. See LICENSE.GPL-3.0-or-later for the full license text.
+
+- Main plugin integration code (src/plugin-main.cpp)
+- OBS Bridge utilities (src/BridgeUtils/*)
+- UI components (src/LiveStreamSegmenter/UI/*)
+- YouTube API client (src/LiveStreamSegmenter/API/YouTubeApiClient.hpp)
+
+These components interact directly with OBS Studio, which is licensed under
+GPL-2.0-or-later, and therefore must be GPL-compatible.
+
+### MIT Licensed Components
+
+The following components are licensed under the MIT License. See LICENSE.MIT
+for the full license text.
+
+- Logger framework (src/Logger/*)
+- cURL helper utilities (src/CurlHelper/*)
+- Update checker (src/UpdateChecker/*)
+- YouTube API types (src/LiveStreamSegmenter/API/YouTubeTypes.hpp)
+- Google OAuth2 and authentication components (src/LiveStreamSegmenter/Auth/*)
+
+These components are designed to be reusable in other projects and are licensed
+under the permissive MIT License to enable broader use.
+
+How to Determine Which License Applies
+---------------------------------------
+
+Each source file in this project contains a header comment that explicitly
+states which license applies to that file. Look for one of these statements:
+
+- "This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License..." indicates GPL-3.0-or-later
+  
+- "This software is licensed under the MIT License." indicates MIT License
+
+License Files
+-------------
+
+The complete text of each license can be found in the following files:
+
+- LICENSE.GPL-3.0-or-later - Full text of the GNU GPL v3.0
+- LICENSE.MIT - Full text of the MIT License
+
+Contact
+-------
+
+For questions about licensing, please contact:
+- Author: Kaito Udagawa
+- Email: umireon@kaito.tokyo
+- Website: https://kaito-tokyo.github.io/live-stream-segmenter/
