@@ -28,69 +28,61 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-namespace {
-
-}
-
 StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
-	: QDockWidget(parent),
+	: QWidget(parent),
 	  logger_(std::move(logger)),
-	  // --- Member Initialization List ---
-	  mainWidget_(new QWidget(this)),
-	  titleBarWidget_(new QWidget(this)),
-	  mainLayout_(new QVBoxLayout(mainWidget_)),
+	  mainLayout_(new QVBoxLayout(this)),
 
 	  // Top Controls
-	  topControlLayout_(new QHBoxLayout()),
-	  startButton_(new QPushButton(tr("Start"), mainWidget_)),
-	  stopButton_(new QPushButton(tr("Stop"), mainWidget_)),
+	  topControlLayout_(new QHBoxLayout(this)),
+	  startButton_(new QPushButton(tr("Start"), this)),
+	  stopButton_(new QPushButton(tr("Stop"), this)),
 
 	  // Status Monitor
-	  statusGroup_(new QGroupBox(tr("System Monitor"), mainWidget_)),
+	  statusGroup_(new QGroupBox(tr("System Monitor"), this)),
 	  statusLayout_(new QVBoxLayout(statusGroup_)),
 	  monitorLabel_(new QLabel(statusGroup_)),
 
 	  // Schedule
-	  scheduleGroup_(new QGroupBox(tr("Broadcast Schedule"), mainWidget_)),
+	  scheduleGroup_(new QGroupBox(tr("Broadcast Schedule"), this)),
 	  scheduleLayout_(new QVBoxLayout(scheduleGroup_)),
 
 	  currentContainer_(new QWidget(scheduleGroup_)),
 	  currentLayout_(new QVBoxLayout(currentContainer_)),
-	  currentRoleLabel_(new QLabel("CURRENT", currentContainer_)),
+	  currentHeader_(new QHBoxLayout(currentContainer_)),
+	  currentTitleRow_(new QHBoxLayout(currentContainer_)),
+	  currentRoleLabel_(new QLabel(tr("CURRENT"), currentContainer_)),
 	  currentStatusLabel_(new QLabel(currentContainer_)),
 	  currentTitleLabel_(new QLabel(currentContainer_)),
-	  currentLinkButton_(new QToolButton(currentContainer_)), // 【修正】
+	  currentLinkButton_(new QToolButton(currentContainer_)),
 
 	  nextContainer_(new QWidget(scheduleGroup_)),
 	  nextLayout_(new QVBoxLayout(nextContainer_)),
-	  nextRoleLabel_(new QLabel("NEXT", nextContainer_)),
+	  nextHeader_(new QHBoxLayout(nextContainer_)),
+	  nextTitleRow_(new QHBoxLayout(nextContainer_)),
+	  nextRoleLabel_(new QLabel(tr("NEXT"), nextContainer_)),
 	  nextStatusLabel_(new QLabel(nextContainer_)),
 	  nextTitleLabel_(new QLabel(nextContainer_)),
-	  nextLinkButton_(new QToolButton(nextContainer_)), // 【修正】
+	  nextLinkButton_(new QToolButton(nextContainer_)),
 
 	  // Log
-	  logGroup_(new QGroupBox(tr("Operation Log"), mainWidget_)),
+	  logGroup_(new QGroupBox(tr("Operation Log"), this)),
 	  logLayout_(new QVBoxLayout(logGroup_)),
 	  consoleView_(new QTextEdit(logGroup_)),
 
 	  // Bottom Controls
-	  bottomControlLayout_(new QVBoxLayout()),
-	  settingsButton_(new QPushButton(tr("Settings"), mainWidget_)),
-	  segmentNowButton_(new QPushButton(tr("Segment Now..."), mainWidget_)), // 【修正】
+	  bottomControlLayout_(new QVBoxLayout(this)),
+	  settingsButton_(new QPushButton(tr("Settings"), this)),
+	  segmentNowButton_(new QPushButton(tr("Segment Now..."), this)),
 
 	  // Cache Initialization
-	  currentStatusText_("IDLE"),
+	  currentStatusText_(tr("IDLE")),
 	  currentStatusColor_("#888888"),
 	  currentNextTimeText_("--:--:--"),
 	  currentTimeRemainingText_("--")
 {
-	setObjectName("StreamSegmenterDock");
-	setWindowTitle(tr("Stream Segmenter"));
-	setTitleBarWidget(titleBarWidget_);
-
 	setupUi();
 
-	// リンクボタンの接続
 	connect(currentLinkButton_, &QToolButton::clicked, this, &StreamSegmenterDock::onLinkButtonClicked);
 	connect(nextLinkButton_, &QToolButton::clicked, this, &StreamSegmenterDock::onLinkButtonClicked);
 
@@ -100,8 +92,6 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger
 	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onStopClicked);
 	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsClicked);
 	connect(segmentNowButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSegmentNowClicked);
-
-	setWidget(mainWidget_);
 
 	updateMonitorLabel();
 	startButton_->setEnabled(true);
@@ -143,26 +133,23 @@ void StreamSegmenterDock::setupUi()
 	currentLayout_->setContentsMargins(4, 4, 4, 4);
 	currentLayout_->setSpacing(2);
 
-	auto *currentHeader = new QHBoxLayout();
-	currentHeader->setContentsMargins(0, 0, 0, 0);
+	currentHeader_->setContentsMargins(0, 0, 0, 0);
 	currentRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
 	currentStatusLabel_->setStyleSheet("font-weight: bold; font-size: 11px;");
-	currentHeader->addWidget(currentRoleLabel_);
-	currentHeader->addStretch();
-	currentHeader->addWidget(currentStatusLabel_);
-	currentLayout_->addLayout(currentHeader);
+	currentHeader_->addWidget(currentRoleLabel_);
+	currentHeader_->addStretch();
+	currentHeader_->addWidget(currentStatusLabel_);
+	currentLayout_->addLayout(currentHeader_);
 
 	// Title Row
-	auto *currentTitleRow = new QHBoxLayout();
-	currentTitleRow->setContentsMargins(0, 0, 0, 0);
-	currentTitleRow->setSpacing(2);
+	currentTitleRow_->setContentsMargins(0, 0, 0, 0);
+	currentTitleRow_->setSpacing(2);
 
 	currentTitleLabel_->setWordWrap(true);
 	currentTitleLabel_->setOpenExternalLinks(false);
 	currentTitleLabel_->setMaximumHeight(45);
 	currentTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px; color: #e0e0e0;");
 
-	// リンクボタン設定
 	currentLinkButton_->setText("↗");
 	currentLinkButton_->setToolTip(tr("Open in Browser"));
 	currentLinkButton_->setCursor(Qt::PointingHandCursor);
@@ -178,10 +165,10 @@ void StreamSegmenterDock::setupUi()
 					  "}");
 	currentLinkButton_->hide();
 
-	currentTitleRow->addWidget(currentTitleLabel_, 1);
-	currentTitleRow->addWidget(currentLinkButton_, 0, Qt::AlignTop);
+	currentTitleRow_->addWidget(currentTitleLabel_, 1);
+	currentTitleRow_->addWidget(currentLinkButton_, 0, Qt::AlignTop);
 
-	currentLayout_->addLayout(currentTitleRow);
+	currentLayout_->addLayout(currentTitleRow_);
 
 	currentContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
 	scheduleLayout_->addWidget(currentContainer_);
@@ -190,25 +177,22 @@ void StreamSegmenterDock::setupUi()
 	nextLayout_->setContentsMargins(4, 4, 4, 4);
 	nextLayout_->setSpacing(2);
 
-	auto *nextHeader = new QHBoxLayout();
-	nextHeader->setContentsMargins(0, 0, 0, 0);
+	nextHeader_->setContentsMargins(0, 0, 0, 0);
 	nextRoleLabel_->setStyleSheet("color: #888888; font-size: 10px; font-weight: bold; letter-spacing: 1px;");
 	nextStatusLabel_->setStyleSheet("font-weight: bold; font-size: 11px;");
-	nextHeader->addWidget(nextRoleLabel_);
-	nextHeader->addStretch();
-	nextHeader->addWidget(nextStatusLabel_);
-	nextLayout_->addLayout(nextHeader);
+	nextHeader_->addWidget(nextRoleLabel_);
+	nextHeader_->addStretch();
+	nextHeader_->addWidget(nextStatusLabel_);
+	nextLayout_->addLayout(nextHeader_);
 
-	auto *nextTitleRow = new QHBoxLayout();
-	nextTitleRow->setContentsMargins(0, 0, 0, 0);
-	nextTitleRow->setSpacing(2);
+	nextTitleRow_->setContentsMargins(0, 0, 0, 0);
+	nextTitleRow_->setSpacing(2);
 
 	nextTitleLabel_->setWordWrap(true);
 	nextTitleLabel_->setOpenExternalLinks(false);
 	nextTitleLabel_->setMaximumHeight(45);
 	nextTitleLabel_->setStyleSheet("font-size: 13px; padding-left: 2px; color: #aaaaaa;");
 
-	// リンクボタン設定
 	nextLinkButton_->setText("↗");
 	nextLinkButton_->setToolTip(tr("Open in Browser"));
 	nextLinkButton_->setCursor(Qt::PointingHandCursor);
@@ -224,10 +208,10 @@ void StreamSegmenterDock::setupUi()
 				       "}");
 	nextLinkButton_->hide();
 
-	nextTitleRow->addWidget(nextTitleLabel_, 1);
-	nextTitleRow->addWidget(nextLinkButton_, 0, Qt::AlignTop);
+	nextTitleRow_->addWidget(nextTitleLabel_, 1);
+	nextTitleRow_->addWidget(nextLinkButton_, 0, Qt::AlignTop);
 
-	nextLayout_->addLayout(nextTitleRow);
+	nextLayout_->addLayout(nextTitleRow_);
 
 	nextContainer_->setStyleSheet("background-color: #2a2a2a; border-radius: 4px;");
 	scheduleLayout_->addWidget(nextContainer_);

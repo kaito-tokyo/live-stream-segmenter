@@ -14,15 +14,14 @@
 
 #pragma once
 
-#include <QDockWidget>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
-#include <QTextEdit>
-#include <QPushButton>
-#include <QToolButton>
 #include <QDateTime>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 #include <ILogger.hpp>
 
@@ -30,11 +29,11 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-class StreamSegmenterDock : public QDockWidget, public Logger::ILogger {
+class StreamSegmenterDock : public QWidget, public Logger::ILogger {
 	Q_OBJECT
 
 public:
-	explicit StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	void setSystemStatus(const QString &statusText, const QString &colorCode);
@@ -73,8 +72,6 @@ private:
 
 	// --- UI Components ---
 
-	QWidget *const mainWidget_;
-	QWidget *const titleBarWidget_;
 	QVBoxLayout *const mainLayout_;
 
 	// 1. Top Controls
@@ -93,17 +90,21 @@ private:
 
 	QWidget *const currentContainer_;
 	QVBoxLayout *const currentLayout_;
+	QHBoxLayout *const currentHeader_;
+	QHBoxLayout *const currentTitleRow_;
 	QLabel *const currentRoleLabel_;
 	QLabel *const currentStatusLabel_;
 	QLabel *const currentTitleLabel_;
-	QToolButton *const currentLinkButton_; // 【修正】Btn -> Button
+	QToolButton *const currentLinkButton_;
 
 	QWidget *const nextContainer_;
 	QVBoxLayout *const nextLayout_;
+	QHBoxLayout *const nextHeader_;
+	QHBoxLayout *const nextTitleRow_;
 	QLabel *const nextRoleLabel_;
 	QLabel *const nextStatusLabel_;
 	QLabel *const nextTitleLabel_;
-	QToolButton *const nextLinkButton_; // 【修正】Btn -> Button
+	QToolButton *const nextLinkButton_;
 
 	// 4. Log Section
 	QGroupBox *const logGroup_;
@@ -113,7 +114,7 @@ private:
 	// 5. Bottom Controls
 	QVBoxLayout *const bottomControlLayout_;
 	QPushButton *const settingsButton_;
-	QPushButton *const segmentNowButton_; // 【修正】Btn -> Button
+	QPushButton *const segmentNowButton_;
 };
 
 } // namespace UI
