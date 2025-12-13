@@ -26,7 +26,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 env:
   VCPKG_BINARY_SOURCES: clear;http,https://vcpkg-obs.kaito.tokyo/binarycache/{name}/{version}/{sha}

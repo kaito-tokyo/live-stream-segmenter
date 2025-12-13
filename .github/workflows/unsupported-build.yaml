@@ -12,10 +12,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,read
-  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-
 permissions:
   contents: read
 
