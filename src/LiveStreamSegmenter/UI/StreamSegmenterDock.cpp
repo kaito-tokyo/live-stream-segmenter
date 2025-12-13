@@ -22,14 +22,17 @@
 
 #include <NullLogger.hpp>
 
+#include <SettingsDialog.hpp>
+
 using namespace KaitoTokyo::Logger;
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QWidget(parent),
+	  authService_(std::move(authService)),
 	  logger_(std::move(logger)),
 	  mainLayout_(new QVBoxLayout(this)),
 
@@ -298,9 +301,8 @@ void StreamSegmenterDock::updateNextStream(const QString &title, const QString &
 
 void StreamSegmenterDock::onSettingsClicked()
 {
-	// auto authManager = std::make_shared<KaitoTokyo::LiveStreamSegmenter::Auth::GoogleAuthManager>("", "", logger_);
-	// SettingsDialog dialog(authManager, logger, this);
-	// dialog.exec(); // モーダルダイアログとして表示（閉じるまで親を操作不可）
+	SettingsDialog dialog(authService_, logger_, this);
+	dialog.exec();
 }
 
 void StreamSegmenterDock::updateMonitorLabel()

@@ -25,6 +25,7 @@
 
 #include <ILogger.hpp>
 
+#include <AuthService.hpp>
 #include <GoogleAuthManager.hpp>
 
 namespace KaitoTokyo {
@@ -35,7 +36,7 @@ class StreamSegmenterDock : public QWidget, public Logger::ILogger {
 	Q_OBJECT
 
 public:
-	StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	void setSystemStatus(const QString &statusText, const QString &colorCode);
@@ -64,7 +65,8 @@ private:
 	void setupUi();
 	void updateMonitorLabel();
 	
-	const std::shared_ptr<Logger::ILogger> logger_;
+	std::shared_ptr<Service::AuthService> authService_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// Data Cache
 	QString currentStatusText_;

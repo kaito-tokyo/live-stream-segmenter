@@ -14,48 +14,42 @@
 
 #include <memory>
 
-#include <QMainWindow>
-
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
 #include <ILogger.hpp>
 #include <ObsLogger.hpp>
 
-#include <StreamSegmenterDock.hpp>
+#include <MainPluginContext.hpp>
 
 using namespace KaitoTokyo::BridgeUtils;
 using namespace KaitoTokyo::Logger;
 
-using namespace KaitoTokyo::LiveStreamSegmenter::UI;
+using namespace KaitoTokyo::LiveStreamSegmenter::Controller;
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
-static std::shared_ptr<ILogger> g_logger;
-
-// This pointer will be freed automatically by OBS on unload
-static StreamSegmenterDock *g_dock_ = nullptr;
+static std::shared_ptr<const ILogger> g_logger;
+static std::unique_ptr<MainPluginContext> g_mainPluginContext;
 
 bool obs_module_load(void)
 {
 	g_logger = std::make_shared<ObsLogger>("[" PLUGIN_NAME "]");
 
-	auto *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window());
-
+	QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	if (!mainWindow) {
-		blog(LOG_ERROR, "[" PLUGIN_NAME "] Failed to get main window");
+		g_logger->error("Failed to get main window");
 		return false;
 	}
 
-	g_dock_ = new StreamSegmenterDock(g_logger, mainWindow);
-	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), g_dock_);
+	g_mainPluginContext = std::make_unique<MainPluginContext>(g_logger, mainWindow);
 
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version %s)", PLUGIN_VERSION);
+	g_logger->info("plugin loaded successfully (version {})", PLUGIN_VERSION);
 	return true;
 }
 
 void obs_module_unload(void)
 {
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
+	g_logger->info("plugin unloaded");
 }
