@@ -25,6 +25,8 @@
 
 #include <ILogger.hpp>
 
+#include <GoogleAuthManager.hpp>
+
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
@@ -61,8 +63,8 @@ private slots:
 private:
 	void setupUi();
 	void updateMonitorLabel();
-
-	std::shared_ptr<Logger::ILogger> logger_;
+	
+	const std::shared_ptr<Logger::ILogger> logger_;
 
 	// Data Cache
 	QString currentStatusText_;
@@ -115,6 +117,8 @@ private:
 	QVBoxLayout *const bottomControlLayout_;
 	QPushButton *const settingsButton_;
 	QPushButton *const segmentNowButton_;
+
+	std::shared_ptr<Auth::GoogleAuthManager> googleAuthManager_ = nullptr;
 };
 
 } // namespace UI

@@ -97,6 +97,8 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger
 	startButton_->setEnabled(true);
 	stopButton_->setEnabled(false);
 
+	googleAuthManager_ = std::make_shared<KaitoTokyo::LiveStreamSegmenter::Auth::GoogleAuthManager>("", "", logger_);
+
 	info("Live Stream Segmenter initialized.");
 
 	updateCurrentStream("(No Active Stream)", "---");
