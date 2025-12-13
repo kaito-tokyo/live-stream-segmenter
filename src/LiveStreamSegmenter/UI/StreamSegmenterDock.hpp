@@ -32,38 +32,20 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-class StreamSegmenterDock : public QWidget, public Logger::ILogger {
+class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
 public:
 	StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
-	void setSystemStatus(const QString &statusText, const QString &colorCode);
-	void setNextSegmentationTime(const QDateTime &time);
-	void setTimeRemaining(int remainingSeconds);
-
-	void updateCurrentStream(const QString &title, const QString &status, const QString &url = "");
-	void updateNextStream(const QString &title, const QString &status, const QString &url = "");
-
-protected:
-	void log(LogLevel level, std::string_view message) const noexcept override;
-	const char *getPrefix() const noexcept override { return ""; }
-
-signals:
-	void logRequest(int level, const QString &message);
-
-private slots:
-	void onLogRequest(int level, const QString &message);
-	void onStartClicked();
-	void onStopClicked();
-	void onSegmentNowClicked();
-	void onSettingsClicked();
-	void onLinkButtonClicked();
+	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
+	StreamSegmenterDock &operator=(const StreamSegmenterDock &) = delete;
+	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
+	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
 private:
 	void setupUi();
-	void updateMonitorLabel();
 	
 	std::shared_ptr<Service::AuthService> authService_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
