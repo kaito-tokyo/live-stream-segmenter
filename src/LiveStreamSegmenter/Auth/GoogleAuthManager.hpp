@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -22,22 +23,24 @@
 #include <ILogger.hpp>
 
 #include "GoogleTokenState.hpp"
-#include "GoogleTokenStorage.hpp"
-
-using namespace KaitoTokyo::CurlHelper;
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
+struct GoogleAuthManagerCallback {
+	std::function<void(std::optional<GoogleTokenState>)> onTokenStore;
+	std::function<GoogleTokenState(void)> onTokenRestore;
+	std::function<void()> onTokenInvalidate;
+};
+
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(std::string clientId, std::string clientSecret, std::shared_ptr<const Logger::ILogger> logger,
-			  std::unique_ptr<GoogleTokenStorage> storage = std::make_unique<GoogleTokenStorage>())
+	GoogleAuthManager(std::string clientId, std::string clientSecret, GoogleAuthManagerCallback callback, std::shared_ptr<const Logger::ILogger> logger)
 		: clientId_(std::move(clientId)),
 		  clientSecret_(std::move(clientSecret)),
-		  logger_(std::move(logger)),
-		  storage_(std::move(storage))
+		  callback_(std::move(callback)),
+		  logger_(std::move(logger))
 	{
-		if (auto savedTokenState = storage_->load()) {
+		if (std::optional<GoogleTokenState> savedTokenState = callback_.onTokenRestore()) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			currentTokenState_ = *savedTokenState;
 		}
@@ -62,7 +65,7 @@ public:
 			std::lock_guard<std::mutex> lock(mutex_);
 			currentTokenState_ = tokenState;
 		}
-		storage_->save(tokenState);
+		callback_.onTokenStore(tokenState);
 	}
 
 	void clear()
@@ -71,7 +74,7 @@ public:
 			std::lock_guard<std::mutex> lock(mutex_);
 			currentTokenState_.clear();
 		}
-		storage_->clear();
+		callback_.onTokenInvalidate();
 	}
 
 	std::string getAccessToken()
@@ -106,7 +109,7 @@ public:
 				tokenState = currentTokenState_;
 			}
 
-			storage_->save(tokenState);
+			callback_.onTokenStore(tokenState);
 
 			return tokenState.access_token;
 		} else {
@@ -118,6 +121,8 @@ private:
 	GoogleTokenResponse refreshTokenState(const std::string &refreshToken)
 	{
 		using nlohmann::json;
+
+		using namespace KaitoTokyo::CurlHelper;
 
 		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
@@ -164,9 +169,8 @@ private:
 
 	const std::string clientId_;
 	const std::string clientSecret_;
-
-	std::shared_ptr<const Logger::ILogger> logger_;
-	std::unique_ptr<GoogleTokenStorage> storage_;
+	GoogleAuthManagerCallback callback_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	mutable std::mutex mutex_;
 	GoogleTokenState currentTokenState_;
