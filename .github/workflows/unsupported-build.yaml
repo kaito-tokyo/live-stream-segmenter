@@ -12,10 +12,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  VCPKG_BINARY_SOURCES: clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,read
-  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-
 permissions:
   contents: read
 
@@ -30,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout project repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup builder
         run: |
@@ -59,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout project repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup builder
         run: |
@@ -89,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@10a3c29f0162516f0f68006be14c92f34bd4fa6c
