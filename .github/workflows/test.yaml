@@ -72,7 +72,7 @@ jobs:
         run: .\bootstrap-vcpkg.bat
 
       - name: Install dependencies from vcpkg
-        run: $VCPKG_ROOT/vcpkg install --triplet x64-windows-static-md-obs --x-feature=tests
+        run: $VCPKG_ROOT/vcpkg install --triplet x64-windows-static-md-obs
 
       - name: Configure
         run: cmake --preset windows-x64
@@ -123,7 +123,7 @@ jobs:
             libgtest-dev
 
       - name: Install dependencies from vcpkg
-        run: $VCPKG_ROOT/vcpkg install --triplet x64-linux-obs --x-feature=tests
+        run: $VCPKG_ROOT/vcpkg install --triplet x64-linux-obs --debug
 
       - name: Configure
         run: cmake --preset ubuntu-x86_64
