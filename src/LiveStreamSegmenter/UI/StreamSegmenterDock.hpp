@@ -12,7 +12,7 @@
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
- #pragma once
+#pragma once
 
 #include <QDockWidget>
 #include <QLabel>

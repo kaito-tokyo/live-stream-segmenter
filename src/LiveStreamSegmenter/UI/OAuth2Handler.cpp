@@ -12,7 +12,7 @@
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
- #include "OAuth2Handler.hpp"
+#include "OAuth2Handler.hpp"
 #include <QTcpSocket>
 #include <QDesktopServices>
 #include <QUrl>
