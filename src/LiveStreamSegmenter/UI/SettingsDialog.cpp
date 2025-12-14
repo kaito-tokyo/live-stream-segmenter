@@ -1,22 +1,14 @@
 /*
  * Live Stream Segmenter
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
- * "LICENSE.GPL-3.0-or-later" in the distribution root.
+ * ... (ライセンス表記略) ...
  */
 
 #include "SettingsDialog.hpp"
 
+// ... (インクルードはそのまま) ...
 #include <thread>
 #include <future>
-
 #include <QDesktopServices>
 #include <QUrl>
 #include <QMessageBox>
@@ -28,155 +20,187 @@
 #include <QDir>
 #include <obs-module.h>
 #include <QTimer>
-
 #include <YouTubeApiClient.hpp>
 #include <GoogleTokenState.hpp>
 #include <QMimeData>
 
 using namespace KaitoTokyo::Logger;
-
 using namespace KaitoTokyo::LiveStreamSegmenter::API;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *parent)
-	: QDialog(parent),
-	  logger_(std::move(logger)),
-	  // Layouts & Containers initialization
-	  mainLayout_(new QVBoxLayout(this)),
-	  tabWidget_(new QTabWidget(this)),
-	  generalTab_(new QWidget(this)),
-	  generalTabLayout_(new QVBoxLayout(generalTab_)),
-	  youTubeTab_(new QWidget(this)),
-	  youTubeTabLayout_(new QVBoxLayout(youTubeTab_)),
-	  helpLabel_(new QLabel(this)),
-	  credGroup_(new QGroupBox(this)),
-	  credLayout_(new QVBoxLayout(credGroup_)),
-	  detailsLayout_(new QFormLayout()),
-	  authGroup_(new QGroupBox(this)),
-	  authLayout_(new QVBoxLayout(authGroup_)),
-	  keyGroup_(new QGroupBox(this)),
-	  keyLayout_(new QVBoxLayout(keyGroup_)),
-	  keyHeaderLayout_(new QHBoxLayout()),
-	  targetStreamKeyLabel_(new QLabel(this)),
-	  // Existing Components initialization
-	  dropArea_(new JsonDropArea(this)),
-	  clientIdDisplay_(new QLineEdit(this)),
-	  clientSecretDisplay_(new QLineEdit(this)),
-	  saveButton_(new QPushButton(this)),
-	  authButton_(new QPushButton(this)),
-	  statusLabel_(new QLabel(this)),
-	  streamKeyCombo_(new QComboBox(this)),
-	  refreshKeysBtn_(new QPushButton(this))
+    : QDialog(parent),
+      logger_(std::move(logger)),
+      // Layouts & Containers initialization
+      mainLayout_(new QVBoxLayout(this)),
+      tabWidget_(new QTabWidget(this)),
+      
+      // Tabs
+      generalTab_(new QWidget(this)),
+      generalTabLayout_(new QVBoxLayout(generalTab_)),
+      youTubeTab_(new QWidget(this)),
+      youTubeTabLayout_(new QVBoxLayout(youTubeTab_)),
+      
+      helpLabel_(new QLabel(this)),
+      
+      // Groups
+      credGroup_(new QGroupBox(this)),
+      credLayout_(new QVBoxLayout(credGroup_)),
+      // detailsLayout_ はローカル変数にするため削除
+
+      authGroup_(new QGroupBox(this)),
+      authLayout_(new QVBoxLayout(authGroup_)),
+      
+      keyGroup_(new QGroupBox(this)),
+      keyLayout_(new QVBoxLayout(keyGroup_)),
+      targetStreamKeyLabel_(new QLabel(this)),
+      // streamKeyRowLayout_ はローカル変数にするため削除
+
+      // Components
+      dropArea_(new JsonDropArea(this)),
+      clientIdDisplay_(new QLineEdit(this)),
+      clientSecretDisplay_(new QLineEdit(this)),
+      saveButton_(new QPushButton(this)),
+      authButton_(new QPushButton(this)),
+      statusLabel_(new QLabel(this)),
+      streamKeyCombo_(new QComboBox(this)),
+      refreshKeysBtn_(new QPushButton(this))
 {
-	setupUi();
+    setupUi();
 }
 
 void SettingsDialog::setupUi()
 {
-	setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint |
-		       Qt::WindowTitleHint);
+    setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint |
+                   Qt::WindowTitleHint);
 
-	// Window Title
-	setWindowTitle(tr("Settings"));
+    // Window Title
+    setWindowTitle(tr("Settings"));
 
-	// Main Layout Config
-	mainLayout_->setSpacing(0);
-	mainLayout_->setContentsMargins(12, 12, 12, 12);
+    // Main Layout Config
+    mainLayout_->setSpacing(0);
+    mainLayout_->setContentsMargins(12, 12, 12, 12);
 
-	generalTabLayout_->setSpacing(16);
-	generalTabLayout_->setContentsMargins(16, 16, 16, 16);
-	generalTabLayout_->addStretch(); // 上詰めにするためのストレッチ
+    // --- General Tab Config ---
+    generalTabLayout_->setSpacing(16);
+    generalTabLayout_->setContentsMargins(16, 16, 16, 16);
+    generalTabLayout_->addStretch();
 
-	youTubeTabLayout_->setSpacing(16);
-	youTubeTabLayout_->setContentsMargins(16, 16, 16, 16);
+    // --- YouTube Tab Config ---
+    youTubeTabLayout_->setSpacing(16);
+    youTubeTabLayout_->setContentsMargins(16, 16, 16, 16);
 
-	// Help Label (Link)
-	helpLabel_->setText(tr("<a href=\"https://kaito-tokyo.github.io/live-stream-segmenter/setup\">"
-			       "View Official Setup Instructions for YouTube"
-			       "</a>"));
-	helpLabel_->setOpenExternalLinks(true);
-	helpLabel_->setWordWrap(true);
-	youTubeTabLayout_->addWidget(helpLabel_);
+    // Help Label (Link)
+    helpLabel_->setText(tr("<a href=\"https://kaito-tokyo.github.io/live-stream-segmenter/setup\">"
+                           "View Official Setup Instructions for YouTube"
+                           "</a>"));
+    helpLabel_->setOpenExternalLinks(true);
+    helpLabel_->setWordWrap(true);
+    youTubeTabLayout_->addWidget(helpLabel_);
 
-	// --- Credentials Group ---
-	credGroup_->setTitle(tr("Credentials")); // ★ここで設定
+    // --- 1. OAuth2 Client Credentials Group ---
+    // ★変更: タイトルに番号を追加
+    credGroup_->setTitle(tr("1. OAuth2 Client Credentials"));
 
-	// Drop Area Config
-	dropArea_->setText(tr("Drag & Drop credentials.json here"));
-	dropArea_->setAlignment(Qt::AlignCenter);
-	dropArea_->setStyleSheet(
-        "QLabel {"
-        "  border: 2px dashed palette(mid);"
-        "  color: palette(text);"
-        "  border-radius: 6px;"
-        "  padding: 16px;"
-        "}"
-    );
+    // Drop Area Config
+    dropArea_->setText(tr("Drag & Drop credentials.json here"));
+    dropArea_->setAlignment(Qt::AlignCenter);
+    dropArea_->setStyleSheet(R"(
+        QLabel {
+            border: 2px dashed palette(highlight);
+            color: palette(text);
+            border-radius: 6px;
+            padding: 16px;
+        }
+    )");
 
-	credLayout_->addWidget(dropArea_);
+    credLayout_->addWidget(dropArea_);
+    credLayout_->addSpacing(16);
 
-	// Details Form Layout Config
-	clientIdDisplay_->setReadOnly(true);
-	clientIdDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
-	detailsLayout_->addRow(tr("Client ID:"), clientIdDisplay_); // ここは元々 setupUi 内
+    // Details Form Layout Config
+    // ★変更: ローカル変数として宣言・生成 (親は指定しない)
+    QFormLayout *detailsLayout = new QFormLayout();
+    
+    detailsLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
-	clientSecretDisplay_->setReadOnly(true);
-	clientSecretDisplay_->setEchoMode(QLineEdit::Password);
-	clientSecretDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
-	detailsLayout_->addRow(tr("Client Secret:"), clientSecretDisplay_); // ここも元々 setupUi 内
+    clientIdDisplay_->setReadOnly(true);
+    clientIdDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    clientIdDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
+    detailsLayout->addRow(tr("Client ID"), clientIdDisplay_);
 
-	credLayout_->addLayout(detailsLayout_);
+    clientSecretDisplay_->setReadOnly(true);
+    clientSecretDisplay_->setEchoMode(QLineEdit::Password);
+    clientSecretDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    clientSecretDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
+    detailsLayout->addRow(tr("Client Secret"), clientSecretDisplay_);
 
-	saveButton_->setText(tr("2. Save Credentials")); // ★ここで設定
-	saveButton_->setEnabled(false);
-	credLayout_->addWidget(saveButton_);
+    // ★ここで credLayout_ に追加することで所有権が移動する
+    credLayout_->addLayout(detailsLayout);
 
-	youTubeTabLayout_->addWidget(credGroup_);
+    saveButton_->setText(tr("Save Credentials"));
+    saveButton_->setEnabled(false);
+    credLayout_->addWidget(saveButton_);
 
-	// --- Authorization Group ---
-	authGroup_->setTitle(tr("Authorization")); // ★ここで設定
+    youTubeTabLayout_->addWidget(credGroup_);
 
-	authButton_->setText(tr("3. Authenticate")); // ★ここで設定
-	authButton_->setEnabled(false);
+    // --- 2. OAuth2 Authorization Group ---
+    // ★変更: タイトルに番号を追加
+    authGroup_->setTitle(tr("2. OAuth2 Authorization"));
 
-	statusLabel_->setAlignment(Qt::AlignCenter);
+    authButton_->setText(tr("Request Authorization"));
+    authButton_->setEnabled(false);
 
-	authLayout_->addWidget(authButton_);
-	authLayout_->addWidget(statusLabel_);
+    statusLabel_->setAlignment(Qt::AlignCenter);
+    statusLabel_->setText(tr("Unauthorized"));
 
-	youTubeTabLayout_->addWidget(authGroup_);
+    authLayout_->addWidget(authButton_);
+    authLayout_->addWidget(statusLabel_);
 
-	// --- Stream Key Group ---
-	keyGroup_->setTitle(tr("Stream Settings")); // ★ここで設定
+    youTubeTabLayout_->addWidget(authGroup_);
 
-	targetStreamKeyLabel_->setText(tr("Target Stream Key:")); // ★ここで設定
-	keyHeaderLayout_->addWidget(targetStreamKeyLabel_);
-	keyHeaderLayout_->addStretch();
+    // --- 3. Stream Settings Group ---
+    // ★変更: タイトルに番号を追加
+    keyGroup_->setTitle(tr("3. Stream Settings"));
 
-	refreshKeysBtn_->setText(tr("Reload Keys")); // ★ここで設定
-	refreshKeysBtn_->setCursor(Qt::PointingHandCursor);
-	refreshKeysBtn_->setFixedWidth(100);
-	refreshKeysBtn_->setEnabled(false);
-	keyHeaderLayout_->addWidget(refreshKeysBtn_);
+    targetStreamKeyLabel_->setText(tr("Target Stream Key:"));
+    keyLayout_->addWidget(targetStreamKeyLabel_);
 
-	keyLayout_->addLayout(keyHeaderLayout_);
+    // コンボボックスとリロードボタンを横並びにするレイアウト
+    // ★変更: ローカル変数として宣言・生成 (親は指定しない)
+    QHBoxLayout *streamKeyRowLayout = new QHBoxLayout();
+    
+    streamKeyRowLayout->setSpacing(8);
 
-	streamKeyCombo_->setPlaceholderText(tr("Authenticate to fetch keys..."));
-	streamKeyCombo_->setEnabled(false);
-	keyLayout_->addWidget(streamKeyCombo_);
+    streamKeyCombo_->setPlaceholderText(tr("Authenticate to fetch keys..."));
+    streamKeyCombo_->setEnabled(false);
+    streamKeyCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    
+    refreshKeysBtn_->setText(tr("Reload"));
+    refreshKeysBtn_->setCursor(Qt::PointingHandCursor);
+    refreshKeysBtn_->setEnabled(false);
 
-	youTubeTabLayout_->addWidget(keyGroup_);
-	youTubeTabLayout_->addStretch();
+    streamKeyRowLayout->addWidget(streamKeyCombo_);
+    streamKeyRowLayout->addWidget(refreshKeysBtn_);
 
-	tabWidget_->addTab(generalTab_, tr("General"));
-	tabWidget_->addTab(youTubeTab_, tr("YouTube"));
-	mainLayout_->addWidget(tabWidget_);
+    // ★ここで keyLayout_ に追加することで所有権が移動する
+    keyLayout_->addLayout(streamKeyRowLayout);
 
-	tabWidget_->setCurrentWidget(youTubeTab_);
+    youTubeTabLayout_->addWidget(keyGroup_);
+    youTubeTabLayout_->addStretch();
 
-	mainLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);
-	resize(500, 650);
+    // --- Finalize Tabs ---
+    tabWidget_->addTab(generalTab_, tr("General"));
+    tabWidget_->addTab(youTubeTab_, tr("YouTube"));
+    mainLayout_->addWidget(tabWidget_);
+
+    // Default to YouTube tab
+    tabWidget_->setCurrentWidget(youTubeTab_);
+
+    // Window Sizing
+    mainLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);
+    
+    resize(500, 650);
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

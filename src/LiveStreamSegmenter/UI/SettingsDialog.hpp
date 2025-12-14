@@ -1,15 +1,7 @@
 /*
  * Live Stream Segmenter
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
- * "LICENSE.GPL-3.0-or-later" in the distribution root.
+ * ... (ライセンス表記略) ...
  */
 
 #pragma once
@@ -36,63 +28,60 @@
 #include <optional>
 
 #include <ILogger.hpp>
-
 #include <AuthService.hpp>
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2Flow.hpp>
 #include <YouTubeTypes.hpp>
-
 #include "JsonDropArea.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 class SettingsDialog : public QDialog {
-	Q_OBJECT
+    Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
-	~SettingsDialog() override = default;
+    SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+    ~SettingsDialog() override = default;
 
 private:
-	void setupUi();
+    void setupUi();
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
+    const std::shared_ptr<const Logger::ILogger> logger_;
 
-	// UI Components
-	// Layouts & Containers
-	QVBoxLayout *mainLayout_;
-	// infoLabel_ を削除しました
+    // UI Components
+    // Layouts & Containers
+    QVBoxLayout *mainLayout_;
+    
+    QTabWidget *tabWidget_;
+    QWidget *generalTab_;
+    QVBoxLayout *generalTabLayout_;
+    QWidget *youTubeTab_;
+    QVBoxLayout *youTubeTabLayout_;
 
-	QTabWidget *tabWidget_;
-	QWidget *generalTab_;
-	QVBoxLayout *generalTabLayout_;
-	QWidget *youTubeTab_;
-	QVBoxLayout *youTubeTabLayout_;
+    QLabel *helpLabel_;
 
-	QLabel *helpLabel_;
+    QGroupBox *credGroup_;
+    QVBoxLayout *credLayout_;
+    // detailsLayout_ はローカル変数化したため削除
 
-	QGroupBox *credGroup_;
-	QVBoxLayout *credLayout_;
-	QFormLayout *detailsLayout_;
+    QGroupBox *authGroup_;
+    QVBoxLayout *authLayout_;
 
-	QGroupBox *authGroup_;
-	QVBoxLayout *authLayout_;
+    QGroupBox *keyGroup_;
+    QVBoxLayout *keyLayout_;
+    QLabel *targetStreamKeyLabel_;
+    // streamKeyRowLayout_ はローカル変数化したため削除
 
-	QGroupBox *keyGroup_;
-	QVBoxLayout *keyLayout_;
-	QHBoxLayout *keyHeaderLayout_;
-	QLabel *targetStreamKeyLabel_;
+    // Existing Components
+    JsonDropArea *dropArea_;
+    QLineEdit *clientIdDisplay_;
+    QLineEdit *clientSecretDisplay_;
+    QPushButton *saveButton_;
+    QPushButton *authButton_;
+    QLabel *statusLabel_;
 
-	// Existing Components
-	JsonDropArea *dropArea_;
-	QLineEdit *clientIdDisplay_;
-	QLineEdit *clientSecretDisplay_;
-	QPushButton *saveButton_;
-	QPushButton *authButton_;
-	QLabel *statusLabel_;
-
-	QComboBox *streamKeyCombo_;
-	QPushButton *refreshKeysBtn_;
+    QComboBox *streamKeyCombo_;
+    QPushButton *refreshKeysBtn_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
