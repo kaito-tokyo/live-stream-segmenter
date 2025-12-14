@@ -19,8 +19,8 @@ struct GoogleOAuth2ClientCredential {
 	std::string ver = "1.0";
 	std::string client_id;
 	std::string client_secret;
-
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(GoogleOAuth2ClientCredential, ver, client_id, client_secret)
 };
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredential, ver, client_id, client_secret)
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
