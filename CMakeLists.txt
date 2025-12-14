@@ -145,7 +145,7 @@ target_link_libraries(
     Logger
     ${CMAKE_PROJECT_NAME}_Auth
     ${CMAKE_PROJECT_NAME}_API
-    ${CMAKE_PROJECT_NAME}_Service
+    ${CMAKE_PROJECT_NAME}_Store
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
@@ -162,7 +162,7 @@ target_include_directories(
 )
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Controller
-  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Service ${CMAKE_PROJECT_NAME}_UI Logger
+  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Store ${CMAKE_PROJECT_NAME}_UI Logger
 )
 target_sources(${CMAKE_PROJECT_NAME}_Controller PRIVATE src/LiveStreamSegmenter/Controller/MainPluginContext.hpp)
 

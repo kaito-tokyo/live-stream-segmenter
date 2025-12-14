@@ -29,7 +29,7 @@
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
 
-namespace KaitoTokyo::LiveStreamSegmenter::Service {
+namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class AuthStore : public std::enable_shared_from_this<AuthStore> {
 public:
@@ -65,14 +65,14 @@ public:
 		return googleTokenState_;
 	}
 
-	void saveAuthService() noexcept
+	void saveAuthStore() noexcept
 	{
 		std::scoped_lock lock(mutex_);
 		saveToConfig("googleOAuth2ClientCredentials", googleOAuth2ClientCredentials_);
 		saveToConfig("googleTokenState", googleTokenState_);
 	}
 
-	void restoreAuthService() noexcept
+	void restoreAuthStore() noexcept
 	{
 		std::scoped_lock lock(mutex_);
 		restoreFromConfig("googleOAuth2ClientCredentials", googleOAuth2ClientCredentials_);
@@ -121,4 +121,4 @@ private:
 	Auth::GoogleTokenState googleTokenState_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Service
+} // namespace KaitoTokyo::LiveStreamSegmenter::Store

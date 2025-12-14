@@ -18,7 +18,7 @@
 
 #include <ILogger.hpp>
 
-#include <AuthService.hpp>
+#include <AuthStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
@@ -28,10 +28,10 @@ public:
 	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
 		  dock_(dock),
-		  authService_(std::make_shared<Service::AuthService>(logger_))
+		  authStore_(std::make_shared<Store::AuthStore>(logger_))
 	{
-		authService_->restoreAuthService();
-		dock_->setAuthService(authService_);
+		authStore_->restoreAuthStore();
+		dock_->setAuthStore(authStore_);
 	}
 
 	~ProfileContext() noexcept = default;
@@ -43,7 +43,7 @@ public:
 
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<Service::AuthService> authService_;
+	std::shared_ptr<Store::AuthStore> authStore_;
 	UI::StreamSegmenterDock *const dock_;
 };
 

@@ -30,10 +30,10 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-SettingsDialog::SettingsDialog(std::shared_ptr<Service::AuthService> authService,
+SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  authService_(std::move(authService)),
+	  authStore_(std::move(authStore)),
 	  logger_(std::move(logger)),
 
 	  // 1. Main Structure
@@ -160,7 +160,8 @@ void SettingsDialog::onAuthButtonClicked()
 	googleOAuth2FlowUserAgent_->onTokenReceived = [this](const std::optional<Auth::GoogleAuthResponse> &response) {
 		if (response.has_value()) {
 			auto tokenState = Auth::GoogleTokenState().withUpdatedAuthResponse(response.value());
-			this->authService_->storeGoogleOAuth2TokenState(tokenState);
+			this->authStore_->setGoogleTokenState(tokenState);
+            this->logger_->info("Received OAuth2 token successfully.");
 		} else {
 			this->logger_->error("Failed to receive OAuth2 token.");
 		}
@@ -248,7 +249,7 @@ void SettingsDialog::setupUi()
 	QFormLayout *detailsLayout = new QFormLayout();
 	detailsLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
-	auto clientCredentials = authService_->getGoogleOAuth2ClientCredentials();
+	auto clientCredentials = authStore_->getGoogleOAuth2ClientCredentials();
 
 	clientIdDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	clientIdDisplay_->setText(QString::fromStdString(clientCredentials.client_id));
@@ -322,9 +323,9 @@ void SettingsDialog::storeSettings()
 	Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
-	authService_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
+	authStore_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
 
-	authService_->storeAuthService();
+	authStore_->saveAuthStore();
 }
 
 inline SettingsDialogGoogleOAuth2ClientCredentials

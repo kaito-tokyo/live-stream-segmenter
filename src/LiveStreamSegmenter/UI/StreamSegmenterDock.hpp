@@ -27,7 +27,7 @@
 
 #include <ILogger.hpp>
 
-#include <AuthService.hpp>
+#include <AuthStore.hpp>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -45,10 +45,10 @@ public:
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
-	void setAuthService(std::shared_ptr<Service::AuthService> authService)
+	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore)
 	{
 		std::scoped_lock lock(mutex_);
-		authService_ = std::move(authService);
+		authStore_ = std::move(authStore);
 	}
 
 private slots:
@@ -111,7 +111,7 @@ private:
 	QPushButton *const settingsButton_;
 	QPushButton *const segmentNowButton_;
 
-	std::shared_ptr<Service::AuthService> authService_;
+	std::shared_ptr<Store::AuthStore> authStore_;
 	mutable std::mutex mutex_;
 };
 
