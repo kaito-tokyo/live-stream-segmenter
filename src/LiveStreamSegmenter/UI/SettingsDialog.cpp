@@ -57,7 +57,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *p
 	  keyHeaderLayout_(new QHBoxLayout()),
 	  targetStreamKeyLabel_(new QLabel(tr("Target Stream Key:"), this)),
 	  // Existing Components initialization
-	  dropArea_(new JsonDropArea(logger_, this)),
+	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),
 	  clientSecretDisplay_(new QLineEdit(this)),
 	  loadJsonButton_(new QPushButton(tr("Select File..."), this)),

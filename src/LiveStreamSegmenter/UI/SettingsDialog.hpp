@@ -42,21 +42,9 @@
 #include <GoogleOAuth2Flow.hpp>
 #include <YouTubeTypes.hpp>
 
+#include "JsonDropArea.hpp"
+
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
-
-class JsonDropArea : public QLabel {
-	Q_OBJECT
-public:
-	explicit JsonDropArea(QWidget *parent = nullptr);
-
-signals:
-	void fileDropped(const QString &filePath);
-
-protected:
-	void dragEnterEvent(QDragEnterEvent *event) override;
-	void dragMoveEvent(QDragMoveEvent *event) override;
-	void dropEvent(QDropEvent *event) override;
-};
 
 class SettingsDialog : public QDialog {
 	Q_OBJECT
@@ -74,14 +62,14 @@ private:
 	// Layouts & Containers (Newly added members)
 	QVBoxLayout *mainLayout_;
 	QLabel *infoLabel_;
-
+	
 	QGroupBox *credGroup_;
 	QVBoxLayout *credLayout_;
 	QFormLayout *detailsLayout_;
-
+	
 	QGroupBox *authGroup_;
 	QVBoxLayout *authLayout_;
-
+	
 	QGroupBox *keyGroup_;
 	QVBoxLayout *keyLayout_;
 	QHBoxLayout *keyHeaderLayout_;
