@@ -111,6 +111,11 @@ void SettingsDialog::markDirty()
 
 void SettingsDialog::onAuthButtonClicked()
 {
+	if (googleOAuth2Flow_) {
+		logger_->error("OAuth2 flow is already in progress.");
+		return;
+	}
+
 	if (clientIdDisplay_->text().isEmpty() || clientSecretDisplay_->text().isEmpty()) {
 		QMessageBox msgBox(this);
 		msgBox.setIcon(QMessageBox::Warning);
@@ -147,30 +152,50 @@ void SettingsDialog::onAuthButtonClicked()
 			},
 			Qt::QueuedConnection);
 	};
-	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request & /*req*/,
-							    httplib::Response & /*res*/) {
-		this->logger_->info("OAuth2 authorization succeeded.");
-		this->statusLabel_->setText(tr("Authorized"));
+	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request&,
+							    httplib::Response &res) {
+        res.set_content("<h1>Authorized<br>Back to OBS</h1>", "text/html");
+		QMetaObject::invokeMethod(
+			this,
+			[this]() {
+				this->logger_->info("OAuth2 authorization succeeded.");
+				this->statusLabel_->setText(tr("Authorized"));
+			},
+			Qt::QueuedConnection);
 	};
-	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request & /*req*/,
-							    httplib::Response & /*res*/) {
-		this->logger_->error("OAuth2 authorization failed.");
-		this->statusLabel_->setText(tr("Authorization Failed"));
+	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request&,
+							    httplib::Response &res) {
+        res.set_content("<h1>Authorization Failed<br>Back to OBS</h1>", "text/html");
+		QMetaObject::invokeMethod(
+			this,
+			[this]() {
+				this->logger_->error("OAuth2 authorization failed.");
+				this->statusLabel_->setText(tr("Authorization Failed"));
+			},
+			Qt::QueuedConnection);
 	};
 	googleOAuth2FlowUserAgent_->onTokenReceived = [this](const std::optional<Auth::GoogleAuthResponse> &response) {
-		if (response.has_value()) {
-			auto tokenState = Auth::GoogleTokenState().withUpdatedAuthResponse(response.value());
-			this->authStore_->setGoogleTokenState(tokenState);
-            this->logger_->info("Received OAuth2 token successfully.");
-		} else {
-			this->logger_->error("Failed to receive OAuth2 token.");
-		}
+		QMetaObject::invokeMethod(
+			this,
+			[this, response]() {
+				if (response.has_value()) {
+					auto tokenState =
+						Auth::GoogleTokenState().withUpdatedAuthResponse(response.value());
+					this->authStore_->setGoogleTokenState(tokenState);
+					this->logger_->info("Received OAuth2 token successfully.");
+				} else {
+					this->logger_->error("Failed to receive OAuth2 token.");
+				}
+			},
+			Qt::QueuedConnection);
 	};
 
 	googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
 								     "https://www.googleapis.com/auth/youtube.readonly",
 								     googleOAuth2FlowUserAgent_, logger_);
 	googleOAuth2Flow_->startOAuth2Flow();
+
+	authButton_->setEnabled(false);
 }
 
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
