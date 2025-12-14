@@ -56,6 +56,9 @@ invoke_formatter() {
 
       if (( ! #source_files )) source_files=((src|tests)/**/*.(c|cpp|h|hpp|m|mm)(.N))
 
+      exclude_files=((vendor)/**/*.(c|cpp|h|hpp|m|mm)(.N))
+      source_files=(${source_files:|exclude_files})
+
       local -a format_args=(-style=file -fallback-style=none)
       if (( _loglevel > 2 )) format_args+=(--verbose)
 

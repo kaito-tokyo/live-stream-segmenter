@@ -4,6 +4,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 project(${_name} VERSION ${_version})
 
+if(MSVC)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 option(BUILD_TESTING "Build tests" OFF)
 option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
@@ -61,6 +65,9 @@ else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
+add_library(jthread::jthread INTERFACE IMPORTED)
+target_include_directories(jthread::jthread INTERFACE ${CMAKE_SOURCE_DIR}/vendor/josuttis-jthread)
+
 add_library(Logger INTERFACE)
 target_include_directories(Logger INTERFACE ${CMAKE_SOURCE_DIR}/src/Logger)
 target_link_libraries(Logger INTERFACE fmt::fmt)
@@ -109,19 +116,19 @@ target_sources(
 
 add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
 target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper Logger)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE jthread::jthread CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
 )
 
-add_library(${CMAKE_PROJECT_NAME}_Service INTERFACE)
-target_include_directories(${CMAKE_PROJECT_NAME}_Service INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Service)
+add_library(${CMAKE_PROJECT_NAME}_Store INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_Store INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Store)
 target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Service
+  ${CMAKE_PROJECT_NAME}_Store
   INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth
 )
-target_sources(${CMAKE_PROJECT_NAME}_Service PRIVATE src/LiveStreamSegmenter/Service/AuthService.hpp)
+target_sources(${CMAKE_PROJECT_NAME}_Store PRIVATE src/LiveStreamSegmenter/Store/AuthStore.hpp)
 
 add_library(
   ${CMAKE_PROJECT_NAME}_UI
@@ -142,7 +149,7 @@ target_link_libraries(
     Logger
     ${CMAKE_PROJECT_NAME}_Auth
     ${CMAKE_PROJECT_NAME}_API
-    ${CMAKE_PROJECT_NAME}_Service
+    ${CMAKE_PROJECT_NAME}_Store
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
@@ -159,9 +166,12 @@ target_include_directories(
 )
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Controller
-  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Service ${CMAKE_PROJECT_NAME}_UI Logger
+  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Store ${CMAKE_PROJECT_NAME}_UI Logger
 )
 target_sources(${CMAKE_PROJECT_NAME}_Controller PRIVATE src/LiveStreamSegmenter/Controller/MainPluginContext.hpp)
+
+include(CheckIncludeFileCXX)
+check_include_file_cxx(immintrin.h HAVE_IMMINTRIN_H)
 
 foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_options(
@@ -170,12 +180,15 @@ foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   )
   target_compile_definitions(
     ${TARGET}
-    PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}" NOMINMAX
+    PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}"
   )
   set_target_properties(
     ${TARGET}
     PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON POSITION_INDEPENDENT_CODE ON
   )
+  if(HAVE_IMMINTRIN_H AND UNIX AND NOT APPLE)
+    target_compile_options(${TARGET} PRIVATE -include immintrin.h)
+  endif()
 endforeach()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)

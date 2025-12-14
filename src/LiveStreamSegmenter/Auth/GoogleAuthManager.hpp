@@ -101,12 +101,12 @@ public:
 		}
 
 		if (refreshToken.has_value()) {
-			GoogleTokenResponse tokenResponse = refreshTokenState(*refreshToken);
+			GoogleAuthResponse tokenResponse = refreshTokenState(*refreshToken);
 
 			GoogleTokenState tokenState;
 			{
 				std::scoped_lock lock(mutex_);
-				currentTokenState_.updateFromTokenResponse(tokenResponse);
+				currentTokenState_ = currentTokenState_.withUpdatedAuthResponse(tokenResponse);
 				tokenState = currentTokenState_;
 			}
 
@@ -119,7 +119,7 @@ public:
 	}
 
 private:
-	GoogleTokenResponse refreshTokenState(const std::string &refreshToken)
+	GoogleAuthResponse refreshTokenState(const std::string &refreshToken)
 	{
 		using nlohmann::json;
 		using namespace CurlHelper;
@@ -164,7 +164,7 @@ private:
 			throw std::runtime_error("APIError(refreshTokenState):" + j["error"].dump());
 		}
 
-		return j.get<GoogleTokenResponse>();
+		return j.get<GoogleAuthResponse>();
 	}
 
 	const GoogleOAuth2ClientCredentials clientCredentials_;
