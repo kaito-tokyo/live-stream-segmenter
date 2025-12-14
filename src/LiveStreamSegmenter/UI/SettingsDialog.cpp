@@ -75,15 +75,20 @@ SettingsDialog::SettingsDialog(std::shared_ptr<AuthService> authService, std::sh
 	  streamKeyComboB_(new QComboBox(this)),
 
 	  // 7. Dialog Buttons
-	  buttonBox_(
-		  new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel, this))
+	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
+					  this)),
+	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
 {
 	setupUi();
 
 	connect(dropArea_, &JsonDropArea::jsonFileDropped, this, &SettingsDialog::onCredentialsFileDropped);
+
+	connect(clientIdDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
+	connect(clientSecretDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
+
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
-    connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
+	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 }
 
 void SettingsDialog::accept()
@@ -92,9 +97,15 @@ void SettingsDialog::accept()
 	QDialog::accept();
 }
 
+void SettingsDialog::markDirty()
+{
+	applyButton_->setEnabled(true);
+}
+
 void SettingsDialog::onApply()
 {
-    storeSettings();
+	storeSettings();
+	applyButton_->setEnabled(false);
 }
 
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
@@ -167,15 +178,15 @@ void SettingsDialog::setupUi()
 	QFormLayout *detailsLayout = new QFormLayout();
 	detailsLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
-    auto clientCredentials = authService_->getGoogleOAuth2ClientCredentials();
+	auto clientCredentials = authService_->getGoogleOAuth2ClientCredentials();
 
 	clientIdDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    clientIdDisplay_->setText(QString::fromStdString(clientCredentials.client_id));
+	clientIdDisplay_->setText(QString::fromStdString(clientCredentials.client_id));
 	detailsLayout->addRow(tr("Client ID"), clientIdDisplay_);
 
 	clientSecretDisplay_->setEchoMode(QLineEdit::Password);
 	clientSecretDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    clientSecretDisplay_->setText(QString::fromStdString(clientCredentials.client_secret));
+	clientSecretDisplay_->setText(QString::fromStdString(clientCredentials.client_secret));
 	detailsLayout->addRow(tr("Client Secret"), clientSecretDisplay_);
 
 	credLayout_->addLayout(detailsLayout);
@@ -228,6 +239,7 @@ void SettingsDialog::setupUi()
 	tabWidget_->setCurrentWidget(youTubeTab_);
 
 	// --- Dialog Buttons ---
+	applyButton_->setEnabled(false);
 	mainLayout_->addWidget(buttonBox_);
 
 	// Window Sizing

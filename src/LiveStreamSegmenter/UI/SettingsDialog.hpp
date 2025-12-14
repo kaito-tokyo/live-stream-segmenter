@@ -50,8 +50,9 @@ public slots:
 	void accept() override;
 
 private slots:
+	void markDirty();
 	void onCredentialsFileDropped(const QString &localFile);
-    void onApply();
+	void onApply();
 
 private:
 	void setupUi();
@@ -103,6 +104,7 @@ private:
 
 	// 7. Dialog Buttons
 	QDialogButtonBox *buttonBox_;
+	QPushButton *applyButton_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

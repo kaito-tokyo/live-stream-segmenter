@@ -52,6 +52,7 @@ public:
 			try {
 				std::string dump = j.dump();
 				config_set_string(config, PLUGIN_NAME, "googleTokenState", dump.c_str());
+				config_save(config);
 			} catch (const std::exception &e) {
 				logger->logException(e, "StoreError(onTokenStore)");
 			} catch (...) {
@@ -108,6 +109,8 @@ private:
 			nlohmann::json j = googleOAuth2ClientCredentials_;
 			std::string jsonString = j.dump();
 			config_set_string(config, PLUGIN_NAME, "googleOAuth2ClientCredentials", jsonString.c_str());
+			config_save(config);
+			logger_->info("Google OAuth2 client credentials stored successfully.");
 		} catch (const std::exception &e) {
 			logger_->logException(e, "StoreError(saveGoogleOAuth2ClientCredentials)");
 		} catch (...) {
@@ -127,6 +130,7 @@ private:
 			try {
 				nlohmann::json j = nlohmann::json::parse(jsonCstr);
 				setGoogleOAuth2ClientCredentials(j.get<Auth::GoogleOAuth2ClientCredentials>());
+				logger_->info("Google OAuth2 client credentials restored successfully.");
 			} catch (const std::exception &e) {
 				logger_->logException(e, "RestoreError(restoreGoogleOAuth2ClientCredential)");
 			} catch (...) {
