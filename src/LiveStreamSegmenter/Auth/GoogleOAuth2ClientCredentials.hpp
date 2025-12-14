@@ -15,12 +15,12 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-struct GoogleOAuth2ClientCredential {
+struct GoogleOAuth2ClientCredentials {
 	std::string ver = "1.0";
 	std::string client_id;
 	std::string client_secret;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredential, ver, client_id, client_secret)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredentials, ver, client_id, client_secret)
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth

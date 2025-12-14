@@ -22,7 +22,7 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
-#include "GoogleOAuth2ClientCredential.hpp"
+#include "GoogleOAuth2ClientCredentials.hpp"
 #include "GoogleTokenState.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
@@ -35,9 +35,9 @@ struct GoogleAuthManagerCallback {
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(GoogleOAuth2ClientCredential clientCredential, GoogleAuthManagerCallback callback,
+	GoogleAuthManager(GoogleOAuth2ClientCredentials clientCredentials, GoogleAuthManagerCallback callback,
 			  std::shared_ptr<const Logger::ILogger> logger)
-		: clientCredential_(std::move(clientCredential)),
+		: clientCredentials_(std::move(clientCredentials)),
 		  callback_(std::move(callback)),
 		  logger_(std::move(logger))
 	{
@@ -96,8 +96,8 @@ public:
 			refreshToken = currentTokenState_.refresh_token;
 		}
 
-		if (clientCredential_.client_id.empty() || clientCredential_.client_secret.empty()) {
-			throw std::runtime_error("CredentialMissingError(getAccessToken)");
+		if (clientCredentials_.client_id.empty() || clientCredentials_.client_secret.empty()) {
+			throw std::runtime_error("CredentialsMissingError(getAccessToken)");
 		}
 
 		if (refreshToken.has_value()) {
@@ -132,8 +132,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams postParams(curl.get());
-		postParams.append("client_id", clientCredential_.client_id);
-		postParams.append("client_secret", clientCredential_.client_secret);
+		postParams.append("client_id", clientCredentials_.client_id);
+		postParams.append("client_secret", clientCredentials_.client_secret);
 		postParams.append("refresh_token", refreshToken);
 		postParams.append("grant_type", "refresh_token");
 
@@ -167,7 +167,7 @@ private:
 		return j.get<GoogleTokenResponse>();
 	}
 
-	const GoogleOAuth2ClientCredential clientCredential_;
+	const GoogleOAuth2ClientCredentials clientCredentials_;
 	GoogleAuthManagerCallback callback_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 

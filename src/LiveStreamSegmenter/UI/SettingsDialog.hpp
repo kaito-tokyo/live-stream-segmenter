@@ -31,6 +31,11 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
+struct SettingsDialogGoogleOAuth2ClientCredentials {
+	QString client_id;
+	QString client_secret;
+};
+
 class SettingsDialog : public QDialog {
 	Q_OBJECT
 
@@ -41,8 +46,13 @@ public:
 public slots:
 	void accept() override;
 
+private slots:
+	void onCredentialsFileDropped(const QString &localFile);
+
 private:
 	void setupUi();
+	SettingsDialogGoogleOAuth2ClientCredentials
+	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
 

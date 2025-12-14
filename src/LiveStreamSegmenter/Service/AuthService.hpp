@@ -26,7 +26,7 @@
 #include <ILogger.hpp>
 
 #include <GoogleAuthManager.hpp>
-#include <GoogleOAuth2ClientCredential.hpp>
+#include <GoogleOAuth2ClientCredentials.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Service {
 
@@ -40,13 +40,13 @@ public:
 	AuthService(AuthService &&) = delete;
 	AuthService &operator=(AuthService &&) = delete;
 
-	void setGoogleOAuth2ClientCredential(Auth::GoogleOAuth2ClientCredential googleOAuth2ClientCredential)
+	void setGoogleOAuth2ClientCredentials(Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials)
 	{
 		using nlohmann::json;
 		using namespace Auth;
 
 		std::scoped_lock lock(mutex_);
-		googleOAuth2ClientCredential_ = std::move(googleOAuth2ClientCredential);
+		googleOAuth2ClientCredentials_ = std::move(googleOAuth2ClientCredentials);
 
 		GoogleAuthManagerCallback googleAuthManagerCallback;
 		googleAuthManagerCallback.onTokenStore = [logger = logger_](GoogleTokenState tokenState) {
@@ -79,7 +79,7 @@ public:
 			config_remove_value(config, PLUGIN_NAME, "googleTokenState");
 		};
 
-		googleAuthManager_ = std::make_shared<GoogleAuthManager>(googleOAuth2ClientCredential,
+		googleAuthManager_ = std::make_shared<GoogleAuthManager>(googleOAuth2ClientCredentials,
 									 googleAuthManagerCallback, logger_);
 	}
 
@@ -91,13 +91,13 @@ public:
 		std::scoped_lock lock(mutex_);
 
 		config_t *config = obs_frontend_get_profile_config();
-		const char *jsonCstr = config_get_string(config, PLUGIN_NAME, "googleOAuth2ClientCredential");
+		const char *jsonCstr = config_get_string(config, PLUGIN_NAME, "googleOAuth2ClientCredentials");
 		if (jsonCstr == nullptr || jsonCstr[0] == '\0') {
 			logger_->info("No Google OAuth2 client credential found in config.");
 		} else {
 			try {
 				json j = json::parse(jsonCstr);
-				setGoogleOAuth2ClientCredential(j.get<GoogleOAuth2ClientCredential>());
+				setGoogleOAuth2ClientCredentials(j.get<GoogleOAuth2ClientCredentials>());
 			} catch (const std::exception &e) {
 				logger_->logException(e, "RestoreError(restoreGoogleOAuth2ClientCredential)");
 			} catch (...) {
@@ -114,13 +114,13 @@ public:
 
 		config_t *config = obs_frontend_get_profile_config();
 		try {
-			json j = googleOAuth2ClientCredential_;
+			json j = googleOAuth2ClientCredentials_;
 			std::string jsonString = j.dump();
-			config_set_string(config, PLUGIN_NAME, "googleOAuth2ClientCredential", jsonString.c_str());
+			config_set_string(config, PLUGIN_NAME, "googleOAuth2ClientCredentials", jsonString.c_str());
 		} catch (const std::exception &e) {
-			logger_->logException(e, "StoreError(saveGoogleOAuth2ClientCredential)");
+			logger_->logException(e, "StoreError(saveGoogleOAuth2ClientCredentials)");
 		} catch (...) {
-			logger_->error("UnknownError(saveGoogleOAuth2ClientCredential)");
+			logger_->error("UnknownError(saveGoogleOAuth2ClientCredentials)");
 		}
 	}
 
@@ -133,7 +133,7 @@ public:
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
-	Auth::GoogleOAuth2ClientCredential googleOAuth2ClientCredential_;
+	Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
 
 	mutable std::recursive_mutex mutex_;
 	std::shared_ptr<Auth::GoogleAuthManager> googleAuthManager_ = nullptr;

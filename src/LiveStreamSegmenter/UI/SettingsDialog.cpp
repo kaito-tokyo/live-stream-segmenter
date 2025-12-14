@@ -14,9 +14,15 @@
 
 #include "SettingsDialog.hpp"
 
+#include <QFile>
 #include <QFormLayout>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QMimeData>
 #include <QUrl>
+
+#include "fmt_qstring_formatter.hpp"
 
 using namespace KaitoTokyo::Logger;
 
@@ -65,6 +71,25 @@ SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *p
 		  new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel, this))
 {
 	setupUi();
+
+	connect(dropArea_, &JsonDropArea::jsonFileDropped, this, &SettingsDialog::onCredentialsFileDropped);
+	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
+	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
+}
+
+void SettingsDialog::accept()
+{
+	QDialog::accept();
+}
+
+void SettingsDialog::onCredentialsFileDropped(const QString &localFile) {
+    try {
+        SettingsDialogGoogleOAuth2ClientCredentials credentials = parseGoogleOAuth2ClientCredentialsFromLocalFile(localFile);
+        clientIdDisplay_->setText(credentials.client_id);
+        clientSecretDisplay_->setText(credentials.client_secret);
+    } catch (const std::exception &e) {
+        logger_->logException(e, "Error parsing dropped credentials file");
+    }
 }
 
 void SettingsDialog::setupUi()
@@ -174,18 +199,57 @@ void SettingsDialog::setupUi()
 	tabWidget_->setCurrentWidget(youTubeTab_);
 
 	// --- Dialog Buttons ---
-	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
-
 	mainLayout_->addWidget(buttonBox_);
 
 	// Window Sizing
 	mainLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);
+
 	resize(500, 700);
 }
 
-void SettingsDialog::accept()
+inline SettingsDialogGoogleOAuth2ClientCredentials
+SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile)
 {
-	QDialog::accept();
+	QFile file(localFile);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        logger_->error("Failed to open dropped credentials file: {}", localFile);
+        throw std::runtime_error("FileOpenError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	QJsonParseError parseError;
+	QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+	file.close();
+
+	if (parseError.error != QJsonParseError::NoError) {
+		logger_->error("Failed to parse dropped credentials file: {}: {}", localFile, parseError.errorString());
+        throw std::runtime_error("JsonParseError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	if (!doc.isObject()) {
+		logger_->error("Dropped credentials file is not a valid JSON object: {}", localFile);
+        throw std::runtime_error("RootIsNotObjectError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	QJsonObject root = doc.object();
+    if (!root.contains("installed") || !root["installed"].isObject()) {
+        logger_->error("Dropped credentials file does not contain 'installed' object: {}", localFile);
+        throw std::runtime_error("InstalledObjectMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+    }
+
+    QJsonObject installed = root["installed"].toObject();
+    if (!installed.contains("client_id") || !installed["client_id"].isString()) {
+        logger_->error("Dropped credentials file is missing 'installed.client_id': {}", localFile);
+        throw std::runtime_error("ClientIdMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+    }
+    if (!installed.contains("client_secret") || !installed["client_secret"].isString()) {
+        logger_->error("Dropped credentials file is missing 'installed.client_secret': {}", localFile);
+        throw std::runtime_error("ClientSecretMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+    }
+
+    SettingsDialogGoogleOAuth2ClientCredentials credentials;
+    credentials.client_id = installed["client_id"].toString();
+    credentials.client_secret = installed["client_secret"].toString();
+    return credentials;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
