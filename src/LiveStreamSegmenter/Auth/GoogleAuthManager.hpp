@@ -22,7 +22,7 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
-#include "GoogleOAuth2ClientCrendential.hpp"
+#include "GoogleOAuth2ClientCredential.hpp"
 #include "GoogleTokenState.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {

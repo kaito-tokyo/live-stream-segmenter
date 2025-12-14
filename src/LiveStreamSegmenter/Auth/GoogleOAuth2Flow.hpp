@@ -27,7 +27,7 @@
 #include <ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
-#include "GoogleOAuth2ClientCrendential.hpp"
+#include "GoogleOAuth2ClientCredential.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 

@@ -26,7 +26,7 @@
 #include <ILogger.hpp>
 
 #include <GoogleAuthManager.hpp>
-#include <GoogleOAuth2ClientCrendential.hpp>
+#include <GoogleOAuth2ClientCredential.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Service {
 
