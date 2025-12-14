@@ -31,6 +31,7 @@ struct GoogleTokenState {
 
 	std::optional<Timestamp> expires_at;
 
+	[[nodiscard]]
 	std::chrono::system_clock::time_point expirationTimePoint() const
 	{
 		if (expires_at.has_value()) {
@@ -40,8 +41,13 @@ struct GoogleTokenState {
 		}
 	}
 
-	bool isAuthorized() const { return !refresh_token.empty(); }
+	[[nodiscard]]
+	bool isAuthorized() const
+	{
+		return !refresh_token.empty();
+	}
 
+	[[nodiscard]]
 	bool isAccessTokenFresh() const
 	{
 		if (access_token.empty() || !expires_at.has_value()) {
@@ -83,8 +89,38 @@ struct GoogleTokenState {
 		scope.clear();
 		expires_at.reset();
 	}
-
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(GoogleTokenState, ver, access_token, refresh_token, email, scope, expires_at)
 };
+
+inline void from_json(const nlohmann::json &j, GoogleTokenState &p)
+{
+	if (auto it = j.find("ver"); it != j.end()) {
+        it->get_to(p.ver);
+    }
+
+	j.at("access_token").get_to(p.access_token);
+	j.at("refresh_token").get_to(p.refresh_token);
+	j.at("email").get_to(p.email);
+	j.at("scope").get_to(p.scope);
+
+	if (auto it = j.find("expires_at"); it != j.end() && !it->is_null()) {
+		it->get_to(p.expires_at.emplace());
+	} else {
+		p.expires_at = std::nullopt;
+	}
+}
+
+inline void to_json(nlohmann::json &j, const GoogleTokenState &p)
+{
+	j = nlohmann::json{
+		{"ver", p.ver},
+		{"access_token", p.access_token},
+		{"refresh_token", p.refresh_token},
+		{"email", p.email},
+		{"scope", p.scope},
+	};
+
+	if (p.expires_at.has_value())
+		j["expires_at"] = *p.expires_at;
+}
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth

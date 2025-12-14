@@ -16,6 +16,7 @@
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 struct GoogleTokenResponse {
+	std::string ver = "1.0";
 	std::string access_token;
 	std::optional<int> expires_in;
 	std::optional<std::string> token_type;
@@ -25,6 +26,10 @@ struct GoogleTokenResponse {
 
 inline void from_json(const nlohmann::json &j, GoogleTokenResponse &p)
 {
+	if (auto it = j.find("ver"); it != j.end()) {
+        it->get_to(p.ver);
+    }
+
 	j.at("access_token").get_to(p.access_token);
 
 	const auto set_optional = [&j](const char *key, auto &field) {
@@ -41,27 +46,24 @@ inline void from_json(const nlohmann::json &j, GoogleTokenResponse &p)
 	set_optional("scope", p.scope);
 }
 
-inline void to_json(nlohmann::json &j, const GoogleTokenResponse &response)
+inline void to_json(nlohmann::json &j, const GoogleTokenResponse &p)
 {
 	j = nlohmann::json{
-		{"access_token", response.access_token},
+		{"ver", p.ver},
+		{"access_token", p.access_token},
 	};
 
-	if (response.expires_in.has_value()) {
-		j["expires_in"] = *response.expires_in;
-	}
+	if (p.expires_in.has_value())
+		j["expires_in"] = *p.expires_in;
 
-	if (response.token_type.has_value()) {
-		j["token_type"] = *response.token_type;
-	}
+	if (p.token_type.has_value())
+		j["token_type"] = *p.token_type;
 
-	if (response.refresh_token.has_value()) {
-		j["refresh_token"] = *response.refresh_token;
-	}
+	if (p.refresh_token.has_value())
+		j["refresh_token"] = *p.refresh_token;
 
-	if (response.scope.has_value()) {
-		j["scope"] = *response.scope;
-	}
+	if (p.scope.has_value())
+		j["scope"] = *p.scope;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
