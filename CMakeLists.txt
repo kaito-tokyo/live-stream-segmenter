@@ -116,14 +116,13 @@ target_sources(
 
 add_library(${CMAKE_PROJECT_NAME}_Service INTERFACE)
 target_include_directories(${CMAKE_PROJECT_NAME}_Service INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Service)
-target_link_libraries(${CMAKE_PROJECT_NAME}_Service INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}_Service
+  INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth
+)
 target_sources(${CMAKE_PROJECT_NAME}_Service PRIVATE src/LiveStreamSegmenter/Service/AuthService.hpp)
 
-add_library(
-  ${CMAKE_PROJECT_NAME}_UI
-  STATIC
-  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
-)
+add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
@@ -138,10 +137,7 @@ target_link_libraries(
     ${CMAKE_PROJECT_NAME}_API
     ${CMAKE_PROJECT_NAME}_Service
 )
-target_sources(
-  ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
-)
+target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
 
 add_library(${CMAKE_PROJECT_NAME}_Controller INTERFACE)
 target_include_directories(
@@ -171,10 +167,7 @@ endforeach()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}
-  PUBLIC OBS::libobs OBS::obs-frontend-api ${CMAKE_PROJECT_NAME}_Controller
-)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs OBS::obs-frontend-api ${CMAKE_PROJECT_NAME}_Controller)
 
 if(APPLE)
   target_link_options(

@@ -31,6 +31,7 @@ public:
 		  authService_(std::make_shared<Service::AuthService>(logger_))
 	{
 		authService_->restoreGoogleOAuth2ClientCredential();
+		dock_->setAuthService(authService_);
 	}
 
 	~ProfileContext() noexcept = default;
