@@ -28,8 +28,8 @@ struct GoogleTokenResponse {
 inline void from_json(const nlohmann::json &j, GoogleTokenResponse &p)
 {
 	if (auto it = j.find("ver"); it != j.end()) {
-        it->get_to(p.ver);
-    }
+		it->get_to(p.ver);
+	}
 
 	j.at("access_token").get_to(p.access_token);
 
