@@ -19,6 +19,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QUrl>
 
@@ -89,6 +90,14 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile) {
         clientSecretDisplay_->setText(credentials.client_secret);
     } catch (const std::exception &e) {
         logger_->logException(e, "Error parsing dropped credentials file");
+
+        QMessageBox msgBox(this);
+        msgBox.setIcon(QMessageBox::Critical);
+        msgBox.setWindowTitle(tr("Error"));
+        msgBox.setText(tr("Failed to load credentials from the dropped file."));
+        msgBox.setInformativeText(tr("Please ensure the file is a valid Google OAuth2 credentials JSON file."));
+        msgBox.setDetailedText(QString::fromStdString(e.what()));
+        msgBox.exec();
     }
 }
 
