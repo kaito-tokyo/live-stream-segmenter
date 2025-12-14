@@ -225,7 +225,7 @@ public:
 			return;
 		}
 
-		std::lock_guard<std::mutex> lock(gpuMutex_);
+		std::scoped_lock lock(gpuMutex_);
 		gs_stage_texture(stagesurfs_[gpuWriteIndex_].get(), sourceTexture);
 		gpuWriteIndex_ = 1 - gpuWriteIndex_;
 	}
@@ -242,7 +242,7 @@ public:
 
 		std::size_t gpuReadIndex;
 		{
-			std::lock_guard<std::mutex> lock(gpuMutex_);
+			std::scoped_lock lock(gpuMutex_);
 			gpuReadIndex = 1 - gpuWriteIndex_;
 		}
 		gs_stagesurf_t *const stagesurf = stagesurfs_[gpuReadIndex].get();

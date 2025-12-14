@@ -4,9 +4,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 project(${_name} VERSION ${_version})
 
-option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" OFF)
-option(ENABLE_QT "Use Qt functionality" OFF)
-
 option(BUILD_TESTING "Build tests" OFF)
 option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
@@ -17,16 +14,10 @@ include(helpers)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 find_package(libobs REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
+find_package(obs-frontend-api REQUIRED)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
 
-if(ENABLE_FRONTEND_API)
-  find_package(obs-frontend-api REQUIRED)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
-endif()
-
-if(ENABLE_QT)
-  find_package(Qt6 COMPONENTS Widgets Core Network REQUIRED)
-endif()
+find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
 
 if(VCPKG_TARGET_TRIPLET)
   list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}")
@@ -110,9 +101,9 @@ target_sources(
   PRIVATE
     src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
     src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
+    src/LiveStreamSegmenter/Auth/GoogleOAuth2ClientCredential.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
     src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
-    src/LiveStreamSegmenter/Auth/GoogleTokenStorage.hpp
 )
 
 add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
@@ -123,21 +114,41 @@ target_sources(
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
 )
 
+add_library(${CMAKE_PROJECT_NAME}_Service INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_Service INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Service)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}_Service
+  INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth
+)
+target_sources(${CMAKE_PROJECT_NAME}_Service PRIVATE src/LiveStreamSegmenter/Service/AuthService.hpp)
+
 add_library(${CMAKE_PROJECT_NAME}_UI STATIC src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
   PUBLIC
     OBS::libobs
+    OBS::obs-frontend-api
     Qt6::Core
     Qt6::Widgets
-    Qt6::Network
+    BridgeUtils
     Logger
-    CURL::libcurl
     ${CMAKE_PROJECT_NAME}_Auth
     ${CMAKE_PROJECT_NAME}_API
+    ${CMAKE_PROJECT_NAME}_Service
 )
 target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp)
+
+add_library(${CMAKE_PROJECT_NAME}_Controller INTERFACE)
+target_include_directories(
+  ${CMAKE_PROJECT_NAME}_Controller
+  INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Controller
+)
+target_link_libraries(
+  ${CMAKE_PROJECT_NAME}_Controller
+  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Service ${CMAKE_PROJECT_NAME}_UI Logger
+)
+target_sources(${CMAKE_PROJECT_NAME}_Controller PRIVATE src/LiveStreamSegmenter/Controller/MainPluginContext.hpp)
 
 foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_options(
@@ -156,7 +167,7 @@ endforeach()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs BridgeUtils UpdateChecker ${CMAKE_PROJECT_NAME}_UI)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs OBS::obs-frontend-api ${CMAKE_PROJECT_NAME}_Controller)
 
 if(APPLE)
   target_link_options(

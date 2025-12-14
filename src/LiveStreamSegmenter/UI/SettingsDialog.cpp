@@ -30,7 +30,7 @@
 #include <QTimer>
 
 #include <YouTubeApiClient.hpp>
-#include "../Auth/GoogleTokenState.hpp"
+#include <GoogleTokenState.hpp>
 
 using namespace KaitoTokyo::LiveStreamSegmenter::API;
 
@@ -97,11 +97,11 @@ void JsonDropArea::mousePressEvent(QMouseEvent *event)
 //  SettingsDialog
 // ==========================================
 
-SettingsDialog::SettingsDialog(std::shared_ptr<Auth::GoogleAuthManager> authManager,
+SettingsDialog::SettingsDialog(std::shared_ptr<Service::AuthService> authService,
 			       std::shared_ptr<Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  authManager_(std::move(authManager)), // 注入されたインスタンスを使用
-	  logger_(std::move(logger)),           // 注入されたロガーを使用
+	  authService_(std::move(authService)),
+	  logger_(std::move(logger)),
 	  authPollTimer_(new QTimer(this)),
 	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),

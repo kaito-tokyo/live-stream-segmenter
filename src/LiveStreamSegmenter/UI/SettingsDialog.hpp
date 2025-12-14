@@ -25,16 +25,16 @@
 #include <QDropEvent>
 #include <QJsonObject>
 #include <QComboBox>
-#include <QTimer> // 追加
+#include <QTimer>
 
 #include <memory>
 #include <future>
 #include <optional>
 
-// Authモジュール
-#include "../Auth/GoogleAuthManager.hpp"
-#include "../Auth/GoogleOAuth2Flow.hpp" // 追加
-#include "../API/YouTubeTypes.hpp"
+#include <AuthService.hpp>
+#include <GoogleAuthManager.hpp>
+#include <GoogleOAuth2Flow.hpp>
+#include <YouTubeTypes.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -59,7 +59,7 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(std::shared_ptr<Auth::GoogleAuthManager> authManager,
+	explicit SettingsDialog(std::shared_ptr<Service::AuthService> authService,
 				std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
 	~SettingsDialog() override;
 
@@ -100,7 +100,7 @@ private:
 	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
 	QString loadSavedStreamKeyId();
 
-	std::shared_ptr<Auth::GoogleAuthManager> authManager_;
+	std::shared_ptr<Service::AuthService> authService_;
 	std::shared_ptr<Logger::ILogger> logger_;
 
 	// Data

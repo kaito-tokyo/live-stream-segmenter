@@ -14,56 +14,47 @@
 
 #pragma once
 
-#include <QDockWidget>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
-#include <QTextEdit>
-#include <QPushButton>
-#include <QToolButton>
+#include <mutex>
+
 #include <QDateTime>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 #include <ILogger.hpp>
+
+#include <AuthService.hpp>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-class StreamSegmenterDock : public QDockWidget, public Logger::ILogger {
+class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
 public:
-	explicit StreamSegmenterDock(std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
-	void setSystemStatus(const QString &statusText, const QString &colorCode);
-	void setNextSegmentationTime(const QDateTime &time);
-	void setTimeRemaining(int remainingSeconds);
+	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
+	StreamSegmenterDock &operator=(const StreamSegmenterDock &) = delete;
+	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
+	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
-	void updateCurrentStream(const QString &title, const QString &status, const QString &url = "");
-	void updateNextStream(const QString &title, const QString &status, const QString &url = "");
-
-protected:
-	void log(LogLevel level, std::string_view message) const noexcept override;
-	const char *getPrefix() const noexcept override { return ""; }
-
-signals:
-	void logRequest(int level, const QString &message);
-
-private slots:
-	void onLogRequest(int level, const QString &message);
-	void onStartClicked();
-	void onStopClicked();
-	void onSegmentNowClicked();
-	void onSettingsClicked();
-	void onLinkButtonClicked();
+	void setAuthService(std::shared_ptr<Service::AuthService> authService)
+	{
+		std::scoped_lock lock(mutex_);
+		authService_ = std::move(authService);
+	}
 
 private:
 	void setupUi();
-	void updateMonitorLabel();
 
-	std::shared_ptr<Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// Data Cache
 	QString currentStatusText_;
@@ -73,8 +64,6 @@ private:
 
 	// --- UI Components ---
 
-	QWidget *const mainWidget_;
-	QWidget *const titleBarWidget_;
 	QVBoxLayout *const mainLayout_;
 
 	// 1. Top Controls
@@ -93,17 +82,21 @@ private:
 
 	QWidget *const currentContainer_;
 	QVBoxLayout *const currentLayout_;
+	QHBoxLayout *const currentHeader_;
+	QHBoxLayout *const currentTitleRow_;
 	QLabel *const currentRoleLabel_;
 	QLabel *const currentStatusLabel_;
 	QLabel *const currentTitleLabel_;
-	QToolButton *const currentLinkButton_; // 【修正】Btn -> Button
+	QToolButton *const currentLinkButton_;
 
 	QWidget *const nextContainer_;
 	QVBoxLayout *const nextLayout_;
+	QHBoxLayout *const nextHeader_;
+	QHBoxLayout *const nextTitleRow_;
 	QLabel *const nextRoleLabel_;
 	QLabel *const nextStatusLabel_;
 	QLabel *const nextTitleLabel_;
-	QToolButton *const nextLinkButton_; // 【修正】Btn -> Button
+	QToolButton *const nextLinkButton_;
 
 	// 4. Log Section
 	QGroupBox *const logGroup_;
@@ -113,7 +106,10 @@ private:
 	// 5. Bottom Controls
 	QVBoxLayout *const bottomControlLayout_;
 	QPushButton *const settingsButton_;
-	QPushButton *const segmentNowButton_; // 【修正】Btn -> Button
+	QPushButton *const segmentNowButton_;
+
+	std::shared_ptr<Service::AuthService> authService_;
+	mutable std::mutex mutex_;
 };
 
 } // namespace UI

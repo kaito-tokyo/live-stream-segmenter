@@ -27,21 +27,21 @@
 #include <ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
+#include "GoogleOAuth2ClientCredential.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 struct GoogleOAuth2FlowUserAgent {
-	std::function<void(const std::string &url)> openBrowser;
+	std::function<void(const std::string &url)> onOpenUrl;
 	httplib::Server::Handler onLoginSuccess;
 	httplib::Server::Handler onLoginFailure;
 };
 
 class GoogleOAuth2Flow {
 public:
-	GoogleOAuth2Flow(std::string clientId, std::string clientSecret, std::string scopes,
+	GoogleOAuth2Flow(GoogleOAuth2ClientCredential clientCredential, std::string scopes,
 			 GoogleOAuth2FlowUserAgent userAgent, std::shared_ptr<const Logger::ILogger> logger)
-		: clientId_(std::move(clientId)),
-		  clientSecret_(std::move(clientSecret)),
+		: clientCredential_(std::move(clientCredential)),
 		  scopes_(std::move(scopes)),
 		  userAgent_(std::move(userAgent)),
 		  logger_(std::move(logger))
@@ -58,14 +58,15 @@ public:
 	[[nodiscard]]
 	std::future<std::optional<GoogleTokenResponse>> startOAuth2Flow()
 	{
-		using namespace KaitoTokyo::CurlHelper;
+		using namespace CurlHelper;
 
 		server_ = std::make_shared<httplib::Server>();
 
 		return std::async(
 			std::launch::async,
-			[logger = logger_, server = server_, userAgent = userAgent_, clientId = clientId_,
-			 clientSecret = clientSecret_, scopes = scopes_]() -> std::optional<GoogleTokenResponse> {
+			[logger = logger_, server = server_, userAgent = userAgent_,
+			 clientCredential = clientCredential_,
+			 scopes = scopes_]() -> std::optional<GoogleTokenResponse> {
 				std::optional<GoogleTokenResponse> result = std::nullopt;
 
 				const int port = server->bind_to_any_port("127.0.0.1");
@@ -75,17 +76,16 @@ public:
 				logger->info("GoogleOAuth2Flow's local server listening on port {}...", port);
 				const std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 
-				server->Get("/callback", [logger, server, userAgent, clientId, clientSecret,
-							  redirectUri, &result](const httplib::Request &req,
-										httplib::Response &res) {
+				server->Get("/callback", [logger, server, userAgent, clientCredential, redirectUri,
+							  &result](const httplib::Request &req,
+								   httplib::Response &res) {
 					if (req.has_param("code")) {
 						try {
 							const auto code = req.get_param_value("code");
 							logger->info(
 								"GoogleOAuth2Flow received authorization code. Exchanging for token...");
 
-							result =
-								exchangeCode(clientId, clientSecret, code, redirectUri);
+							result = exchangeCode(clientCredential, code, redirectUri);
 
 							logger->info("GoogleOAuth2Flow exchanged token successfully.");
 
@@ -113,7 +113,7 @@ public:
 						throw std::runtime_error("InitError(startOAuth2Flow)");
 
 					KaitoTokyo::CurlHelper::CurlUrlSearchParams qp(curl.get());
-					qp.append("client_id", clientId);
+					qp.append("client_id", clientCredential.client_id);
 					qp.append("redirect_uri", redirectUri);
 					qp.append("response_type", "code");
 					qp.append("scope", scopes);
@@ -124,7 +124,7 @@ public:
 						"https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
 					logger->info("GoogleOAuth2Flow opening {}", authUrl);
 
-					userAgent.openBrowser(authUrl);
+					userAgent.onOpenUrl(authUrl);
 				}
 
 				server->listen_after_bind();
@@ -141,11 +141,13 @@ public:
 	}
 
 private:
-	static GoogleTokenResponse exchangeCode(const std::string &clientId, const std::string &clientSecret,
+	[[nodiscard]]
+	static GoogleTokenResponse exchangeCode(const GoogleOAuth2ClientCredential &clientCredential,
 						const std::string &code, const std::string &redirectUri)
 	{
-		using namespace KaitoTokyo::CurlHelper;
 		using nlohmann::json;
+
+		using namespace CurlHelper;
 
 		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl)
@@ -154,8 +156,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams params(curl.get());
-		params.append("client_id", clientId);
-		params.append("client_secret", clientSecret);
+		params.append("client_id", clientCredential.client_id);
+		params.append("client_secret", clientCredential.client_secret);
 		params.append("code", code);
 		params.append("grant_type", "authorization_code");
 		params.append("redirect_uri", redirectUri);
@@ -186,8 +188,7 @@ private:
 		return j.get<GoogleTokenResponse>();
 	}
 
-	const std::string clientId_;
-	const std::string clientSecret_;
+	const GoogleOAuth2ClientCredential clientCredential_;
 	const std::string scopes_;
 
 	GoogleOAuth2FlowUserAgent userAgent_;

@@ -50,12 +50,12 @@ protected:
 			blogLevel = LOG_ERROR;
 			break;
 		default:
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			blog(LOG_ERROR, "[LOGGER FATAL] Unknown log level: %d\n", static_cast<int>(level));
 			return;
 		}
 
-		std::lock_guard<std::mutex> lock(mutex_);
+		std::scoped_lock lock(mutex_);
 		if (message.length() <= MAX_LOG_CHUNK_SIZE) {
 			blog(blogLevel, "%.*s", static_cast<int>(message.length()), message.data());
 		} else {

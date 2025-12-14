@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -21,24 +22,27 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
+#include "GoogleOAuth2ClientCredential.hpp"
 #include "GoogleTokenState.hpp"
-#include "GoogleTokenStorage.hpp"
-
-using namespace KaitoTokyo::CurlHelper;
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
+struct GoogleAuthManagerCallback {
+	std::function<void(GoogleTokenState)> onTokenStore;
+	std::function<std::optional<GoogleTokenState>(void)> onTokenRestore;
+	std::function<void()> onTokenInvalidate;
+};
+
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(std::string clientId, std::string clientSecret, std::shared_ptr<const Logger::ILogger> logger,
-			  std::unique_ptr<GoogleTokenStorage> storage = std::make_unique<GoogleTokenStorage>())
-		: clientId_(std::move(clientId)),
-		  clientSecret_(std::move(clientSecret)),
-		  logger_(std::move(logger)),
-		  storage_(std::move(storage))
+	GoogleAuthManager(GoogleOAuth2ClientCredential clientCredential, GoogleAuthManagerCallback callback,
+			  std::shared_ptr<const Logger::ILogger> logger)
+		: clientCredential_(std::move(clientCredential)),
+		  callback_(std::move(callback)),
+		  logger_(std::move(logger))
 	{
-		if (auto savedTokenState = storage_->load()) {
-			std::lock_guard<std::mutex> lock(mutex_);
+		if (auto savedTokenState = callback_.onTokenRestore()) {
+			std::scoped_lock lock(mutex_);
 			currentTokenState_ = *savedTokenState;
 		}
 	}
@@ -52,26 +56,26 @@ public:
 
 	bool isAuthenticated() const
 	{
-		std::lock_guard<std::mutex> lock(mutex_);
+		std::scoped_lock lock(mutex_);
 		return currentTokenState_.isAuthorized();
 	};
 
 	void updateTokenState(const GoogleTokenState &tokenState)
 	{
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			currentTokenState_ = tokenState;
 		}
-		storage_->save(tokenState);
+		callback_.onTokenStore(tokenState);
 	}
 
 	void clear()
 	{
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			currentTokenState_.clear();
 		}
-		storage_->clear();
+		callback_.onTokenInvalidate();
 	}
 
 	std::string getAccessToken()
@@ -79,7 +83,7 @@ public:
 		std::optional<std::string> refreshToken;
 
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 
 			if (!currentTokenState_.isAuthorized()) {
 				throw std::runtime_error("NotAuthorizedError(getAccessToken)");
@@ -92,7 +96,7 @@ public:
 			refreshToken = currentTokenState_.refresh_token;
 		}
 
-		if (clientId_.empty() || clientSecret_.empty()) {
+		if (clientCredential_.client_id.empty() || clientCredential_.client_secret.empty()) {
 			throw std::runtime_error("CredentialMissingError(getAccessToken)");
 		}
 
@@ -101,12 +105,12 @@ public:
 
 			GoogleTokenState tokenState;
 			{
-				std::lock_guard<std::mutex> lock(mutex_);
+				std::scoped_lock lock(mutex_);
 				currentTokenState_.updateFromTokenResponse(tokenResponse);
 				tokenState = currentTokenState_;
 			}
 
-			storage_->save(tokenState);
+			callback_.onTokenStore(tokenState);
 
 			return tokenState.access_token;
 		} else {
@@ -118,6 +122,7 @@ private:
 	GoogleTokenResponse refreshTokenState(const std::string &refreshToken)
 	{
 		using nlohmann::json;
+		using namespace CurlHelper;
 
 		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
@@ -127,8 +132,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams postParams(curl.get());
-		postParams.append("client_id", clientId_);
-		postParams.append("client_secret", clientSecret_);
+		postParams.append("client_id", clientCredential_.client_id);
+		postParams.append("client_secret", clientCredential_.client_secret);
 		postParams.append("refresh_token", refreshToken);
 		postParams.append("grant_type", "refresh_token");
 
@@ -162,11 +167,9 @@ private:
 		return j.get<GoogleTokenResponse>();
 	}
 
-	const std::string clientId_;
-	const std::string clientSecret_;
-
-	std::shared_ptr<const Logger::ILogger> logger_;
-	std::unique_ptr<GoogleTokenStorage> storage_;
+	const GoogleOAuth2ClientCredential clientCredential_;
+	GoogleAuthManagerCallback callback_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	mutable std::mutex mutex_;
 	GoogleTokenState currentTokenState_;
