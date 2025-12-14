@@ -25,6 +25,7 @@
 #include <QUrl>
 
 #include <GoogleOAuth2ClientCredentials.hpp>
+#include <GoogleTokenState.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 
@@ -60,6 +61,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	  authGroup_(new QGroupBox(this)),
 	  authLayout_(new QVBoxLayout(authGroup_)),
 	  authButton_(new QPushButton(this)),
+      clearAuthButton_(new QPushButton(this)),
 	  statusLabel_(new QLabel(this)),
 
 	  // 6. Stream Settings Group
@@ -83,6 +85,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(clientSecretDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
 
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthButtonClicked);
+    connect(clearAuthButton_, &QPushButton::clicked, this, &SettingsDialog::onClearAuthButtonClicked);
 
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
@@ -198,6 +201,13 @@ void SettingsDialog::onAuthButtonClicked()
 	authButton_->setEnabled(false);
 }
 
+void SettingsDialog::onClearAuthButtonClicked()
+{
+    authStore_->clearGoogleTokenState();
+    statusLabel_->setText(tr("Cleared to be Unauthorized"));
+    logger_->info("Cleared stored Google OAuth2 token.");
+}
+
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 {
 	try {
@@ -293,6 +303,10 @@ void SettingsDialog::setupUi()
 
 	authButton_->setText(tr("Request Authorization"));
 
+    clearAuthButton_->setText(tr("Clear Token"));
+
+    statusLabel_->setAlignment(Qt::AlignCenter);
+
 	statusLabel_->setAlignment(Qt::AlignCenter);
 	if (authStore_->getGoogleTokenState().isAuthorized()) {
 		statusLabel_->setText(tr("Authorized (Saved)"));
@@ -301,6 +315,7 @@ void SettingsDialog::setupUi()
 	}
 
 	authLayout_->addWidget(authButton_);
+    authLayout_->addWidget(clearAuthButton_);
 	authLayout_->addWidget(statusLabel_);
 
 	youTubeTabLayout_->addWidget(authGroup_);

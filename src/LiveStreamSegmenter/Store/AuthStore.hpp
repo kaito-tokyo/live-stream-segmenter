@@ -26,8 +26,8 @@
 
 #include <ILogger.hpp>
 
-#include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
+#include <GoogleTokenState.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
@@ -63,6 +63,12 @@ public:
 	{
 		std::scoped_lock lock(mutex_);
 		return googleTokenState_;
+	}
+
+	void clearGoogleTokenState()
+	{
+		std::scoped_lock lock(mutex_);
+		googleTokenState_ = {};
 	}
 
 	void saveAuthStore() noexcept

@@ -29,7 +29,6 @@
 
 #include <AuthStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
-#include <GoogleTokenState.hpp>
 
 #include "JsonDropArea.hpp"
 
@@ -55,6 +54,7 @@ private slots:
 	void markDirty();
 	void onCredentialsFileDropped(const QString &localFile);
 	void onAuthButtonClicked();
+    void onClearAuthButtonClicked();
 	void onApply();
 
 private:
@@ -95,6 +95,7 @@ private:
 	QGroupBox *authGroup_;
 	QVBoxLayout *authLayout_;
 	QPushButton *authButton_;
+    QPushButton *clearAuthButton_;
 	QLabel *statusLabel_;
 
 	// 6. Stream Settings Group (YouTube)

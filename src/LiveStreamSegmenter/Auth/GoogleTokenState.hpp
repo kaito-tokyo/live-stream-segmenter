@@ -83,15 +83,6 @@ struct GoogleTokenState {
 		}
 		return updatedState;
 	}
-
-	void clear()
-	{
-		access_token.clear();
-		refresh_token.clear();
-		email.clear();
-		scope.clear();
-		expires_at.reset();
-	}
 };
 
 inline void from_json(const nlohmann::json &j, GoogleTokenState &p)
