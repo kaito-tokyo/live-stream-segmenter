@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <optional>
 #include <string>
 
 #include <curl/curl.h>
