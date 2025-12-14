@@ -13,16 +13,18 @@
  */
 
 #include "StreamSegmenterDock.hpp"
-#include <QFontDatabase>
-#include <QScrollBar>
-#include <QMessageBox>
+
 #include <QDesktopServices>
+#include <QFontDatabase>
+#include <QMessageBox>
+#include <QScrollBar>
 #include <QUrl>
+
 #include <fmt/format.h>
 
 #include <NullLogger.hpp>
 
-#include <SettingsDialog.hpp>
+#include "SettingsDialog.hpp"
 
 using namespace KaitoTokyo::Logger;
 
@@ -222,6 +224,14 @@ void StreamSegmenterDock::setupUi()
 	bottomControlLayout_->addWidget(settingsButton_);
 	bottomControlLayout_->addWidget(segmentNowButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
+
+	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
+}
+
+void StreamSegmenterDock::onSettingsButtonClicked()
+{
+	SettingsDialog *settingsDialog = new SettingsDialog(logger_, this);
+	settingsDialog->exec();
 }
 
 } // namespace UI

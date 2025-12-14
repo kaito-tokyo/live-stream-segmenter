@@ -14,22 +14,28 @@
 
 #pragma once
 
+#include <QComboBox>
 #include <QDialog>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QLabel>
-#include <QFormLayout>
-#include <QVBoxLayout>
-#include <QMimeData>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QFileInfo>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QJsonObject>
-#include <QComboBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMimeData>
+#include <QMimeData>
+#include <QPushButton>
 #include <QTimer>
+#include <QVBoxLayout>
 
 #include <memory>
 #include <future>
 #include <optional>
+
+#include <ILogger.hpp>
 
 #include <AuthService.hpp>
 #include <GoogleAuthManager.hpp>
@@ -38,84 +44,50 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-// --- JsonDropArea (変更なし) ---
 class JsonDropArea : public QLabel {
 	Q_OBJECT
 public:
 	explicit JsonDropArea(QWidget *parent = nullptr);
+
 signals:
 	void fileDropped(const QString &filePath);
-	void clicked();
 
 protected:
 	void dragEnterEvent(QDragEnterEvent *event) override;
-	void dragLeaveEvent(QDragLeaveEvent *event) override;
+	void dragMoveEvent(QDragMoveEvent *event) override;
 	void dropEvent(QDropEvent *event) override;
-	void mousePressEvent(QMouseEvent *event) override;
 };
 
-// --- SettingsDialog ---
 class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(std::shared_ptr<Service::AuthService> authService,
-				std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
-	~SettingsDialog() override;
-
-private slots:
-	// --- Existing Slots ---
-	void onJsonFileSelected(const QString &filePath);
-	void onAreaClicked();
-	void onLoadJsonClicked();
-	void onSaveClicked();
-
-	// Auth
-	void onAuthClicked();
-	void onAuthPollTimer(); // 追加: フロー完了監視用
-
-	// Auth Signals (Managerからの通知)
-	void onAuthStateChanged();
-	void onLoginStatusChanged(const QString &status);
-	void onLoginError(const QString &message);
-
-	// Stream Key
-	void onRefreshKeysClicked();
-	void onKeySelectionChanged(int index);
-	void onLinkDocClicked();
+	SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	~SettingsDialog() override = default;
 
 private:
 	void setupUi();
-	void initializeData();
-	void updateAuthUI();
 
-	void updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys);
-
-	// Helpers
-	QString getObsConfigPath(const QString &filename) const;
-	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
-	QJsonObject loadCredentialsFromStorage();
-	bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
-
-	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
-	QString loadSavedStreamKeyId();
-
-	std::shared_ptr<Service::AuthService> authService_;
-	std::shared_ptr<Logger::ILogger> logger_;
-
-	// Data
-	QString tempClientId_;
-	QString tempClientSecret_;
-
-	// Managers
-
-	// --- New Auth Flow Management ---
-	// SettingsDialogのライフサイクルとフローのライフサイクルを管理するため
-	std::unique_ptr<Auth::GoogleOAuth2Flow> oauthFlow_;
-	std::future<std::optional<Auth::GoogleTokenResponse>> pendingAuthFuture_;
-	QTimer *authPollTimer_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// UI Components
+	// Layouts & Containers (Newly added members)
+	QVBoxLayout *mainLayout_;
+	QLabel *infoLabel_;
+
+	QGroupBox *credGroup_;
+	QVBoxLayout *credLayout_;
+	QFormLayout *detailsLayout_;
+
+	QGroupBox *authGroup_;
+	QVBoxLayout *authLayout_;
+
+	QGroupBox *keyGroup_;
+	QVBoxLayout *keyLayout_;
+	QHBoxLayout *keyHeaderLayout_;
+	QLabel *targetStreamKeyLabel_;
+
+	// Existing Components
 	JsonDropArea *dropArea_;
 	QLineEdit *clientIdDisplay_;
 	QLineEdit *clientSecretDisplay_;
