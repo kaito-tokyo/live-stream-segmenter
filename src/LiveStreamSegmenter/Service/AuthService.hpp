@@ -32,10 +32,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Service {
 
 class AuthService : public std::enable_shared_from_this<AuthService> {
 public:
-	explicit AuthService(std::shared_ptr<const Logger::ILogger> logger)
-        : logger_(std::move(logger))
-    {
-    };
+	explicit AuthService(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {};
 	~AuthService() noexcept = default;
 
 	AuthService(const AuthService &) = delete;
