@@ -152,9 +152,8 @@ void SettingsDialog::onAuthButtonClicked()
 			},
 			Qt::QueuedConnection);
 	};
-	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request&,
-							    httplib::Response &res) {
-        res.set_content("<h1>Authorized<br>Back to OBS</h1>", "text/html");
+	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request &, httplib::Response &res) {
+		res.set_content("<h1>Authorized<br>Back to OBS</h1>", "text/html");
 		QMetaObject::invokeMethod(
 			this,
 			[this]() {
@@ -163,9 +162,8 @@ void SettingsDialog::onAuthButtonClicked()
 			},
 			Qt::QueuedConnection);
 	};
-	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request&,
-							    httplib::Response &res) {
-        res.set_content("<h1>Authorization Failed<br>Back to OBS</h1>", "text/html");
+	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request &, httplib::Response &res) {
+		res.set_content("<h1>Authorization Failed<br>Back to OBS</h1>", "text/html");
 		QMetaObject::invokeMethod(
 			this,
 			[this]() {
