@@ -101,6 +101,7 @@ target_sources(
   PRIVATE
     src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
     src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
+    src/LiveStreamSegmenter/Auth/GoogleOAuth2ClientCredential.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
     src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
 )
