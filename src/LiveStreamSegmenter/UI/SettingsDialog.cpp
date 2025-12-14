@@ -93,7 +93,7 @@ void SettingsDialog::setupUi()
 
 	// Help Label (Link)
 	helpLabel_->setText(tr("<a href=\"https://kaito-tokyo.github.io/live-stream-segmenter/setup\">"
-			       "How to set up Live Stream Segmenter with YouTube?"
+			       "View Official Setup Instructions for YouTube"
 			       "</a>"));
 	helpLabel_->setOpenExternalLinks(true);
 	helpLabel_->setWordWrap(true);
