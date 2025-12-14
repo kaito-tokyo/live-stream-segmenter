@@ -170,6 +170,9 @@ target_link_libraries(
 )
 target_sources(${CMAKE_PROJECT_NAME}_Controller PRIVATE src/LiveStreamSegmenter/Controller/MainPluginContext.hpp)
 
+include(CheckIncludeFileCXX)
+check_include_file_cxx(immintrin.h HAVE_IMMINTRIN_H)
+
 foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
   target_compile_options(
     ${TARGET}
@@ -183,6 +186,9 @@ foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
     ${TARGET}
     PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON POSITION_INDEPENDENT_CODE ON
   )
+  if(HAVE_IMMINTRIN_H)
+    target_compile_options(${TARGET} PRIVATE -include immintrin.h)
+  endif()
 endforeach()
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
