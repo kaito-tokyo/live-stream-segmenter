@@ -44,81 +44,110 @@ SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *p
 	  logger_(std::move(logger)),
 	  // Layouts & Containers initialization
 	  mainLayout_(new QVBoxLayout(this)),
-	  infoLabel_(new QLabel(
-		  tr("<b>Step 1:</b> Import Credentials.<br><b>Step 2:</b> Authenticate.<br><b>Step 3:</b> Select Stream Key."),
-		  this)),
-	  credGroup_(new QGroupBox(tr("Credentials"), this)),
+	  tabWidget_(new QTabWidget(this)),
+	  generalTab_(new QWidget(this)),
+	  generalTabLayout_(new QVBoxLayout(generalTab_)),
+	  youTubeTab_(new QWidget(this)),
+	  youTubeTabLayout_(new QVBoxLayout(youTubeTab_)),
+	  helpLabel_(new QLabel(this)),
+	  credGroup_(new QGroupBox(this)),
 	  credLayout_(new QVBoxLayout(credGroup_)),
 	  detailsLayout_(new QFormLayout()),
-	  authGroup_(new QGroupBox(tr("Authorization"), this)),
+	  authGroup_(new QGroupBox(this)),
 	  authLayout_(new QVBoxLayout(authGroup_)),
-	  keyGroup_(new QGroupBox(tr("Stream Settings"), this)),
+	  keyGroup_(new QGroupBox(this)),
 	  keyLayout_(new QVBoxLayout(keyGroup_)),
 	  keyHeaderLayout_(new QHBoxLayout()),
-	  targetStreamKeyLabel_(new QLabel(tr("Target Stream Key:"), this)),
+	  targetStreamKeyLabel_(new QLabel(this)),
 	  // Existing Components initialization
 	  dropArea_(new JsonDropArea(this)),
 	  clientIdDisplay_(new QLineEdit(this)),
 	  clientSecretDisplay_(new QLineEdit(this)),
-	  loadJsonButton_(new QPushButton(tr("Select File..."), this)),
-	  saveButton_(new QPushButton(tr("2. Save Credentials"), this)),
-	  authButton_(new QPushButton(tr("3. Authenticate"), this)),
+	  saveButton_(new QPushButton(this)),
+	  authButton_(new QPushButton(this)),
 	  statusLabel_(new QLabel(this)),
 	  streamKeyCombo_(new QComboBox(this)),
-	  refreshKeysBtn_(new QPushButton(tr("Reload Keys"), this))
+	  refreshKeysBtn_(new QPushButton(this))
 {
-	setWindowTitle(tr("Settings"));
-	setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint |
-		       Qt::WindowTitleHint);
-
 	setupUi();
 }
 
 void SettingsDialog::setupUi()
 {
-	// Main Layout Config
-	mainLayout_->setSpacing(16);
-	mainLayout_->setContentsMargins(24, 24, 24, 24);
+	setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint |
+		       Qt::WindowTitleHint);
 
-	// Info Label Config
-	infoLabel_->setStyleSheet("color: #aaaaaa; font-size: 11px;");
-	mainLayout_->addWidget(infoLabel_);
+	// Window Title
+	setWindowTitle(tr("Settings"));
+
+	// Main Layout Config
+	mainLayout_->setSpacing(0);
+	mainLayout_->setContentsMargins(12, 12, 12, 12);
+
+	generalTabLayout_->setSpacing(16);
+	generalTabLayout_->setContentsMargins(16, 16, 16, 16);
+	generalTabLayout_->addStretch(); // 上詰めにするためのストレッチ
+
+	youTubeTabLayout_->setSpacing(16);
+	youTubeTabLayout_->setContentsMargins(16, 16, 16, 16);
+
+	// Help Label (Link)
+	helpLabel_->setText(tr("<a href=\"https://kaito-tokyo.github.io/live-stream-segmenter/setup\">"
+			       "How to set up Live Stream Segmenter with YouTube?"
+			       "</a>"));
+	helpLabel_->setOpenExternalLinks(true);
+	helpLabel_->setWordWrap(true);
+	youTubeTabLayout_->addWidget(helpLabel_);
+
+	// --- Credentials Group ---
+	credGroup_->setTitle(tr("Credentials")); // ★ここで設定
 
 	// Drop Area Config
 	dropArea_->setText(tr("Drag & Drop credentials.json here"));
 	dropArea_->setAlignment(Qt::AlignCenter);
 	dropArea_->setStyleSheet("border: 2px dashed #666; color: #ccc;");
 
-	// Credentials Group Config
 	credLayout_->addWidget(dropArea_);
 
 	// Details Form Layout Config
 	clientIdDisplay_->setReadOnly(true);
 	clientIdDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
-	detailsLayout_->addRow(tr("Client ID:"), clientIdDisplay_);
+	detailsLayout_->addRow(tr("Client ID:"), clientIdDisplay_); // ここは元々 setupUi 内
 
 	clientSecretDisplay_->setReadOnly(true);
 	clientSecretDisplay_->setEchoMode(QLineEdit::Password);
 	clientSecretDisplay_->setStyleSheet("background: #222; border: 1px solid #444; color: #ccc;");
-	detailsLayout_->addRow(tr("Client Secret:"), clientSecretDisplay_);
+	detailsLayout_->addRow(tr("Client Secret:"), clientSecretDisplay_); // ここも元々 setupUi 内
 
 	credLayout_->addLayout(detailsLayout_);
 
+	saveButton_->setText(tr("2. Save Credentials")); // ★ここで設定
 	saveButton_->setEnabled(false);
 	credLayout_->addWidget(saveButton_);
-	mainLayout_->addWidget(credGroup_);
 
-	// Auth Group Config
+	youTubeTabLayout_->addWidget(credGroup_);
+
+	// --- Authorization Group ---
+	authGroup_->setTitle(tr("Authorization")); // ★ここで設定
+
+	authButton_->setText(tr("3. Authenticate")); // ★ここで設定
 	authButton_->setEnabled(false);
+
 	statusLabel_->setAlignment(Qt::AlignCenter);
+
 	authLayout_->addWidget(authButton_);
 	authLayout_->addWidget(statusLabel_);
-	mainLayout_->addWidget(authGroup_);
 
-	// Stream Key Group Config
+	youTubeTabLayout_->addWidget(authGroup_);
+
+	// --- Stream Key Group ---
+	keyGroup_->setTitle(tr("Stream Settings")); // ★ここで設定
+
+	targetStreamKeyLabel_->setText(tr("Target Stream Key:")); // ★ここで設定
 	keyHeaderLayout_->addWidget(targetStreamKeyLabel_);
 	keyHeaderLayout_->addStretch();
 
+	refreshKeysBtn_->setText(tr("Reload Keys")); // ★ここで設定
 	refreshKeysBtn_->setCursor(Qt::PointingHandCursor);
 	refreshKeysBtn_->setFixedWidth(100);
 	refreshKeysBtn_->setEnabled(false);
@@ -130,10 +159,17 @@ void SettingsDialog::setupUi()
 	streamKeyCombo_->setEnabled(false);
 	keyLayout_->addWidget(streamKeyCombo_);
 
-	mainLayout_->addWidget(keyGroup_);
-	mainLayout_->addStretch();
+	youTubeTabLayout_->addWidget(keyGroup_);
+	youTubeTabLayout_->addStretch();
 
-	resize(420, 600);
+	tabWidget_->addTab(generalTab_, tr("General"));
+	tabWidget_->addTab(youTubeTab_, tr("YouTube"));
+	mainLayout_->addWidget(tabWidget_);
+
+	tabWidget_->setCurrentWidget(youTubeTab_);
+
+	mainLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);
+	resize(500, 650);
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

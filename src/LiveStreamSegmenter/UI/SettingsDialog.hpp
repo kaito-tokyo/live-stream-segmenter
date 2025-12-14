@@ -26,10 +26,10 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMimeData>
-#include <QMimeData>
 #include <QPushButton>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QTabWidget>
 
 #include <memory>
 #include <future>
@@ -59,17 +59,25 @@ private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// UI Components
-	// Layouts & Containers (Newly added members)
+	// Layouts & Containers
 	QVBoxLayout *mainLayout_;
-	QLabel *infoLabel_;
-	
+	// infoLabel_ を削除しました
+
+	QTabWidget *tabWidget_;
+	QWidget *generalTab_;
+	QVBoxLayout *generalTabLayout_;
+	QWidget *youTubeTab_;
+	QVBoxLayout *youTubeTabLayout_;
+
+	QLabel *helpLabel_;
+
 	QGroupBox *credGroup_;
 	QVBoxLayout *credLayout_;
 	QFormLayout *detailsLayout_;
-	
+
 	QGroupBox *authGroup_;
 	QVBoxLayout *authLayout_;
-	
+
 	QGroupBox *keyGroup_;
 	QVBoxLayout *keyLayout_;
 	QHBoxLayout *keyHeaderLayout_;
@@ -79,7 +87,6 @@ private:
 	JsonDropArea *dropArea_;
 	QLineEdit *clientIdDisplay_;
 	QLineEdit *clientSecretDisplay_;
-	QPushButton *loadJsonButton_;
 	QPushButton *saveButton_;
 	QPushButton *authButton_;
 	QLabel *statusLabel_;

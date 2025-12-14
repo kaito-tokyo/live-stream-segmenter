@@ -55,13 +55,13 @@ void JsonDropArea::dragMoveEvent(QDragMoveEvent *event)
 
 void JsonDropArea::dropEvent(QDropEvent *event)
 {
-    if (isJsonFile(event->mimeData())) {
-        const QList<QUrl> urls = event->mimeData()->urls();
-        if (!urls.isEmpty()) {
-            event->acceptProposedAction();
-            emit fileDropped(urls.first().toLocalFile());
-        }
-    }
+	if (isJsonFile(event->mimeData())) {
+		const QList<QUrl> urls = event->mimeData()->urls();
+		if (!urls.isEmpty()) {
+			event->acceptProposedAction();
+			emit fileDropped(urls.first().toLocalFile());
+		}
+	}
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
