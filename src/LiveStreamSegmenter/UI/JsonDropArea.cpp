@@ -14,22 +14,31 @@
 
 #include "JsonDropArea.hpp"
 
+#include <QFileInfo>
+
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 namespace {
 
-inline bool isJsonFile(const QMimeData *mimeData)
+inline std::optional<QString> getLocalJsonFilePathIfExists(const QMimeData *mimeData)
 {
-	if (mimeData != nullptr && mimeData->hasUrls()) {
-		const QList<QUrl> urls = mimeData->urls();
-		if (urls.isEmpty()) {
-			return false;
-		} else {
-			return urls.first().toLocalFile().endsWith(".json", Qt::CaseInsensitive);
-		}
-	} else {
-		return false;
-	}
+	if (mimeData == nullptr || !mimeData->hasUrls())
+		return std::nullopt;
+
+	const QList<QUrl> urls = mimeData->urls();
+	if (urls.size() != 1)
+		return std::nullopt;
+
+	const QUrl &firstUrl = urls.first();
+	if (firstUrl.isEmpty() || !firstUrl.isLocalFile())
+		return std::nullopt;
+
+	QString localFile = firstUrl.toLocalFile();
+	QFileInfo info(localFile);
+	if (!info.exists() || !info.isFile() || info.suffix().compare("json", Qt::CaseInsensitive) != 0)
+		return std::nullopt;
+
+	return localFile;
 }
 
 } // anonymous namespace
@@ -41,26 +50,23 @@ JsonDropArea::JsonDropArea(QWidget *parent) : QLabel(parent)
 
 void JsonDropArea::dragEnterEvent(QDragEnterEvent *event)
 {
-	if (isJsonFile(event->mimeData())) {
+	if (getLocalJsonFilePathIfExists(event->mimeData())) {
 		event->acceptProposedAction();
 	}
 }
 
 void JsonDropArea::dragMoveEvent(QDragMoveEvent *event)
 {
-	if (isJsonFile(event->mimeData())) {
+	if (getLocalJsonFilePathIfExists(event->mimeData())) {
 		event->acceptProposedAction();
 	}
 }
 
 void JsonDropArea::dropEvent(QDropEvent *event)
 {
-	if (isJsonFile(event->mimeData())) {
-		const QList<QUrl> urls = event->mimeData()->urls();
-		if (!urls.isEmpty()) {
-			event->acceptProposedAction();
-			emit fileDropped(urls.first().toLocalFile());
-		}
+	if (auto localFilePath = getLocalJsonFilePathIfExists(event->mimeData())) {
+		event->acceptProposedAction();
+		emit jsonFileDropped(*localFilePath);
 	}
 }
 

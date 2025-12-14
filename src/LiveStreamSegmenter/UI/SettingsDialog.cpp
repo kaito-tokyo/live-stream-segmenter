@@ -14,16 +14,30 @@
 
 #include "SettingsDialog.hpp"
 
+#include <QFile>
 #include <QFormLayout>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QUrl>
 
+#include <GoogleOAuth2ClientCredentials.hpp>
+
+#include "fmt_qstring_formatter.hpp"
+
 using namespace KaitoTokyo::Logger;
+
+using namespace KaitoTokyo::LiveStreamSegmenter::Auth;
+using namespace KaitoTokyo::LiveStreamSegmenter::Service;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *parent)
+SettingsDialog::SettingsDialog(std::shared_ptr<AuthService> authService, std::shared_ptr<const ILogger> logger,
+			       QWidget *parent)
 	: QDialog(parent),
+	  authService_(std::move(authService)),
 	  logger_(std::move(logger)),
 
 	  // 1. Main Structure
@@ -61,10 +75,57 @@ SettingsDialog::SettingsDialog(std::shared_ptr<const ILogger> logger, QWidget *p
 	  streamKeyComboB_(new QComboBox(this)),
 
 	  // 7. Dialog Buttons
-	  buttonBox_(
-		  new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel, this))
+	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
+					  this)),
+	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
 {
 	setupUi();
+
+	connect(dropArea_, &JsonDropArea::jsonFileDropped, this, &SettingsDialog::onCredentialsFileDropped);
+
+	connect(clientIdDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
+	connect(clientSecretDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
+
+	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
+	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
+	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
+}
+
+void SettingsDialog::accept()
+{
+	storeSettings();
+	QDialog::accept();
+}
+
+void SettingsDialog::markDirty()
+{
+	applyButton_->setEnabled(true);
+}
+
+void SettingsDialog::onApply()
+{
+	storeSettings();
+	applyButton_->setEnabled(false);
+}
+
+void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
+{
+	try {
+		SettingsDialogGoogleOAuth2ClientCredentials credentials =
+			parseGoogleOAuth2ClientCredentialsFromLocalFile(localFile);
+		clientIdDisplay_->setText(credentials.client_id);
+		clientSecretDisplay_->setText(credentials.client_secret);
+	} catch (const std::exception &e) {
+		logger_->logException(e, "Error parsing dropped credentials file");
+
+		QMessageBox msgBox(this);
+		msgBox.setIcon(QMessageBox::Critical);
+		msgBox.setWindowTitle(tr("Error"));
+		msgBox.setText(tr("Failed to load credentials from the dropped file."));
+		msgBox.setInformativeText(tr("Please ensure the file is a valid Google OAuth2 credentials JSON file."));
+		msgBox.setDetailedText(QString::fromStdString(e.what()));
+		msgBox.exec();
+	}
 }
 
 void SettingsDialog::setupUi()
@@ -117,11 +178,15 @@ void SettingsDialog::setupUi()
 	QFormLayout *detailsLayout = new QFormLayout();
 	detailsLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
+	auto clientCredentials = authService_->getGoogleOAuth2ClientCredentials();
+
 	clientIdDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	clientIdDisplay_->setText(QString::fromStdString(clientCredentials.client_id));
 	detailsLayout->addRow(tr("Client ID"), clientIdDisplay_);
 
 	clientSecretDisplay_->setEchoMode(QLineEdit::Password);
 	clientSecretDisplay_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	clientSecretDisplay_->setText(QString::fromStdString(clientCredentials.client_secret));
 	detailsLayout->addRow(tr("Client Secret"), clientSecretDisplay_);
 
 	credLayout_->addLayout(detailsLayout);
@@ -174,18 +239,69 @@ void SettingsDialog::setupUi()
 	tabWidget_->setCurrentWidget(youTubeTab_);
 
 	// --- Dialog Buttons ---
-	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
-
+	applyButton_->setEnabled(false);
 	mainLayout_->addWidget(buttonBox_);
 
 	// Window Sizing
 	mainLayout_->setSizeConstraint(QLayout::SetMinAndMaxSize);
+
 	resize(500, 700);
 }
 
-void SettingsDialog::accept()
+void SettingsDialog::storeSettings()
 {
-	QDialog::accept();
+	GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
+	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
+	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
+	authService_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
+
+	authService_->storeAuthService();
+}
+
+inline SettingsDialogGoogleOAuth2ClientCredentials
+SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile)
+{
+	QFile file(localFile);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		logger_->error("Failed to open dropped credentials file: {}", localFile);
+		throw std::runtime_error("FileOpenError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	QJsonParseError parseError;
+	QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+	file.close();
+
+	if (parseError.error != QJsonParseError::NoError) {
+		logger_->error("Failed to parse dropped credentials file: {}: {}", localFile, parseError.errorString());
+		throw std::runtime_error("JsonParseError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	if (!doc.isObject()) {
+		logger_->error("Dropped credentials file is not a valid JSON object: {}", localFile);
+		throw std::runtime_error("RootIsNotObjectError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	QJsonObject root = doc.object();
+	if (!root.contains("installed") || !root["installed"].isObject()) {
+		logger_->error("Dropped credentials file does not contain 'installed' object: {}", localFile);
+		throw std::runtime_error(
+			"InstalledObjectMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	QJsonObject installed = root["installed"].toObject();
+	if (!installed.contains("client_id") || !installed["client_id"].isString()) {
+		logger_->error("Dropped credentials file is missing 'installed.client_id': {}", localFile);
+		throw std::runtime_error("ClientIdMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+	if (!installed.contains("client_secret") || !installed["client_secret"].isString()) {
+		logger_->error("Dropped credentials file is missing 'installed.client_secret': {}", localFile);
+		throw std::runtime_error("ClientSecretMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
+	}
+
+	SettingsDialogGoogleOAuth2ClientCredentials credentials;
+	credentials.client_id = installed["client_id"].toString();
+	credentials.client_secret = installed["client_secret"].toString();
+	return credentials;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

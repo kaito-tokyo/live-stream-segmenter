@@ -19,6 +19,7 @@
 #include <QDropEvent>
 #include <QLabel>
 #include <QMimeData>
+#include <QUrl>
 #include <QWidget>
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
@@ -29,7 +30,7 @@ public:
 	explicit JsonDropArea(QWidget *parent = nullptr);
 
 signals:
-	void fileDropped(const QString &filePath);
+	void jsonFileDropped(const QString &localFile);
 
 protected:
 	void dragEnterEvent(QDragEnterEvent *event) override;

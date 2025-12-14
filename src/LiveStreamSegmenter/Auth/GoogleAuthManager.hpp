@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <optional>
 #include <string>
 
 #include <curl/curl.h>
@@ -22,28 +23,27 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
-#include "GoogleOAuth2ClientCredential.hpp"
+#include "GoogleOAuth2ClientCredentials.hpp"
 #include "GoogleTokenState.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 struct GoogleAuthManagerCallback {
 	std::function<void(GoogleTokenState)> onTokenStore;
-	std::function<std::optional<GoogleTokenState>(void)> onTokenRestore;
 	std::function<void()> onTokenInvalidate;
 };
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(GoogleOAuth2ClientCredential clientCredential, GoogleAuthManagerCallback callback,
-			  std::shared_ptr<const Logger::ILogger> logger)
-		: clientCredential_(std::move(clientCredential)),
+	GoogleAuthManager(GoogleOAuth2ClientCredentials clientCredentials, GoogleAuthManagerCallback callback,
+			  std::shared_ptr<const Logger::ILogger> logger,
+			  std::optional<GoogleTokenState> storedTokenState = std::nullopt)
+		: clientCredentials_(std::move(clientCredentials)),
 		  callback_(std::move(callback)),
 		  logger_(std::move(logger))
 	{
-		if (auto savedTokenState = callback_.onTokenRestore()) {
-			std::scoped_lock lock(mutex_);
-			currentTokenState_ = *savedTokenState;
+		if (storedTokenState.has_value()) {
+			currentTokenState_ = storedTokenState.value();
 		}
 	}
 
@@ -96,8 +96,8 @@ public:
 			refreshToken = currentTokenState_.refresh_token;
 		}
 
-		if (clientCredential_.client_id.empty() || clientCredential_.client_secret.empty()) {
-			throw std::runtime_error("CredentialMissingError(getAccessToken)");
+		if (clientCredentials_.client_id.empty() || clientCredentials_.client_secret.empty()) {
+			throw std::runtime_error("CredentialsMissingError(getAccessToken)");
 		}
 
 		if (refreshToken.has_value()) {
@@ -132,8 +132,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams postParams(curl.get());
-		postParams.append("client_id", clientCredential_.client_id);
-		postParams.append("client_secret", clientCredential_.client_secret);
+		postParams.append("client_id", clientCredentials_.client_id);
+		postParams.append("client_secret", clientCredentials_.client_secret);
 		postParams.append("refresh_token", refreshToken);
 		postParams.append("grant_type", "refresh_token");
 
@@ -167,7 +167,7 @@ private:
 		return j.get<GoogleTokenResponse>();
 	}
 
-	const GoogleOAuth2ClientCredential clientCredential_;
+	const GoogleOAuth2ClientCredentials clientCredentials_;
 	GoogleAuthManagerCallback callback_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
