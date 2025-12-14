@@ -22,25 +22,26 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
+#include "GoogleOAuth2ClientCrendential.hpp"
 #include "GoogleTokenState.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 struct GoogleAuthManagerCallback {
-	std::function<void(std::optional<GoogleTokenState>)> onTokenStore;
-	std::function<GoogleTokenState(void)> onTokenRestore;
+	std::function<void(GoogleTokenState)> onTokenStore;
+	std::function<std::optional<GoogleTokenState>(void)> onTokenRestore;
 	std::function<void()> onTokenInvalidate;
 };
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(std::string clientId, std::string clientSecret, GoogleAuthManagerCallback callback, std::shared_ptr<const Logger::ILogger> logger)
-		: clientId_(std::move(clientId)),
-		  clientSecret_(std::move(clientSecret)),
+	GoogleAuthManager(GoogleOAuth2ClientCredential clientCredential, GoogleAuthManagerCallback callback,
+			  std::shared_ptr<const Logger::ILogger> logger)
+		: clientCredential_(std::move(clientCredential)),
 		  callback_(std::move(callback)),
 		  logger_(std::move(logger))
 	{
-		if (std::optional<GoogleTokenState> savedTokenState = callback_.onTokenRestore()) {
+		if (auto savedTokenState = callback_.onTokenRestore()) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			currentTokenState_ = *savedTokenState;
 		}
@@ -95,7 +96,7 @@ public:
 			refreshToken = currentTokenState_.refresh_token;
 		}
 
-		if (clientId_.empty() || clientSecret_.empty()) {
+		if (clientCredential_.client_id.empty() || clientCredential_.client_secret.empty()) {
 			throw std::runtime_error("CredentialMissingError(getAccessToken)");
 		}
 
@@ -121,8 +122,7 @@ private:
 	GoogleTokenResponse refreshTokenState(const std::string &refreshToken)
 	{
 		using nlohmann::json;
-
-		using namespace KaitoTokyo::CurlHelper;
+		using namespace CurlHelper;
 
 		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
@@ -132,8 +132,8 @@ private:
 		CurlVectorWriterBuffer readBuffer;
 
 		CurlUrlSearchParams postParams(curl.get());
-		postParams.append("client_id", clientId_);
-		postParams.append("client_secret", clientSecret_);
+		postParams.append("client_id", clientCredential_.client_id);
+		postParams.append("client_secret", clientCredential_.client_secret);
 		postParams.append("refresh_token", refreshToken);
 		postParams.append("grant_type", "refresh_token");
 
@@ -167,8 +167,7 @@ private:
 		return j.get<GoogleTokenResponse>();
 	}
 
-	const std::string clientId_;
-	const std::string clientSecret_;
+	const GoogleOAuth2ClientCredential clientCredential_;
 	GoogleAuthManagerCallback callback_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 

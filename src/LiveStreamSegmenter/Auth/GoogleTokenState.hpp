@@ -23,6 +23,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 using Timestamp = std::int64_t;
 
 struct GoogleTokenState {
+	std::string ver = "1.0";
 	std::string access_token;
 	std::string refresh_token;
 	std::string email;
@@ -83,7 +84,7 @@ struct GoogleTokenState {
 		expires_at.reset();
 	}
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenState, access_token, refresh_token, email, scope,
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenState, ver, access_token, refresh_token, email, scope,
 						    expires_at)
 };
 

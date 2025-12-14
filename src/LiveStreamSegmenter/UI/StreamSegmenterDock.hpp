@@ -36,7 +36,8 @@ class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
 public:
-	StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService,
+			    std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
@@ -46,7 +47,7 @@ public:
 
 private:
 	void setupUi();
-	
+
 	std::shared_ptr<Service::AuthService> authService_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 

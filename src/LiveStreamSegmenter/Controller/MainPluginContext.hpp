@@ -28,23 +28,27 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class MainPluginContext {
 public:
-    MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow) : logger_(std::move(logger)), dock_(new UI::StreamSegmenterDock(logger_, mainWindow)) {
-        authService_.loadGoogleCredential();
-        obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), dock_);
-    }
+	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
+		: logger_(std::move(logger)),
+		  dock_(new UI::StreamSegmenterDock(logger_, mainWindow))
+	{
+		authService_.loadGoogleCredential();
+		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
+					    dock_);
+	}
 
-    ~MainPluginContext() noexcept = default;
+	~MainPluginContext() noexcept = default;
 
-    MainPluginContext(const MainPluginContext &) = delete;
-    MainPluginContext &operator=(const MainPluginContext &) = delete;
-    MainPluginContext(MainPluginContext &&) = delete;
-    MainPluginContext &operator=(MainPluginContext &&) = delete;
+	MainPluginContext(const MainPluginContext &) = delete;
+	MainPluginContext &operator=(const MainPluginContext &) = delete;
+	MainPluginContext(MainPluginContext &&) = delete;
+	MainPluginContext &operator=(MainPluginContext &&) = delete;
 
 private:
-    const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
-    UI::StreamSegmenterDock *const dock_;
-    Service::AuthService authService_;
+	UI::StreamSegmenterDock *const dock_;
+	Service::AuthService authService_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
