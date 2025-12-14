@@ -103,7 +103,6 @@ target_sources(
     src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
     src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
-    src/LiveStreamSegmenter/Auth/GoogleTokenStorage.hpp
 )
 
 add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
