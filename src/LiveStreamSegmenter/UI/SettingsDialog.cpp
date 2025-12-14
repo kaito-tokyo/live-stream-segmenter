@@ -154,16 +154,18 @@ void SettingsDialog::onAuthButtonClicked()
 	};
 	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request &, httplib::Response &res) {
 		res.set_content("<h1>Authorized<br>Back to OBS</h1>", "text/html");
+
 		QMetaObject::invokeMethod(
 			this,
 			[this]() {
 				this->logger_->info("OAuth2 authorization succeeded.");
-				this->statusLabel_->setText(tr("Authorized"));
+				this->statusLabel_->setText(tr("Authorized (Token Received)"));
 			},
 			Qt::QueuedConnection);
 	};
 	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request &, httplib::Response &res) {
 		res.set_content("<h1>Authorization Failed<br>Back to OBS</h1>", "text/html");
+
 		QMetaObject::invokeMethod(
 			this,
 			[this]() {
@@ -292,7 +294,11 @@ void SettingsDialog::setupUi()
 	authButton_->setText(tr("Request Authorization"));
 
 	statusLabel_->setAlignment(Qt::AlignCenter);
-	statusLabel_->setText(tr("Unauthorized"));
+	if (authStore_->getGoogleTokenState().isAuthorized()) {
+		statusLabel_->setText(tr("Authorized (Saved)"));
+	} else {
+		statusLabel_->setText(tr("Unauthorized"));
+	}
 
 	authLayout_->addWidget(authButton_);
 	authLayout_->addWidget(statusLabel_);
