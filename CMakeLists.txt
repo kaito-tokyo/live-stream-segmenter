@@ -69,6 +69,7 @@ target_sources(Logger PRIVATE src/Logger/ILogger.hpp)
 add_library(BridgeUtils INTERFACE)
 target_include_directories(BridgeUtils INTERFACE ${CMAKE_SOURCE_DIR}/src/BridgeUtils)
 target_link_libraries(BridgeUtils INTERFACE OBS::libobs Logger)
+target_compile_definitions(BridgeUtils INTERFACE HAVE_BACKWARD)
 target_sources(
   BridgeUtils
   PRIVATE
@@ -101,7 +102,7 @@ target_sources(
   PRIVATE
     src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
     src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
-    src/LiveStreamSegmenter/Auth/GoogleOAuth2ClientCredential.hpp
+    src/LiveStreamSegmenter/Auth/GoogleOAuth2ClientCredentials.hpp
     src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
     src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
 )

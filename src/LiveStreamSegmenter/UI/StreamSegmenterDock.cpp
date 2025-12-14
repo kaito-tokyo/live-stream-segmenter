@@ -230,8 +230,8 @@ void StreamSegmenterDock::setupUi()
 
 void StreamSegmenterDock::onSettingsButtonClicked()
 {
-	SettingsDialog *settingsDialog = new SettingsDialog(logger_, this);
-	settingsDialog->exec();
+	SettingsDialog settingsDialog(authService_, logger_, this);
+	settingsDialog.exec();
 }
 
 } // namespace UI

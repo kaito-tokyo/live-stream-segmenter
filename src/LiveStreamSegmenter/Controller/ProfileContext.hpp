@@ -30,7 +30,7 @@ public:
 		  dock_(dock),
 		  authService_(std::make_shared<Service::AuthService>(logger_))
 	{
-		authService_->restoreGoogleOAuth2ClientCredential();
+		authService_->restoreAuthService();
 		dock_->setAuthService(authService_);
 	}
 

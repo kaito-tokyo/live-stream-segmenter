@@ -27,6 +27,8 @@
 
 #include <ILogger.hpp>
 
+#include <AuthService.hpp>
+
 #include "JsonDropArea.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
@@ -40,7 +42,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	SettingsDialog(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger,
+		       QWidget *parent = nullptr);
 	~SettingsDialog() override = default;
 
 public slots:
@@ -48,12 +51,18 @@ public slots:
 
 private slots:
 	void onCredentialsFileDropped(const QString &localFile);
+    void onApply();
 
 private:
 	void setupUi();
+
+	void storeSettings();
+	void restoreSettings();
+
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
+	const std::shared_ptr<Service::AuthService> authService_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// --- UI Components ---

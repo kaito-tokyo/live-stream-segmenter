@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <optional>
 #include <string>
 
 #include <curl/curl.h>
@@ -29,21 +30,20 @@ namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
 struct GoogleAuthManagerCallback {
 	std::function<void(GoogleTokenState)> onTokenStore;
-	std::function<std::optional<GoogleTokenState>(void)> onTokenRestore;
 	std::function<void()> onTokenInvalidate;
 };
 
 class GoogleAuthManager {
 public:
 	GoogleAuthManager(GoogleOAuth2ClientCredentials clientCredentials, GoogleAuthManagerCallback callback,
-			  std::shared_ptr<const Logger::ILogger> logger)
+			  std::shared_ptr<const Logger::ILogger> logger,
+			  std::optional<GoogleTokenState> storedTokenState = std::nullopt)
 		: clientCredentials_(std::move(clientCredentials)),
 		  callback_(std::move(callback)),
 		  logger_(std::move(logger))
 	{
-		if (auto savedTokenState = callback_.onTokenRestore()) {
-			std::scoped_lock lock(mutex_);
-			currentTokenState_ = *savedTokenState;
+		if (storedTokenState.has_value()) {
+			currentTokenState_ = storedTokenState.value();
 		}
 	}
 
