@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <jthread.hpp>
+
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>

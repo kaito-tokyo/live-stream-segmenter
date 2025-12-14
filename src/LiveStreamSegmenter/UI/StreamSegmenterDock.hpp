@@ -16,6 +16,8 @@
 
 #include <mutex>
 
+#include <jthread.hpp>
+
 #include <QDateTime>
 #include <QGroupBox>
 #include <QHBoxLayout>
