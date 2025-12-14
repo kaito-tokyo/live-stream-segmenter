@@ -22,8 +22,7 @@ struct GoogleTokenResponse {
 	std::optional<std::string> refresh_token;
 	std::optional<std::string> scope;
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenResponse, access_token, expires_in, token_type,
-						    refresh_token, scope)
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(GoogleTokenResponse, access_token, expires_in, token_type, refresh_token, scope)
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
