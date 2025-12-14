@@ -32,58 +32,58 @@
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 class SettingsDialog : public QDialog {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
-    ~SettingsDialog() override = default;
+	SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	~SettingsDialog() override = default;
 
 public slots:
-    void accept() override;
+	void accept() override;
 
 private:
-    void setupUi();
+	void setupUi();
 
-    const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
-    // --- UI Components ---
+	// --- UI Components ---
 
-    // 1. Main Structure
-    QVBoxLayout *mainLayout_;
-    QTabWidget *tabWidget_;
+	// 1. Main Structure
+	QVBoxLayout *mainLayout_;
+	QTabWidget *tabWidget_;
 
-    // 2. General Tab
-    QWidget *generalTab_;
-    QVBoxLayout *generalTabLayout_;
+	// 2. General Tab
+	QWidget *generalTab_;
+	QVBoxLayout *generalTabLayout_;
 
-    // 3. YouTube Tab
-    QWidget *youTubeTab_;
-    QVBoxLayout *youTubeTabLayout_;
-    QLabel *helpLabel_;
+	// 3. YouTube Tab
+	QWidget *youTubeTab_;
+	QVBoxLayout *youTubeTabLayout_;
+	QLabel *helpLabel_;
 
-    // 4. Credentials Group (YouTube)
-    QGroupBox *credGroup_;
-    QVBoxLayout *credLayout_;
-    JsonDropArea *dropArea_;
-    QLineEdit *clientIdDisplay_;
-    QLineEdit *clientSecretDisplay_;
+	// 4. Credentials Group (YouTube)
+	QGroupBox *credGroup_;
+	QVBoxLayout *credLayout_;
+	JsonDropArea *dropArea_;
+	QLineEdit *clientIdDisplay_;
+	QLineEdit *clientSecretDisplay_;
 
-    // 5. Authorization Group (YouTube)
-    QGroupBox *authGroup_;
-    QVBoxLayout *authLayout_;
-    QPushButton *authButton_;
-    QLabel *statusLabel_;
+	// 5. Authorization Group (YouTube)
+	QGroupBox *authGroup_;
+	QVBoxLayout *authLayout_;
+	QPushButton *authButton_;
+	QLabel *statusLabel_;
 
-    // 6. Stream Settings Group (YouTube)
-    QGroupBox *keyGroup_;
-    QVBoxLayout *keyLayout_;
-    QLabel *streamKeyLabelA_;
-    QComboBox *streamKeyComboA_;
-    QLabel *streamKeyLabelB_;
-    QComboBox *streamKeyComboB_;
+	// 6. Stream Settings Group (YouTube)
+	QGroupBox *keyGroup_;
+	QVBoxLayout *keyLayout_;
+	QLabel *streamKeyLabelA_;
+	QComboBox *streamKeyComboA_;
+	QLabel *streamKeyLabelB_;
+	QComboBox *streamKeyComboB_;
 
-    // 7. Dialog Buttons
-    QDialogButtonBox *buttonBox_;
+	// 7. Dialog Buttons
+	QDialogButtonBox *buttonBox_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
