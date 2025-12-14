@@ -105,7 +105,14 @@ void SettingsDialog::setupUi()
 	// Drop Area Config
 	dropArea_->setText(tr("Drag & Drop credentials.json here"));
 	dropArea_->setAlignment(Qt::AlignCenter);
-	dropArea_->setStyleSheet("border: 2px dashed #666; color: #ccc;");
+	dropArea_->setStyleSheet(
+        "QLabel {"
+        "  border: 2px dashed palette(mid);"
+        "  color: palette(text);"
+        "  border-radius: 6px;"
+        "  padding: 16px;"
+        "}"
+    );
 
 	credLayout_->addWidget(dropArea_);
 
