@@ -160,6 +160,7 @@ void SettingsDialog::onAuthButtonClicked()
 	googleOAuth2FlowUserAgent_->onTokenReceived = [this](const std::optional<Auth::GoogleAuthResponse> &response) {
 		if (response.has_value()) {
 			auto tokenState = Auth::GoogleTokenState().withUpdatedAuthResponse(response.value());
+			this->authService_->storeGoogleOAuth2TokenState(tokenState);
 		} else {
 			this->logger_->error("Failed to receive OAuth2 token.");
 		}
