@@ -42,7 +42,7 @@ public:
 		  logger_(std::move(logger))
 	{
 		if (auto savedTokenState = callback_.onTokenRestore()) {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			currentTokenState_ = *savedTokenState;
 		}
 	}
@@ -56,14 +56,14 @@ public:
 
 	bool isAuthenticated() const
 	{
-		std::lock_guard<std::mutex> lock(mutex_);
+		std::scoped_lock lock(mutex_);
 		return currentTokenState_.isAuthorized();
 	};
 
 	void updateTokenState(const GoogleTokenState &tokenState)
 	{
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			currentTokenState_ = tokenState;
 		}
 		callback_.onTokenStore(tokenState);
@@ -72,7 +72,7 @@ public:
 	void clear()
 	{
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			currentTokenState_.clear();
 		}
 		callback_.onTokenInvalidate();
@@ -83,7 +83,7 @@ public:
 		std::optional<std::string> refreshToken;
 
 		{
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 
 			if (!currentTokenState_.isAuthorized()) {
 				throw std::runtime_error("NotAuthorizedError(getAccessToken)");
@@ -105,7 +105,7 @@ public:
 
 			GoogleTokenState tokenState;
 			{
-				std::lock_guard<std::mutex> lock(mutex_);
+				std::scoped_lock lock(mutex_);
 				currentTokenState_.updateFromTokenResponse(tokenResponse);
 				tokenState = currentTokenState_;
 			}
