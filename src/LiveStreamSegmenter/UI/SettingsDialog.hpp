@@ -111,7 +111,7 @@ private:
 
 	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
 	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;
-	std::optional<Auth::GoogleAuthResponse> googleOAuth2FlowFuture_;
+	std::optional<Auth::GoogleAuthResponse> googleOAuth2TokenResponse_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

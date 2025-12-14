@@ -47,7 +47,7 @@ inline void from_json(const nlohmann::json &j, GoogleAuthResponse &p)
 	set_optional("scope", p.scope);
 }
 
-inline void to_json(nlohmann::json &j, const GoogleTokenResponse &p)
+inline void to_json(nlohmann::json &j, const GoogleAuthResponse &p)
 {
 	j = nlohmann::json{
 		{"ver", p.ver},

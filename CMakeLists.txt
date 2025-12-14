@@ -118,13 +118,13 @@ target_sources(
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
 )
 
-add_library(${CMAKE_PROJECT_NAME}_Service INTERFACE)
-target_include_directories(${CMAKE_PROJECT_NAME}_Service INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Service)
+add_library(${CMAKE_PROJECT_NAME}_Store INTERFACE)
+target_include_directories(${CMAKE_PROJECT_NAME}_Store INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Store)
 target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Service
+  ${CMAKE_PROJECT_NAME}_Store
   INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth
 )
-target_sources(${CMAKE_PROJECT_NAME}_Service PRIVATE src/LiveStreamSegmenter/Service/AuthService.hpp)
+target_sources(${CMAKE_PROJECT_NAME}_Store PRIVATE src/LiveStreamSegmenter/Store/AuthStore.hpp)
 
 add_library(
   ${CMAKE_PROJECT_NAME}_UI
