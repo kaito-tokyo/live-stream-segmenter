@@ -14,118 +14,76 @@
 
 #pragma once
 
+#include <QComboBox>
 #include <QDialog>
+#include <QDialogButtonBox>
+#include <QGroupBox>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QLabel>
-#include <QFormLayout>
+#include <QTabWidget>
 #include <QVBoxLayout>
-#include <QMimeData>
-#include <QDragEnterEvent>
-#include <QDropEvent>
-#include <QJsonObject>
-#include <QComboBox>
-#include <QTimer>
+#include <QWidget>
 
-#include <memory>
-#include <future>
-#include <optional>
+#include <ILogger.hpp>
 
-#include <AuthService.hpp>
-#include <GoogleAuthManager.hpp>
-#include <GoogleOAuth2Flow.hpp>
-#include <YouTubeTypes.hpp>
+#include "JsonDropArea.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-// --- JsonDropArea (変更なし) ---
-class JsonDropArea : public QLabel {
-	Q_OBJECT
-public:
-	explicit JsonDropArea(QWidget *parent = nullptr);
-signals:
-	void fileDropped(const QString &filePath);
-	void clicked();
-
-protected:
-	void dragEnterEvent(QDragEnterEvent *event) override;
-	void dragLeaveEvent(QDragLeaveEvent *event) override;
-	void dropEvent(QDropEvent *event) override;
-	void mousePressEvent(QMouseEvent *event) override;
-};
-
-// --- SettingsDialog ---
 class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	explicit SettingsDialog(std::shared_ptr<Service::AuthService> authService,
-				std::shared_ptr<Logger::ILogger> logger, QWidget *parent = nullptr);
-	~SettingsDialog() override;
+	SettingsDialog(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	~SettingsDialog() override = default;
 
-private slots:
-	// --- Existing Slots ---
-	void onJsonFileSelected(const QString &filePath);
-	void onAreaClicked();
-	void onLoadJsonClicked();
-	void onSaveClicked();
-
-	// Auth
-	void onAuthClicked();
-	void onAuthPollTimer(); // 追加: フロー完了監視用
-
-	// Auth Signals (Managerからの通知)
-	void onAuthStateChanged();
-	void onLoginStatusChanged(const QString &status);
-	void onLoginError(const QString &message);
-
-	// Stream Key
-	void onRefreshKeysClicked();
-	void onKeySelectionChanged(int index);
-	void onLinkDocClicked();
+public slots:
+	void accept() override;
 
 private:
 	void setupUi();
-	void initializeData();
-	void updateAuthUI();
 
-	void updateStreamKeyList(const std::vector<API::YouTubeStreamKey> &keys);
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
-	// Helpers
-	QString getObsConfigPath(const QString &filename) const;
-	bool saveCredentialsToStorage(const QString &clientId, const QString &clientSecret);
-	QJsonObject loadCredentialsFromStorage();
-	bool parseCredentialJson(const QByteArray &jsonData, QString &outId, QString &outSecret);
+	// --- UI Components ---
 
-	void saveStreamKeySetting(const QString &id, const QString &streamName, const QString &title);
-	QString loadSavedStreamKeyId();
+	// 1. Main Structure
+	QVBoxLayout *mainLayout_;
+	QTabWidget *tabWidget_;
 
-	std::shared_ptr<Service::AuthService> authService_;
-	std::shared_ptr<Logger::ILogger> logger_;
+	// 2. General Tab
+	QWidget *generalTab_;
+	QVBoxLayout *generalTabLayout_;
 
-	// Data
-	QString tempClientId_;
-	QString tempClientSecret_;
+	// 3. YouTube Tab
+	QWidget *youTubeTab_;
+	QVBoxLayout *youTubeTabLayout_;
+	QLabel *helpLabel_;
 
-	// Managers
-
-	// --- New Auth Flow Management ---
-	// SettingsDialogのライフサイクルとフローのライフサイクルを管理するため
-	std::unique_ptr<Auth::GoogleOAuth2Flow> oauthFlow_;
-	std::future<std::optional<Auth::GoogleTokenResponse>> pendingAuthFuture_;
-	QTimer *authPollTimer_;
-
-	// UI Components
+	// 4. Credentials Group (YouTube)
+	QGroupBox *credGroup_;
+	QVBoxLayout *credLayout_;
 	JsonDropArea *dropArea_;
 	QLineEdit *clientIdDisplay_;
 	QLineEdit *clientSecretDisplay_;
-	QPushButton *loadJsonButton_;
-	QPushButton *saveButton_;
+
+	// 5. Authorization Group (YouTube)
+	QGroupBox *authGroup_;
+	QVBoxLayout *authLayout_;
 	QPushButton *authButton_;
 	QLabel *statusLabel_;
 
-	QComboBox *streamKeyCombo_;
-	QPushButton *refreshKeysBtn_;
+	// 6. Stream Settings Group (YouTube)
+	QGroupBox *keyGroup_;
+	QVBoxLayout *keyLayout_;
+	QLabel *streamKeyLabelA_;
+	QComboBox *streamKeyComboA_;
+	QLabel *streamKeyLabelB_;
+	QComboBox *streamKeyComboB_;
+
+	// 7. Dialog Buttons
+	QDialogButtonBox *buttonBox_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

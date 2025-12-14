@@ -51,6 +51,9 @@ public:
 		authService_ = std::move(authService);
 	}
 
+private slots:
+	void onSettingsButtonClicked();
+
 private:
 	void setupUi();
 
