@@ -84,8 +84,7 @@ struct GoogleTokenState {
 		expires_at.reset();
 	}
 
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GoogleTokenState, ver, access_token, refresh_token, email, scope,
-						    expires_at)
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(GoogleTokenState, ver, access_token, refresh_token, email, scope, expires_at)
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
