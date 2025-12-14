@@ -16,7 +16,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-struct GoogleTokenResponse {
+struct GoogleAuthResponse {
 	std::string ver = "1.0";
 	std::string access_token;
 	std::optional<int> expires_in;
@@ -25,7 +25,7 @@ struct GoogleTokenResponse {
 	std::optional<std::string> scope;
 };
 
-inline void from_json(const nlohmann::json &j, GoogleTokenResponse &p)
+inline void from_json(const nlohmann::json &j, GoogleAuthResponse &p)
 {
 	if (auto it = j.find("ver"); it != j.end()) {
 		it->get_to(p.ver);

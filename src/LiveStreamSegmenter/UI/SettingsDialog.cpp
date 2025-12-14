@@ -14,6 +14,7 @@
 
 #include "SettingsDialog.hpp"
 
+#include <QDesktopServices>
 #include <QFile>
 #include <QFormLayout>
 #include <QJsonDocument>
@@ -27,15 +28,10 @@
 
 #include "fmt_qstring_formatter.hpp"
 
-using namespace KaitoTokyo::Logger;
-
-using namespace KaitoTokyo::LiveStreamSegmenter::Auth;
-using namespace KaitoTokyo::LiveStreamSegmenter::Service;
-
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-SettingsDialog::SettingsDialog(std::shared_ptr<AuthService> authService, std::shared_ptr<const ILogger> logger,
-			       QWidget *parent)
+SettingsDialog::SettingsDialog(std::shared_ptr<Service::AuthService> authService,
+			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
 	  authService_(std::move(authService)),
 	  logger_(std::move(logger)),
@@ -86,9 +82,20 @@ SettingsDialog::SettingsDialog(std::shared_ptr<AuthService> authService, std::sh
 	connect(clientIdDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
 	connect(clientSecretDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
 
+	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthButtonClicked);
+
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
+}
+
+SettingsDialog::~SettingsDialog()
+{
+	if (googleOAuth2FlowUserAgent_) {
+		googleOAuth2FlowUserAgent_->onOpenUrl = nullptr;
+		googleOAuth2FlowUserAgent_->onLoginSuccess = nullptr;
+		googleOAuth2FlowUserAgent_->onLoginFailure = nullptr;
+	}
 }
 
 void SettingsDialog::accept()
@@ -102,10 +109,66 @@ void SettingsDialog::markDirty()
 	applyButton_->setEnabled(true);
 }
 
-void SettingsDialog::onApply()
+void SettingsDialog::onAuthButtonClicked()
 {
-	storeSettings();
-	applyButton_->setEnabled(false);
+	if (clientIdDisplay_->text().isEmpty() || clientSecretDisplay_->text().isEmpty()) {
+		QMessageBox msgBox(this);
+		msgBox.setIcon(QMessageBox::Warning);
+		msgBox.setWindowTitle(tr("Error"));
+		msgBox.setText(tr("Client ID and Client Secret must be provided before requesting authorization."));
+		msgBox.exec();
+		return;
+	}
+
+	Auth::GoogleOAuth2ClientCredentials clientCredentials;
+	clientCredentials.client_id = clientIdDisplay_->text().toStdString();
+	clientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
+
+	googleOAuth2FlowUserAgent_ = std::make_shared<Auth::GoogleOAuth2FlowUserAgent>();
+	googleOAuth2FlowUserAgent_->onOpenUrl = [this](const std::string &url) {
+		QString qUrlStr = QString::fromStdString(url);
+		QMetaObject::invokeMethod(
+			this,
+			[this, qUrlStr]() {
+				bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
+				if (!success) {
+					QMessageBox msgBox(this);
+					msgBox.setIcon(QMessageBox::Warning);
+					msgBox.setWindowTitle(tr("Warning"));
+					msgBox.setText(tr("Cannot open the authorization URL in the default browser."));
+
+					msgBox.setInformativeText(
+						tr("Please manually visit:\n<a href=\"%1\">%1</a>").arg(qUrlStr));
+					msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse |
+								       Qt::TextBrowserInteraction);
+
+					msgBox.exec();
+				}
+			},
+			Qt::QueuedConnection);
+	};
+	googleOAuth2FlowUserAgent_->onLoginSuccess = [this](const httplib::Request & /*req*/,
+							    httplib::Response & /*res*/) {
+		this->logger_->info("OAuth2 authorization succeeded.");
+		this->statusLabel_->setText(tr("Authorized"));
+	};
+	googleOAuth2FlowUserAgent_->onLoginFailure = [this](const httplib::Request & /*req*/,
+							    httplib::Response & /*res*/) {
+		this->logger_->error("OAuth2 authorization failed.");
+		this->statusLabel_->setText(tr("Authorization Failed"));
+	};
+	googleOAuth2FlowUserAgent_->onTokenReceived = [this](const std::optional<Auth::GoogleAuthResponse> &response) {
+		if (response.has_value()) {
+			auto tokenState = Auth::GoogleTokenState().withUpdatedAuthResponse(response.value());
+		} else {
+			this->logger_->error("Failed to receive OAuth2 token.");
+		}
+	};
+
+	googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
+								     "https://www.googleapis.com/auth/youtube.readonly",
+								     googleOAuth2FlowUserAgent_, logger_);
+	googleOAuth2Flow_->startOAuth2Flow();
 }
 
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
@@ -126,6 +189,12 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 		msgBox.setDetailedText(QString::fromStdString(e.what()));
 		msgBox.exec();
 	}
+}
+
+void SettingsDialog::onApply()
+{
+	storeSettings();
+	applyButton_->setEnabled(false);
 }
 
 void SettingsDialog::setupUi()
@@ -196,7 +265,6 @@ void SettingsDialog::setupUi()
 	authGroup_->setTitle(tr("2. OAuth2 Authorization"));
 
 	authButton_->setText(tr("Request Authorization"));
-	authButton_->setEnabled(false);
 
 	statusLabel_->setAlignment(Qt::AlignCenter);
 	statusLabel_->setText(tr("Unauthorized"));
@@ -250,7 +318,7 @@ void SettingsDialog::setupUi()
 
 void SettingsDialog::storeSettings()
 {
-	GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
+	Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
 	authService_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);

@@ -28,6 +28,8 @@
 #include <ILogger.hpp>
 
 #include <AuthService.hpp>
+#include <GoogleOAuth2Flow.hpp>
+#include <GoogleTokenState.hpp>
 
 #include "JsonDropArea.hpp"
 
@@ -44,7 +46,7 @@ class SettingsDialog : public QDialog {
 public:
 	SettingsDialog(std::shared_ptr<Service::AuthService> authService, std::shared_ptr<const Logger::ILogger> logger,
 		       QWidget *parent = nullptr);
-	~SettingsDialog() override = default;
+	~SettingsDialog() override;
 
 public slots:
 	void accept() override;
@@ -52,6 +54,7 @@ public slots:
 private slots:
 	void markDirty();
 	void onCredentialsFileDropped(const QString &localFile);
+	void onAuthButtonClicked();
 	void onApply();
 
 private:
@@ -105,6 +108,10 @@ private:
 	// 7. Dialog Buttons
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
+
+	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
+	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;
+	std::optional<Auth::GoogleAuthResponse> googleOAuth2FlowFuture_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

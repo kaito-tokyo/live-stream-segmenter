@@ -61,6 +61,9 @@ else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
+add_library(jthread::jthread INTERFACE IMPORTED)
+target_include_directories(jthread::jthread INTERFACE ${CMAKE_SOURCE_DIR}/vendor/josuttis-jthread)
+
 add_library(Logger INTERFACE)
 target_include_directories(Logger INTERFACE ${CMAKE_SOURCE_DIR}/src/Logger)
 target_link_libraries(Logger INTERFACE fmt::fmt)
@@ -109,7 +112,7 @@ target_sources(
 
 add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
 target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE CurlHelper Logger)
+target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE jthread::jthread CurlHelper Logger)
 target_sources(
   ${CMAKE_PROJECT_NAME}_API
   PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp

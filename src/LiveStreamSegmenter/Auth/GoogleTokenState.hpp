@@ -61,24 +61,27 @@ struct GoogleTokenState {
 		return (now + timeMargin) < expirationTimePoint();
 	}
 
-	void updateFromTokenResponse(const GoogleTokenResponse &response)
+	GoogleTokenState withUpdatedAuthResponse(const GoogleAuthResponse &response) const
 	{
-		access_token = response.access_token;
+		GoogleTokenState updatedState = *this;
+
+		updatedState.access_token = response.access_token;
 
 		if (response.expires_in.has_value()) {
 			auto now = std::chrono::duration_cast<std::chrono::seconds>(
 					   std::chrono::system_clock::now().time_since_epoch())
 					   .count();
-			expires_at = now + response.expires_in.value();
+			updatedState.expires_at = now + response.expires_in.value();
 		}
 
 		if (response.scope.has_value()) {
-			scope = response.scope.value();
+			updatedState.scope = response.scope.value();
 		}
 
 		if (response.refresh_token.has_value() && !response.refresh_token->empty()) {
-			refresh_token = response.refresh_token.value();
+			updatedState.refresh_token = response.refresh_token.value();
 		}
+		return updatedState;
 	}
 
 	void clear()
