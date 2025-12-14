@@ -24,7 +24,6 @@
 #include <util/config-file.h>
 
 #include <ILogger.hpp>
-#include <ObsUnique.hpp>
 
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCrendential.hpp>
@@ -33,7 +32,10 @@ namespace KaitoTokyo::LiveStreamSegmenter::Service {
 
 class AuthService : public std::enable_shared_from_this<AuthService> {
 public:
-	AuthService() = default;
+	explicit AuthService(std::shared_ptr<const Logger::ILogger> logger)
+        : logger_(std::move(logger))
+    {
+    };
 	~AuthService() noexcept = default;
 
 	AuthService(const AuthService &) = delete;
@@ -87,6 +89,7 @@ public:
 	void restoreGoogleOAuth2ClientCredential() noexcept
 	{
 		using nlohmann::json;
+		using namespace Auth;
 
 		std::scoped_lock lock(mutex_);
 
@@ -97,7 +100,7 @@ public:
 		} else {
 			try {
 				json j = json::parse(jsonCstr);
-				setGoogleOAuth2ClientCredential(j.get<Auth::GoogleOAuth2ClientCredential>());
+				setGoogleOAuth2ClientCredential(j.get<GoogleOAuth2ClientCredential>());
 			} catch (const std::exception &e) {
 				logger_->logException(e, "RestoreError(restoreGoogleOAuth2ClientCredential)");
 			} catch (...) {
@@ -131,7 +134,7 @@ public:
 	}
 
 private:
-	std::shared_ptr<Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	Auth::GoogleOAuth2ClientCredential googleOAuth2ClientCredential_;
 

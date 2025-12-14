@@ -14,6 +14,9 @@
 
 #pragma once
 
+#include <memory>
+#include <mutex>
+
 #include <QMainWindow>
 
 #include <obs-frontend-api.h>
@@ -22,33 +25,71 @@
 
 #include <StreamSegmenterDock.hpp>
 
-#include <AuthService.hpp>
+#include "ProfileContext.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-class MainPluginContext {
+class MainPluginContext : public std::enable_shared_from_this<MainPluginContext> {
 public:
-	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-		: logger_(std::move(logger)),
-		  dock_(new UI::StreamSegmenterDock(logger_, mainWindow))
+	~MainPluginContext() noexcept
 	{
-		authService_.loadGoogleCredential();
-		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
-					    dock_);
-	}
-
-	~MainPluginContext() noexcept = default;
+		if (handleFrontendEventWeakSelfPtr_) {
+			obs_frontend_remove_event_callback(handleFrontendEvent, handleFrontendEventWeakSelfPtr_);
+			delete handleFrontendEventWeakSelfPtr_;
+		}
+	};
 
 	MainPluginContext(const MainPluginContext &) = delete;
 	MainPluginContext &operator=(const MainPluginContext &) = delete;
 	MainPluginContext(MainPluginContext &&) = delete;
 	MainPluginContext &operator=(MainPluginContext &&) = delete;
 
-private:
-	const std::shared_ptr<const Logger::ILogger> logger_;
+	static std::shared_ptr<MainPluginContext> create(std::shared_ptr<const Logger::ILogger> logger,
+							 QMainWindow *mainWindow)
+	{
+		auto self = std::shared_ptr<MainPluginContext>(new MainPluginContext(std::move(logger), mainWindow));
+		self->registerFrontendEventCallback();
+		return self;
+	}
 
+private:
+	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
+		: logger_(std::move(logger)),
+		  dock_(new UI::StreamSegmenterDock(logger_, mainWindow)),
+		  profileContext_(std::make_shared<ProfileContext>(logger_, dock_))
+	{
+		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
+					    dock_);
+	}
+
+	void registerFrontendEventCallback()
+	{
+		handleFrontendEventWeakSelfPtr_ = new std::weak_ptr<MainPluginContext>(shared_from_this());
+		obs_frontend_add_event_callback(handleFrontendEvent, handleFrontendEventWeakSelfPtr_);
+	}
+
+	static void handleFrontendEvent(enum obs_frontend_event event, void *private_data) noexcept
+	{
+		auto *weakSelfPtr = static_cast<std::weak_ptr<MainPluginContext> *>(private_data);
+
+		if (auto self = weakSelfPtr->lock()) {
+			if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGING) {
+				std::scoped_lock lock(self->profileContextMutex_);
+				self->profileContext_.reset();
+			} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
+				std::scoped_lock lock(self->profileContextMutex_);
+				self->profileContext_ = std::make_shared<ProfileContext>(self->logger_, self->dock_);
+				self->logger_->info("Profile changed, ProfileContext re-initialized");
+			}
+		}
+	}
+
+	const std::shared_ptr<const Logger::ILogger> logger_;
 	UI::StreamSegmenterDock *const dock_;
-	Service::AuthService authService_;
+
+	std::shared_ptr<ProfileContext> profileContext_ = nullptr;
+	mutable std::mutex profileContextMutex_;
+	std::weak_ptr<MainPluginContext> *handleFrontendEventWeakSelfPtr_ = nullptr;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

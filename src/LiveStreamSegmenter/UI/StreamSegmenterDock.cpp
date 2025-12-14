@@ -30,10 +30,8 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService,
-					 std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QWidget(parent),
-	  authService_(std::move(authService)),
 	  logger_(std::move(logger)),
 	  mainLayout_(new QVBoxLayout(this)),
 
@@ -225,7 +223,6 @@ void StreamSegmenterDock::setupUi()
 	bottomControlLayout_->addWidget(segmentNowButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
 }
-s
 
 } // namespace UI
 } // namespace LiveStreamSegmenter

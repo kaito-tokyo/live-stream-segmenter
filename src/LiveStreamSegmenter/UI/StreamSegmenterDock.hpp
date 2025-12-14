@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <QDateTime>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -26,7 +28,6 @@
 #include <ILogger.hpp>
 
 #include <AuthService.hpp>
-#include <GoogleAuthManager.hpp>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -36,8 +37,7 @@ class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
 public:
-	StreamSegmenterDock(std::shared_ptr<Service::AuthService> authService,
-			    std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
@@ -45,10 +45,15 @@ public:
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
+	void setAuthService(std::shared_ptr<Service::AuthService> authService)
+	{
+		std::scoped_lock lock(mutex_);
+		authService_ = std::move(authService);
+	}
+
 private:
 	void setupUi();
 
-	std::shared_ptr<Service::AuthService> authService_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// Data Cache
@@ -103,7 +108,8 @@ private:
 	QPushButton *const settingsButton_;
 	QPushButton *const segmentNowButton_;
 
-	std::shared_ptr<Auth::GoogleAuthManager> googleAuthManager_ = nullptr;
+	std::shared_ptr<Service::AuthService> authService_;
+	mutable std::mutex mutex_;
 };
 
 } // namespace UI

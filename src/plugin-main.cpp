@@ -31,19 +31,19 @@ OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 static std::shared_ptr<const ILogger> g_logger;
-static std::unique_ptr<MainPluginContext> g_mainPluginContext;
+static std::shared_ptr<MainPluginContext> g_mainPluginContext;
 
 bool obs_module_load(void)
 {
 	g_logger = std::make_shared<ObsLogger>("[" PLUGIN_NAME "]");
 
-	QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window());
-	if (!mainWindow) {
+	if (QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window())) {
+		g_mainPluginContext = MainPluginContext::create(g_logger, mainWindow);
+	} else {
 		g_logger->error("Failed to get main window");
+		g_logger->error("plugin load failed (version {})", PLUGIN_VERSION);
 		return false;
 	}
-
-	g_mainPluginContext = std::make_unique<MainPluginContext>(g_logger, mainWindow);
 
 	g_logger->info("plugin loaded successfully (version {})", PLUGIN_VERSION);
 	return true;
@@ -51,5 +51,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-	g_logger->info("plugin unloaded");
+	g_mainPluginContext.reset();
+	g_logger.reset();
+	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
 }
