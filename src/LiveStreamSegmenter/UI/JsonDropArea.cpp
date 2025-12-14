@@ -12,8 +12,6 @@
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
-#pragma once
-
 #include "JsonDropArea.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
@@ -57,11 +55,13 @@ void JsonDropArea::dragMoveEvent(QDragMoveEvent *event)
 
 void JsonDropArea::dropEvent(QDropEvent *event)
 {
-	const QList<QUrl> urls = event->mimeData()->urls();
-	if (!urls.isEmpty()) {
-		emit fileDropped(urls.first().toLocalFile());
-		event->acceptProposedAction();
-	}
+    if (isJsonFile(event->mimeData())) {
+        const QList<QUrl> urls = event->mimeData()->urls();
+        if (!urls.isEmpty()) {
+            event->acceptProposedAction();
+            emit fileDropped(urls.first().toLocalFile());
+        }
+    }
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

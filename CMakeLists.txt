@@ -125,8 +125,9 @@ target_sources(${CMAKE_PROJECT_NAME}_Service PRIVATE src/LiveStreamSegmenter/Ser
 add_library(
   ${CMAKE_PROJECT_NAME}_UI
   STATIC
-  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
+  src/LiveStreamSegmenter/UI/JsonDropArea.cpp
   src/LiveStreamSegmenter/UI/SettingsDialog.cpp
+  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
 )
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
 target_link_libraries(
@@ -144,7 +145,10 @@ target_link_libraries(
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp src/LiveStreamSegmenter/UI/SettingsDialog.hpp
+  PRIVATE
+    src/LiveStreamSegmenter/UI/JsonDropArea.hpp
+    src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
+    src/LiveStreamSegmenter/UI/SettingsDialog.hpp
 )
 
 add_library(${CMAKE_PROJECT_NAME}_Controller INTERFACE)
