@@ -307,7 +307,6 @@ void SettingsDialog::setupUi()
 
 	statusLabel_->setAlignment(Qt::AlignCenter);
 
-	statusLabel_->setAlignment(Qt::AlignCenter);
 	if (authStore_->getGoogleTokenState().isAuthorized()) {
 		statusLabel_->setText(tr("Authorized (Saved)"));
 	} else {
