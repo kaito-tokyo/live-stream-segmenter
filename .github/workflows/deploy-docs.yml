@@ -1,0 +1,86 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  BUILD_PATH: docs
+
+jobs:
+  deploy:
+    name: Deploy Docs
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ${{ env.BUILD_PATH }}/package.json
+          cache: npm
+          cache-dependency-path: ${{ env.BUILD_PATH }}/package-lock.json
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: ${{ env.BUILD_PATH }}
+        run: npm ci
+
+      - name: Build with Astro
+        shell: bash
+        working-directory: ${{ env.BUILD_PATH }}
+        env:
+          SITE: ${{ steps.pages.outputs.origin }}
+          BASE: ${{ steps.pages.outputs.base_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx astro build --site "$SITE" --base "$BASE"
+          node scripts/add-sri.mjs dist
+          node scripts/add-csp-hashes.mjs dist
+          node scripts/generate-provenance.mjs dist provenance.json
+          mv provenance.json dist/provenance.json
+
+      - name: Attest provenance
+        id: attest
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ env.BUILD_PATH }}/dist/provenance.json
+
+      - name: Copy attestation bundle
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        shell: bash
+        run: |
+          jq -c . "$BUNDLE_PATH" > "$BUILD_PATH/dist/provenance.attestation.jsonl"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.BUILD_PATH }}/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
