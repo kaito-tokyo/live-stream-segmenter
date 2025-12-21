@@ -3,12 +3,12 @@
   "dependencies": [
     {
       "name": "boost-stacktrace",
-      "default-features": false,
-      "platform": "osx"
+      "platform": "windows"
     },
     {
       "name": "boost-stacktrace",
-      "platform": "!osx"
+      "default-features": false,
+      "platform": "!windows"
     },
     "boost-thread",
     {
