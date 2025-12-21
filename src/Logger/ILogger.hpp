@@ -108,7 +108,7 @@ public:
 	}
 
 	/**
-	 * @brief Logs an exception with context and (if available) a stack trace.
+	 * @brief Logs an exception with context and a stack trace.
 	 *
 	 * Guaranteed not to throw an exception. This method is safe to call
 	 * from within a catch block. It will print a full stack trace.
