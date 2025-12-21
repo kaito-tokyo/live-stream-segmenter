@@ -33,6 +33,12 @@ jobs:
           chown -R builder:builder .
           pacman -Syu --noconfirm git
 
+      - name: Install cpp-httplib
+        run: |
+          sudo -u builder git clone https://aur.archlinux.org/cpp-httplib.git
+          cd cpp-httplib
+          sudo -u builder makepkg -si --noconfirm
+
       - name: Build
         shell: bash
         working-directory: unsupported/arch/live-stream-segmenter
@@ -61,6 +67,12 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chown -R builder:builder .
           pacman -Syu --noconfirm git
+
+      - name: Install cpp-httplib
+        run: |
+          sudo -u builder git clone https://aur.archlinux.org/cpp-httplib.git
+          cd cpp-httplib
+          sudo -u builder makepkg -si --noconfirm
 
       - name: Build
         shell: bash
