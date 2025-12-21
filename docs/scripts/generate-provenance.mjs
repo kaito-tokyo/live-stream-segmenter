@@ -12,7 +12,7 @@ if (args.length < 2) {
 
 const [distDir, outputFile] = args;
 const PRODUCTION_BASE_URL =
-  "https://kaito-tokyo.github.io/live-backgroundremoval-lite";
+  "https://kaito-tokyo.github.io/live-stream-segmenter";
 
 function deepSort(value) {
   if (value === null || typeof value !== "object") {

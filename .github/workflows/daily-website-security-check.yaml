@@ -30,16 +30,16 @@ jobs:
           set -euo pipefail
 
           curl --retry 3 -fsS \
-            -O "https://kaito-tokyo.github.io/live-backgroundremoval-lite/provenance.json" \
-            -O "https://kaito-tokyo.github.io/live-backgroundremoval-lite/provenance.attestation.jsonl"
+            -O "https://kaito-tokyo.github.io/live-stream-segmenter/provenance.json" \
+            -O "https://kaito-tokyo.github.io/live-stream-segmenter/provenance.attestation.jsonl"
 
           GH_FORCE_TTY="100%" gh attestation verify provenance.json \
-            --repo kaito-tokyo/live-backgroundremoval-lite \
+            --repo kaito-tokyo/live-stream-segmenter \
             --bundle provenance.attestation.jsonl
 
           rm -rf site
           mkdir -p site
-          jq -r --arg base "https://kaito-tokyo.github.io/live-backgroundremoval-lite/" '
+          jq -r --arg base "https://kaito-tokyo.github.io/live-stream-segmenter/" '
             .subject[] |
             .name as $url |
             ($url | sub($base; "")) as $path |
@@ -48,7 +48,7 @@ jobs:
             "create-dirs"
           ' provenance.json | curl --retry 3 -fsS -K -
 
-          jq -r --arg base "https://kaito-tokyo.github.io/live-backgroundremoval-lite/" '
+          jq -r --arg base "https://kaito-tokyo.github.io/live-stream-segmenter/" '
             .subject[] |
             (.name | sub($base; "")) as $path |
             "\(.digest.sha384)  site/\($path)"

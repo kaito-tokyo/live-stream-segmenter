@@ -35,7 +35,7 @@ jobs:
 
       - name: Build
         shell: bash
-        working-directory: unsupported/arch/live-backgroundremoval-lite
+        working-directory: unsupported/arch/live-stream-segmenter
         run: sudo -u builder makepkg -s --noconfirm
 
   build-arch-git:
@@ -64,7 +64,7 @@ jobs:
 
       - name: Build
         shell: bash
-        working-directory: unsupported/arch/live-backgroundremoval-lite-git
+        working-directory: unsupported/arch/live-stream-segmenter-git
         run: sudo -u builder makepkg -s --noconfirm
 
   build-flatpak:
@@ -87,6 +87,6 @@ jobs:
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@10a3c29f0162516f0f68006be14c92f34bd4fa6c
         with:
-          bundle: com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite
-          manifest-path: unsupported/flatpak/com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.json
+          bundle: com.obsproject.Studio.Plugin.LiveStreamSegmenter
+          manifest-path: unsupported/flatpak/com.obsproject.Studio.Plugin.LiveStreamSegmenter.json
           cache-key: flatpak-builder-${{ github.sha }}
