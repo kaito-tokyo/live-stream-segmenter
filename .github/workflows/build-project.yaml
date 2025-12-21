@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ fromJson(steps.metadata.outputs.buildspec).name }}-bundle-macos-universal-${{ github.run_number }}
-          path: build_macos/rundir/RelWithDebInfo/*.plugin
+          path: build_macos/RelWithDebInfo/*.plugin
           if-no-files-found: error
 
       - name: Upload Raw Build Log
