@@ -22,27 +22,34 @@ sudo pacman -S --needed base-devel git
 
 ### Build and Install Steps
 
-1.  Clone the repository:
+1.  Install cpp-httplib:
     ```bash
-    git clone https://github.com/kaito-tokyo/live-stream-segmenter.git
-    cd live-stream-segmenter/unsupported/arch
+    git clone https://aur.archlinux.org/cpp-httplib.git
+    cd cpp-httplib
+    makepkg -si
+    cd ..
     ```
 
-2.  Navigate to the directory of the version you want to build.
+2.  Clone the live-plugins-hub repository:
 
-      * **For a specific release version (stable):**
-        ```bash
-        cd live-stream-segmenter
-        ```
-      * **For the latest development version:**
-        ```bash
-        cd live-stream-segmenter-git
-        ```
+    ```bash
+    git clone https://github.com/kaito-tokyo/live-plugins-hub.git
+    cd live-plugins-hub
+    ```
 
-3.  Use `makepkg` to build and install the package.
+3.  Navigate to the directory of the version you want to build.
+    - **For a specific release version (stable):**
+      ```bash
+      cd arch/live-stream-segmenter
+      ```
+    - **For the latest development version:**
+      ```bash
+      cd arch/live-stream-segmenter-git
+      ```
 
-      * The `-s` flag installs necessary dependencies from the official repositories.
-      * The `-i` flag installs the package after a successful build.
+4.  Use `makepkg` to build and install the package.
+    - The `-s` flag installs necessary dependencies from the official repositories.
+    - The `-i` flag installs the package after a successful build.
 
     ```bash
     makepkg -si
