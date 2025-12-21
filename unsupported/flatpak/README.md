@@ -40,20 +40,20 @@ If you wish to proceed with building the plugin from these local files, you will
 
 ### Build and Install Steps
 
-1.  Navigate to the `unsupported/flatpak` directory within this repository.
+1.  Clone the live-plugins-hub repository:
 
     ```bash
-    cd unsupported/flatpak
+    git clone https://github.com/kaito-tokyo/live-plugins-hub.git
+    cd live-plugins-hub/flatpak/live-stream-segmenter
     ```
 
 2.  Use `flatpak-builder` to build and install the plugin.
-
-      * The `--user` flag installs the plugin for the current user.
-      * The `--install` flag installs the plugin after a successful build.
-      * `build-dir` is a temporary directory for the build process.
+    - The `--user` flag installs the plugin for the current user.
+    - The `--install` flag installs the plugin after a successful build.
+    - `build-dir` is a temporary directory for the build process.
 
     ```bash
-    flatpak-builder --user --install --force-clean build-dir com.obsproject.Studio.Plugin.LiveStreamSegmenter.json
+    flatpak-builder --user --install --force-clean build-dir com.obsproject.Studio.Plugin.LiveBackgroundRemovalLite.json
     ```
 
 This will build the plugin and all its dependencies from source and install it as an extension for the OBS Studio Flatpak. Once complete, you can run OBS Studio, and the plugin will be available.
