@@ -37,18 +37,18 @@ namespace KaitoTokyo::Logger {
 class ILogger {
 public:
 	/**
-         * @brief Default constructor.
-         */
+	 * @brief Default constructor.
+	 */
 	ILogger() noexcept = default;
 
 	/**
-         * @brief Virtual destructor to ensure correct cleanup of derived classes.
-         */
+	 * @brief Virtual destructor to ensure correct cleanup of derived classes.
+	 */
 	virtual ~ILogger() noexcept = default;
 
 	/** @name Non-Copyable and Non-Movable
-         * @{
-         */
+	 * @{
+	 */
 	ILogger(const ILogger &) = delete;
 	ILogger &operator=(const ILogger &) = delete;
 	ILogger(ILogger &&) = delete;
@@ -128,8 +128,8 @@ public:
 	}
 
 	/**
-         * @brief Returns true if this logger is an invalid logger.
-         */
+	 * @brief Returns true if this logger is an invalid logger.
+	 */
 	virtual bool isInvalid() const noexcept { return false; }
 
 protected:
