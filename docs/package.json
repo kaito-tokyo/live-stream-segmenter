@@ -12,6 +12,7 @@
   "dependencies": {
     "@astrojs/sitemap": "^3.6.0",
     "astro": "^5.16.4",
+    "posthtml": "^0.16.7",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
