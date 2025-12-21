@@ -8,7 +8,7 @@
     },
     {
       "name": "boost-stacktrace",
-      "platform": "!windows"
+      "platform": "windows"
     },
     "boost-thread",
     {
