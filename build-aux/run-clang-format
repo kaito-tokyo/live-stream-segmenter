@@ -3,6 +3,7 @@ IFS=$'\n'
 include_files=(
   $(find src -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.hpp")
 )
+echo "${include_files[@]}"
 unset IFS
 
 if [[ $# -eq 0 ]]; then

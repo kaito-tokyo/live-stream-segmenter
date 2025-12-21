@@ -19,7 +19,7 @@
 1. Run `cmake --preset macos` only if CMake-related changes were made.
 2. Run:
    ```
-   cmake --build --preset macos && cmake --install build_macos --prefix ~/Library/Application\ Support/obs-studio/plugins
+   cmake --build --preset macos && cmake --install build_macos --config RelWithDebInfo --prefix ~/Library/Application\ Support/obs-studio/plugins
    ```
 
 ## Release Automation

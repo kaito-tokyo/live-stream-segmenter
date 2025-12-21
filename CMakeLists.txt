@@ -62,8 +62,6 @@ find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
 if(VCPKG_TARGET_TRIPLET)
   list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}")
 
-  find_package(Backward CONFIG)
-
   find_package(CURL CONFIG REQUIRED)
   find_package(fmt CONFIG REQUIRED)
   find_package(httplib CONFIG REQUIRED)
