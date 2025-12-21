@@ -118,7 +118,7 @@ public:
 	 */
 	void logException(const std::exception &e, std::string_view context) const noexcept
 	try {
-		const auto st = boost::stacktrace::stacktrace();
+		const auto st = boost::stacktrace::stacktrace(0, 32);
 		error("{}: {}\n--- Stack Trace ---\n{}", context, e.what(), boost::stacktrace::to_string(st));
 	} catch (const std::exception &log_ex) {
 		// Fallback if logging the stack trace itself fails
