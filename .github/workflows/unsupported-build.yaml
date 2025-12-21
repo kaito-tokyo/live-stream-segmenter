@@ -34,8 +34,10 @@ jobs:
           pacman -Syu --noconfirm git
 
       - name: Install cpp-httplib
-        working-directory: ${{ runner.temp }}
+        shell: bash
+        working-directory: ${{ runner.temp }}/cpp-httplib
         run: |
+          sudo chown -R builder:builder .
           sudo -u builder git clone https://aur.archlinux.org/cpp-httplib.git
           cd cpp-httplib
           sudo -u builder makepkg -si --noconfirm
@@ -70,8 +72,10 @@ jobs:
           pacman -Syu --noconfirm git
 
       - name: Install cpp-httplib
-        working-directory: ${{ runner.temp }}
+        shell: bash
+        working-directory: ${{ runner.temp }}/cpp-httplib
         run: |
+          sudo chown -R builder:builder .
           sudo -u builder git clone https://aur.archlinux.org/cpp-httplib.git
           cd cpp-httplib
           sudo -u builder makepkg -si --noconfirm
