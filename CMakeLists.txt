@@ -107,7 +107,11 @@ else()
   set(STACKTRACE_COMPONENT stacktrace_backtrace)
 endif()
 
-find_package(Boost CONFIG REQUIRED COMPONENTS thread ${STACKTRACE_COMPONENT})
+if(VCPKG_TARGET_TRIPLET)
+  find_package(Boost CONFIG REQUIRED COMPONENTS thread ${STACKTRACE_COMPONENT})
+else()
+  find_package(Boost REQUIRED COMPONENTS thread ${STACKTRACE_COMPONENT})
+endif()
 
 add_subdirectory(vendor/josuttis-jthread)
 

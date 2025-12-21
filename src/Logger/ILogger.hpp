@@ -95,6 +95,19 @@ public:
 	}
 
 	/**
+	 * @brief Logs an error message using fmt-style formatting.
+	 * Guaranteed not to throw an exception.
+	 *
+	 * @tparam Args Parameter pack for format arguments.
+	 * @param fmt The fmt-style format string.
+	 * @param args The arguments to format.
+	 */
+	template<typename... Args> void error(fmt::format_string<Args...> fmt, Args &&...args) const noexcept
+	{
+		formatAndLog(LogLevel::Error, fmt, std::forward<Args>(args)...);
+	}
+
+	/**
 	 * @brief Logs an exception with context and (if available) a stack trace.
 	 *
 	 * Guaranteed not to throw an exception. This method is safe to call
@@ -103,21 +116,6 @@ public:
 	 * @param e The exception that was caught.
 	 * @param context A string view describing the context where the exception occurred.
 	 */
-	template<typename... Args> void error(fmt::format_string<Args...> fmt, Args &&...args) const noexcept
-	{
-		formatAndLog(LogLevel::Error, fmt, std::forward<Args>(args)...);
-	}
-
-	/**
-         * @brief Logs an exception with context and (if available) a stack trace.
-         *
-         * Guaranteed not to throw an exception. This method is safe to call
-         * from within a catch block. If `HAVE_BOOST_STACKTRACE` is defined, it will
-         * print a full stack trace.
-         *
-         * @param e The exception that was caught.
-         * @param context A string view describing the context where the exception occurred.
-         */
 	void logException(const std::exception &e, std::string_view context) const noexcept
 	try {
 		const auto st = boost::stacktrace::stacktrace();
