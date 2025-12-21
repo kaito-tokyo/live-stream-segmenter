@@ -104,7 +104,7 @@ if(APPLE)
 elseif(MSVC)
   set(STACKTRACE_COMPONENT stacktrace_windbg)
 else()
-  set(STACKTRACE_COMPONENT stacktrace_backtrace)
+  set(STACKTRACE_COMPONENT stacktrace_addr2line)
 endif()
 
 if(VCPKG_TARGET_TRIPLET)

@@ -4,11 +4,11 @@
     {
       "name": "boost-stacktrace",
       "default-features": false,
-      "platform": "osx"
+      "platform": "!windows"
     },
     {
       "name": "boost-stacktrace",
-      "platform": "!osx"
+      "platform": "!windows"
     },
     "boost-thread",
     {
