@@ -1,0 +1,59 @@
+name: Build Docs
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  BUILD_PATH: docs
+
+jobs:
+  build:
+    name: Build Docs
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ${{ env.BUILD_PATH }}/package.json
+          cache: npm
+          cache-dependency-path: ${{ env.BUILD_PATH }}/package-lock.json
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: ${{ env.BUILD_PATH }}
+        run: npm ci
+
+      - name: Build with Astro
+        shell: bash
+        working-directory: ${{ env.BUILD_PATH }}
+        env:
+          SITE: ${{ steps.pages.outputs.origin }}
+          BASE: ${{ steps.pages.outputs.base_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx astro build --site "$SITE" --base "$BASE"
+          node scripts/add-sri.mjs dist
+          node scripts/add-csp-hashes.mjs dist
+          node scripts/generate-provenance.mjs dist provenance.json
+          mv provenance.json dist/provenance.json
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.BUILD_PATH }}/dist
