@@ -41,5 +41,3 @@ else()
     PRIVATE "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.map"
   )
 endif()
-
-set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

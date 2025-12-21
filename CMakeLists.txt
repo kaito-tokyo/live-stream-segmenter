@@ -110,6 +110,8 @@ add_compile_definitions(PLUGIN_NAME="${PLUGIN_NAME}" PLUGIN_VERSION="${PLUGIN_VE
 
 add_subdirectory(src)
 
+set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})
+
 if(BUILD_TESTING)
   enable_testing()
   add_subdirectory(vendor/googletest EXCLUDE_FROM_ALL)
