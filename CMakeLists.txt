@@ -1,26 +1,62 @@
-cmake_minimum_required(VERSION 3.28...3.30)
+cmake_minimum_required(VERSION 3.28)
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/common")
+include(init)
 
-project(${_name} VERSION ${_version})
+project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION} LANGUAGES C CXX)
+
+option(BUILD_TESTING "Build test cases" ON)
+option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
 if(MSVC)
-  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/windows")
+elseif(APPLE)
+  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos")
+else()
+  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/linux")
 endif()
-
-option(BUILD_TESTING "Build tests" OFF)
-option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
 include(compilerconfig)
 include(defaults)
 include(helpers)
 
-add_library(${CMAKE_PROJECT_NAME} MODULE)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+set(CMAKE_C_EXTENSIONS FALSE)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS FALSE)
+
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+if(MSVC)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
+if(MSVC)
+  list(
+    PREPEND
+    CMAKE_PREFIX_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-x64"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-x64"
+  )
+elseif(APPLE)
+  list(
+    PREPEND
+    CMAKE_PREFIX_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps/Frameworks"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-universal"
+  )
+endif()
 
 find_package(libobs REQUIRED)
 find_package(obs-frontend-api REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::obs-frontend-api)
-
 find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
 
 if(VCPKG_TARGET_TRIPLET)
@@ -65,154 +101,17 @@ else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
-add_library(jthread::jthread INTERFACE IMPORTED)
-target_include_directories(jthread::jthread INTERFACE ${CMAKE_SOURCE_DIR}/vendor/josuttis-jthread)
-
-add_library(Logger INTERFACE)
-target_include_directories(Logger INTERFACE ${CMAKE_SOURCE_DIR}/src/Logger)
-target_link_libraries(Logger INTERFACE fmt::fmt)
-target_sources(Logger PRIVATE src/Logger/ILogger.hpp)
-
-add_library(BridgeUtils INTERFACE)
-target_include_directories(BridgeUtils INTERFACE ${CMAKE_SOURCE_DIR}/src/BridgeUtils)
-target_link_libraries(BridgeUtils INTERFACE OBS::libobs Logger)
-target_compile_definitions(BridgeUtils INTERFACE HAVE_BACKWARD)
-target_sources(
-  BridgeUtils
-  PRIVATE
-    src/BridgeUtils/AsyncTextureReader.hpp
-    src/BridgeUtils/GsUnique.hpp
-    src/BridgeUtils/ObsLogger.hpp
-    src/BridgeUtils/ObsUnique.hpp
-)
-
-add_library(CurlHelper INTERFACE)
-target_include_directories(CurlHelper INTERFACE ${CMAKE_SOURCE_DIR}/src/CurlHelper)
-target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
-target_sources(
-  CurlHelper
-  PRIVATE src/CurlHelper/CurlUrlHandler.hpp src/CurlHelper/CurlUrlSearchParams.hpp src/CurlHelper/CurlVectorWriter.hpp
-)
-
-add_library(UpdateChecker INTERFACE)
-target_include_directories(UpdateChecker INTERFACE ${CMAKE_SOURCE_DIR}/src/UpdateChecker)
-target_link_libraries(UpdateChecker INTERFACE CurlHelper)
-target_sources(UpdateChecker PRIVATE src/UpdateChecker/UpdateChecker.hpp)
-
-# --- Plugin modules ---
-
-add_library(${CMAKE_PROJECT_NAME}_Auth INTERFACE)
-target_include_directories(${CMAKE_PROJECT_NAME}_Auth INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Auth)
-target_link_libraries(${CMAKE_PROJECT_NAME}_Auth INTERFACE httplib::httplib CurlHelper Logger)
-target_sources(
-  ${CMAKE_PROJECT_NAME}_Auth
-  PRIVATE
-    src/LiveStreamSegmenter/Auth/GoogleAuthManager.hpp
-    src/LiveStreamSegmenter/Auth/GoogleAuthResponse.hpp
-    src/LiveStreamSegmenter/Auth/GoogleOAuth2ClientCredentials.hpp
-    src/LiveStreamSegmenter/Auth/GoogleOAuth2Flow.hpp
-    src/LiveStreamSegmenter/Auth/GoogleTokenState.hpp
-)
-
-add_library(${CMAKE_PROJECT_NAME}_API INTERFACE)
-target_include_directories(${CMAKE_PROJECT_NAME}_API INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/API)
-target_link_libraries(${CMAKE_PROJECT_NAME}_API INTERFACE jthread::jthread CurlHelper Logger)
-target_sources(
-  ${CMAKE_PROJECT_NAME}_API
-  PRIVATE src/LiveStreamSegmenter/API/YouTubeApiClient.hpp src/LiveStreamSegmenter/API/YouTubeTypes.hpp
-)
-
-add_library(${CMAKE_PROJECT_NAME}_Store INTERFACE)
-target_include_directories(${CMAKE_PROJECT_NAME}_Store INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Store)
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Store
-  INTERFACE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Auth
-)
-target_sources(${CMAKE_PROJECT_NAME}_Store PRIVATE src/LiveStreamSegmenter/Store/AuthStore.hpp)
-
-add_library(
-  ${CMAKE_PROJECT_NAME}_UI
-  STATIC
-  src/LiveStreamSegmenter/UI/JsonDropArea.cpp
-  src/LiveStreamSegmenter/UI/SettingsDialog.cpp
-  src/LiveStreamSegmenter/UI/StreamSegmenterDock.cpp
-)
-target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/UI)
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_UI
-  PUBLIC
-    OBS::libobs
-    OBS::obs-frontend-api
-    Qt6::Core
-    Qt6::Widgets
-    BridgeUtils
-    Logger
-    ${CMAKE_PROJECT_NAME}_Auth
-    ${CMAKE_PROJECT_NAME}_API
-    ${CMAKE_PROJECT_NAME}_Store
-)
-target_sources(
-  ${CMAKE_PROJECT_NAME}_UI
-  PRIVATE
-    src/LiveStreamSegmenter/UI/JsonDropArea.hpp
-    src/LiveStreamSegmenter/UI/StreamSegmenterDock.hpp
-    src/LiveStreamSegmenter/UI/SettingsDialog.hpp
-)
-
-add_library(${CMAKE_PROJECT_NAME}_Controller INTERFACE)
-target_include_directories(
-  ${CMAKE_PROJECT_NAME}_Controller
-  INTERFACE ${CMAKE_SOURCE_DIR}/src/LiveStreamSegmenter/Controller
-)
-target_link_libraries(
-  ${CMAKE_PROJECT_NAME}_Controller
-  INTERFACE ${CMAKE_PROJECT_NAME}_Auth ${CMAKE_PROJECT_NAME}_Store ${CMAKE_PROJECT_NAME}_UI Logger
-)
-target_sources(${CMAKE_PROJECT_NAME}_Controller PRIVATE src/LiveStreamSegmenter/Controller/MainPluginContext.hpp)
+add_subdirectory(vendor/josuttis-jthread)
 
 include(CheckIncludeFileCXX)
 check_include_file_cxx(immintrin.h HAVE_IMMINTRIN_H)
 
-foreach(TARGET ${CMAKE_PROJECT_NAME}_UI ${CMAKE_PROJECT_NAME})
-  target_compile_options(
-    ${TARGET}
-    PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
-  )
-  target_compile_definitions(
-    ${TARGET}
-    PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}"
-  )
-  set_target_properties(
-    ${TARGET}
-    PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON POSITION_INDEPENDENT_CODE ON
-  )
-  if(HAVE_IMMINTRIN_H AND UNIX AND NOT APPLE)
-    target_compile_options(${TARGET} PRIVATE -include immintrin.h)
-  endif()
-endforeach()
+add_compile_definitions(PLUGIN_NAME="${PLUGIN_NAME}" PLUGIN_VERSION="${PLUGIN_VERSION}")
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
-
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OBS::libobs OBS::obs-frontend-api ${CMAKE_PROJECT_NAME}_Controller)
-
-if(APPLE)
-  target_link_options(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE "-Wl,-exported_symbols_list,${CMAKE_SOURCE_DIR}/cmake/macos/exported_symbols_list.txt"
-  )
-elseif(MSVC)
-  target_sources(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/cmake/windows/export_symbols.def")
-else()
-  target_link_options(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE "-Wl,--version-script,${CMAKE_SOURCE_DIR}/cmake/linux/version_script.map"
-  )
-endif()
-
-set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
+add_subdirectory(src)
 
 if(BUILD_TESTING)
   enable_testing()
-  add_subdirectory(vendor/googletest)
+  add_subdirectory(vendor/googletest EXCLUDE_FROM_ALL)
   add_subdirectory(tests)
 endif()
