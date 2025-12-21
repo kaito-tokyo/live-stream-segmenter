@@ -110,7 +110,6 @@ add_compile_definitions(PLUGIN_NAME="${PLUGIN_NAME}" PLUGIN_VERSION="${PLUGIN_VE
 
 add_subdirectory(src)
 
-
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
@@ -150,7 +149,6 @@ else()
 endif()
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})
-
 
 if(BUILD_TESTING)
   enable_testing()
