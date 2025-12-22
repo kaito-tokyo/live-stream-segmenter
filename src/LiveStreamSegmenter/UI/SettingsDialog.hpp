@@ -129,11 +129,11 @@ private:
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 
-	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{nullptr};
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
 	Async::Task<void> currentAuthFlowTask_{nullptr};
 	Async::TaskStorage<> currentAuthFlowTaskStorage_;
 	jthread_ns::jthread currentAuthTaskWorkerThread_;
-	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{nullptr};
+	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
