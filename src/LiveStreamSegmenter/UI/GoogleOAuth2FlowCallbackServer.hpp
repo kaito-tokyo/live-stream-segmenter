@@ -35,6 +35,8 @@
 #include <QUrl>
 #include <QUrlQuery>
 
+#include <fmt/format.h>
+
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 class GoogleOAuth2FlowCallbackServer : public QObject {
