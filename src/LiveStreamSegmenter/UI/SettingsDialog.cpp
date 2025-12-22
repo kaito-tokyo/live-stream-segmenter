@@ -451,6 +451,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 	co_await ResumeOnMainThread{};
 
+	if (!self) co_return;
+
 	self->googleOAuth2Flow_.reset();
 	self->googleOAuth2FlowUserAgent_.reset();
 
@@ -459,14 +461,10 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 	if (result) {
 		logger->info("Authorization successful!");
 
-		if (!self) co_return;
-
 		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 	} else {
-		if (!self) co_return;
-
 		self->statusLabel_->setText(tr("Authorization Failed"));
 		QString msg = tr("Authorization failed.");
 		if (!errorMessage.isEmpty()) {
