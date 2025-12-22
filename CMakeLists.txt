@@ -84,9 +84,6 @@ elseif(USE_PKGCONFIG)
   target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
   target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
 
-  # --- httplib ---
-  find_package(httplib CONFIG REQUIRED)
-
   # --- nlohmann_json ---
   pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
   add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
