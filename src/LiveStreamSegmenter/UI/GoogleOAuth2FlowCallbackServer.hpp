@@ -14,11 +14,13 @@
 
 #pragma once
 
-#ifndef Q_MOC_RUN
-#include <coroutine>
+#include <atomic>
 #include <cstdint>
 #include <optional>
 #include <string>
+
+#ifndef Q_MOC_RUN
+#include <coroutine>
 #endif
 
 #include <QByteArray>
