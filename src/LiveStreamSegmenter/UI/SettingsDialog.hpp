@@ -134,8 +134,6 @@ private:
 	Async::TaskStorage<> currentAuthFlowTaskStorage_;
 	jthread_ns::jthread currentAuthTaskWorkerThread_;
 	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{nullptr};
-
-	std::optional<GoogleAuth::GoogleAuthResponse> googleOAuth2TokenResponse_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
