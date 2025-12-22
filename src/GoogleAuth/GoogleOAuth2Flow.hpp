@@ -10,7 +10,6 @@
 #pragma once
 
 #include <coroutine>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
