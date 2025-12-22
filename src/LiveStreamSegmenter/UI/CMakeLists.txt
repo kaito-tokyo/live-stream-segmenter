@@ -18,7 +18,7 @@ target_sources(
   ${CMAKE_PROJECT_NAME}_UI
   PRIVATE
     fmt_qstring_formatter.hpp
-    GoogleOAuth2FlowCallback.hpp
+    GoogleOAuth2FlowCallbackServer.hpp
     JsonDropArea.hpp
     SettingsDialog.hpp
     StreamSegmenterDock.hpp

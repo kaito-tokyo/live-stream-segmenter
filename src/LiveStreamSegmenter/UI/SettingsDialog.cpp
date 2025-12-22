@@ -35,7 +35,6 @@
 #include <TaskStorage.hpp>
 
 #include "fmt_qstring_formatter.hpp"
-#include "GoogleOAuth2FlowCallback.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -62,23 +61,6 @@ struct ResumeOnMainThread {
 	}
 	void await_resume() {}
 };
-
-struct WaitForAuthCode {
-	uint16_t port;
-	std::string result_code;
-
-	bool await_ready() { return false; }
-
-	void await_suspend(std::coroutine_handle<> h) { new AuthCallbackReceiver(port, h, result_code); }
-
-	std::string await_resume() { return result_code; }
-};
-
-inline Async::Task<std::string> QtHttpCodeProvider(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &)
-{
-	std::string code = co_await WaitForAuthCode{8080};
-	co_return code;
-}
 
 } // namespace
 
@@ -143,9 +125,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 }
 
-SettingsDialog::~SettingsDialog()
-{
-}
+SettingsDialog::~SettingsDialog() {}
 
 void SettingsDialog::accept()
 {
@@ -176,6 +156,7 @@ void SettingsDialog::onAuthButtonClicked()
 	statusLabel_->setText(tr("Waiting for browser..."));
 
 	currentAuthFlowTask_ = runAuthFlow(std::allocator_arg, currentAuthFlowTaskStorage_, this);
+	currentAuthFlowTask_.start();
 }
 
 void SettingsDialog::onClearAuthButtonClicked()
@@ -208,6 +189,11 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 void SettingsDialog::onApply()
 {
 	storeSettings();
+	if (authStore_->getGoogleTokenState().isAuthorized()) {
+		statusLabel_->setText(tr("Authorized (Saved)"));
+	} else {
+		statusLabel_->setText(tr("Unauthorized"));
+	}
 	applyButton_->setEnabled(false);
 }
 
@@ -402,20 +388,24 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 	auto logger = self->logger_;
 
+	logger->info("Starting OAuth2 flow...");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly",
-		logger);
+		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly", logger);
 
 	auto flow = self->googleOAuth2Flow_;
-	std::string redirectUri = "http://127.0.0.1:8080/callback";
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
 
 	try {
+		self->currentCallbackServer_ = std::make_shared<GoogleOAuth2FlowCallbackServer>();
+
+		uint16_t port = self->currentCallbackServer_->serverPort();
+		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
+		logger->error("Opening authorization URL: {}", authUrl);
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
@@ -430,8 +420,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 			msgBox.exec();
 		}
 
-		Async::TaskStorage<> codeProviderStorage;
-		std::string code = co_await QtHttpCodeProvider(std::allocator_arg, codeProviderStorage, authUrl);
+		std::string code = co_await self->currentCallbackServer_->waitForCode();
 
 		if (code.empty()) {
 			throw std::runtime_error("Authorization code was empty.");
@@ -449,14 +438,18 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 	if (!self)
 		co_return;
 
+	self->currentCallbackServer_.reset();
+	self->currentAuthTaskWorkerThread_ = jthread_ns::jthread();
 	self->googleOAuth2Flow_.reset();
 
-	self->authButton_->setEnabled(true);
-
-	if (result) {
+	if (result.has_value()) {
 		logger->info("Authorization successful!");
-		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
+
+		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
+		self->authStore_->setGoogleTokenState(tokenState);
+		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
+		self->markDirty();
 	} else {
 		self->statusLabel_->setText(tr("Authorization Failed"));
 		QString msg = tr("Authorization failed.");

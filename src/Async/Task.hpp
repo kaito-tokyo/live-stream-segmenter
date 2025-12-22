@@ -130,6 +130,12 @@ template<typename T> struct [[nodiscard]] Task {
 
 	T await_resume() { return handle_.promise().extract_value(); }
 
+	void start()
+	{
+		if (handle_ && !handle_.done())
+			handle_.resume();
+	}
+
 private:
 	std::coroutine_handle<promise_type> handle_;
 };

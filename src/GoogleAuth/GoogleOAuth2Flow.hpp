@@ -48,8 +48,13 @@ public:
 	GoogleOAuth2Flow(GoogleOAuth2Flow &&) = delete;
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
-	std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri) const
+	std::string getAuthorizationUrl(const std::string &redirectUri) const
 	{
+
+		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
+		if (!curl)
+			throw std::runtime_error("InitError(GoogleOAuth2Flow::startOAuth2Flow)");
+
 		CurlHelper::CurlUrlSearchParams qp(curl.get());
 		qp.append("client_id", clientCredentials_.client_id);
 		qp.append("redirect_uri", redirectUri);
@@ -61,8 +66,7 @@ public:
 		return fmt::format("https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
 	}
 
-	std::optional<GoogleAuthResponse> GoogleOAuth2Flow::exchangeCodeForToken(const std::string &code,
-										 const std::string &redirectUri)
+	std::optional<GoogleAuthResponse> exchangeCodeForToken(const std::string &code, const std::string &redirectUri)
 	{
 		try {
 			logger_->info("Received code. Exchanging for token...");
@@ -85,7 +89,7 @@ private:
 
 		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl)
-			throw std::runtime_error("InitError(exchangeCode)");
+			throw std::runtime_error("InitError(GoogleOAuth2Flow::exchangeCode)");
 
 		CurlVectorWriterBuffer readBuffer;
 		CurlUrlSearchParams params(curl.get());
@@ -109,13 +113,13 @@ private:
 		const CURLcode res = curl_easy_perform(curl.get());
 
 		if (res != CURLE_OK) {
-			throw std::runtime_error(
-				fmt::format("NetworkError(exchangeCode): {}", curl_easy_strerror(res)));
+			throw std::runtime_error(fmt::format("NetworkError(GoogleOAuth2Flow::exchangeCode): {}",
+							     curl_easy_strerror(res)));
 		}
 
 		const json j = json::parse(readBuffer.begin(), readBuffer.end());
 		if (j.contains("error")) {
-			throw std::runtime_error(fmt::format("APIError(exchangeCode): {}", j.dump()));
+			throw std::runtime_error(fmt::format("APIError(GoogleOAuth2Flow::exchangeCode): {}", j.dump()));
 		}
 
 		return j.get<GoogleAuthResponse>();
