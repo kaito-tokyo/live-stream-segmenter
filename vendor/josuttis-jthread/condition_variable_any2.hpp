@@ -1,3 +1,8 @@
+// [MODIFIED]
+// This file has been modified from the original version.
+// Change: Namespace changed from 'std' to 'josuttis' to avoid conflicts with libc++.
+// Date: 2025-12-22
+
 // extended standard condition_variable to deal with
 // interrupt tokens and jthread
 // -----------------------------------------------------
@@ -11,13 +16,13 @@
 #include <condition_variable>
 #include <iostream>
 
-namespace std {
+namespace josuttis {
 
 
-//***************************************** 
+//*****************************************
 //* class condition_variable_any2
-//* - joining std::thread with interrupt support 
-//***************************************** 
+//* - joining std::thread with interrupt support
+//*****************************************
 class condition_variable_any2
 {
     template<typename Lockable>
@@ -33,7 +38,7 @@ class condition_variable_any2
         unlock_guard(unlock_guard&&)=delete;
         unlock_guard& operator=(unlock_guard const&)=delete;
         unlock_guard& operator=(unlock_guard&&)=delete;
-        
+
     private:
         Lockable& mtx;
     };
@@ -51,11 +56,11 @@ class condition_variable_any2
             cv.notify_one();
         }
     };
-    
+
   public:
-    //***************************************** 
+    //*****************************************
     //* standardized API for condition_variable_any:
-    //***************************************** 
+    //*****************************************
 
     condition_variable_any2()
         : internals{std::make_shared<cv_internals>()} {
@@ -145,9 +150,9 @@ class condition_variable_any2
         return wait_until(lock, std::chrono::steady_clock::now() + rel_time, std::move(pred));
     }
 
-    //***************************************** 
+    //*****************************************
     //* supplementary API:
-    //***************************************** 
+    //*****************************************
 
     // x.6.2.1 dealing with interrupts:
 
@@ -176,14 +181,14 @@ class condition_variable_any2
                     const chrono::duration<Rep, Period>& rel_time,
                     Predicate pred);
 
-  //***************************************** 
+  //*****************************************
   //* implementation:
-  //***************************************** 
+  //*****************************************
 
   private:
     //*** API for the starting thread:
     std::shared_ptr<cv_internals> internals;
-     // NOTE (as Howard Hinnant pointed out): 
+     // NOTE (as Howard Hinnant pointed out):
      // std::~condition_variable_any() says:
      //   Requires: There shall be no thread blocked on *this. [Note: That is, all threads shall have been notified;
      //             they may subsequently block on the lock specified in the wait.
@@ -197,7 +202,7 @@ class condition_variable_any2
      // To fix this, there must be shared ownership of the data member mut between the condition_variable_any object
      // and the member functions wait (wait_for, etc.).
      // (libc++'s implementation gets this right: https://github.com/llvm-mirror/libcxx/blob/master/include/condition_variable
-     //  It holds the data member mutex with a shared_ptr<mutex> instead of mutex directly, and the wait functions create 
+     //  It holds the data member mutex with a shared_ptr<mutex> instead of mutex directly, and the wait functions create
      //  a local shared_ptr<mutex> copy on entry so that if *this destructs out from under the thread executing the wait function,
      //  the mutex stays alive until the wait function returns.)
 };
@@ -208,7 +213,7 @@ class condition_variable_any2
 //* implementation of class condition_variable_any2
 //*****************************************************************************
 
-// wait_until(): wait with interrupt handling 
+// wait_until(): wait with interrupt handling
 // - returns on interrupt
 // return value:
 // - true if pred() yields true
@@ -237,7 +242,7 @@ inline bool condition_variable_any2::wait(Lockable& lock,
     return true;
 }
 
-// wait_until(): timed wait with interrupt handling 
+// wait_until(): timed wait with interrupt handling
 // - returns on interrupt
 // return:
 // - true if pred() yields true
@@ -275,7 +280,7 @@ inline bool condition_variable_any2::wait_until(Lockable& lock,
     return true;
 }
 
-// wait_for(): timed wait with interrupt handling 
+// wait_for(): timed wait with interrupt handling
 // - returns on interrupt
 // return:
 // - true if pred() yields true
@@ -294,6 +299,6 @@ inline bool condition_variable_any2::wait_for(Lockable& lock,
 }
 
 
-} // std
+} // josuttis
 
 #endif // CONDITION_VARIABLE2_HPP

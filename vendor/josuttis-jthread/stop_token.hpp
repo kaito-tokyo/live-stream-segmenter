@@ -1,3 +1,8 @@
+// [MODIFIED]
+// This file has been modified from the original version.
+// Change: Namespace changed from 'std' to 'josuttis' to avoid conflicts with libc++.
+// Date: 2025-12-22
+
 #pragma once
 // <stop_token> header
 
@@ -13,7 +18,7 @@
 #include <immintrin.h>
 #endif
 
-namespace std {
+namespace josuttis {
 inline void __spin_yield() noexcept
 {
 	// TODO: Platform-specific code here
@@ -537,4 +542,4 @@ private:
 
 template<typename _Callback> stop_callback(stop_token, _Callback) -> stop_callback<_Callback>;
 
-} // namespace std
+} // namespace josuttis

@@ -30,14 +30,14 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-struct GoogleOAuth2UserAgent {
+struct GoogleOAuth2FlowUserAgent {
     std::function<void(const std::string &url)> onOpenUrl;
 };
 
 class GoogleOAuth2Flow {
 public:
     GoogleOAuth2Flow(GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
-                     std::shared_ptr<GoogleOAuth2UserAgent> userAgent,
+                     std::shared_ptr<GoogleOAuth2FlowUserAgent> userAgent,
                      std::shared_ptr<const Logger::ILogger> logger)
         : clientCredentials_(std::move(clientCredentials)),
           scopes_(std::move(scopes)),
@@ -53,8 +53,8 @@ public:
     GoogleOAuth2Flow(GoogleOAuth2Flow &&) = delete;
     GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
-    template <typename CodeProvider>
-    Task<std::optional<GoogleAuthResponse>> authorize(std::string redirectUri, CodeProvider&& codeProvider)
+    template <typename CodeProvider, typename ContextSwitcher>
+    Task<std::optional<GoogleAuthResponse>> authorize(std::string redirectUri, CodeProvider&& codeProvider, ContextSwitcher&& contextSwitcher)
     {
         // 1. Initialize Curl (Check)
         const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
@@ -86,6 +86,8 @@ public:
             logger_->error("Authorization code was empty.");
             co_return std::nullopt;
         }
+
+	co_await contextSwitcher;
 
         logger_->info("Received code. Exchanging for token...");
 
@@ -146,7 +148,7 @@ private:
 
     const GoogleOAuth2ClientCredentials clientCredentials_;
     const std::string scopes_;
-    std::shared_ptr<GoogleOAuth2UserAgent> userAgent_;
+    std::shared_ptr<GoogleOAuth2FlowUserAgent> userAgent_;
     std::shared_ptr<const Logger::ILogger> logger_;
 };
 
