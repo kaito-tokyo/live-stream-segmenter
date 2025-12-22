@@ -23,12 +23,15 @@
 #include <QDebug>
 #include <QHostAddress>
 #include <QObject>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QString>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrl>
 #include <QUrlQuery>
+
+namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 class GoogleOAuth2FlowCallbackServer : public QObject {
 	Q_OBJECT
@@ -50,23 +53,45 @@ public:
 
 	std::uint16_t serverPort() const { return server_->serverPort(); }
 
+	struct CodeAwaiterState {
+		std::string result;
+		std::atomic<bool> isAlive{true};
+		std::atomic<bool> resumed{false};
+	};
+
 	struct CodeAwaiter {
 		GoogleOAuth2FlowCallbackServer *server;
 		std::string result;
 		QMetaObject::Connection conn;
 
+		std::shared_ptr<CodeAwaiterState> state;
+
 		bool await_ready() { return false; }
 
 		void await_suspend(std::coroutine_handle<> h)
 		{
-			conn = QObject::connect(server->server_, &QTcpServer::newConnection, server, [this, h]() {
-				QTcpSocket *socket = server->server_->nextPendingConnection();
-				QObject::connect(socket, &QTcpSocket::readyRead, server,
-						 [this, socket, h]() { server->handleRequest(socket, result, h); });
-			});
+			auto statePtr = state;
+			QPointer<GoogleOAuth2FlowCallbackServer> safeServer = server;
+
+			conn = QObject::connect(
+				server->server_, &QTcpServer::newConnection, safeServer, [safeServer, h, statePtr]() {
+					if (!safeServer)
+						return;
+
+					QTcpSocket *socket = safeServer->server_->nextPendingConnection();
+
+					QObject::connect(socket, &QTcpSocket::readyRead, safeServer,
+							 [safeServer, socket, h, statePtr]() {
+								 if (!statePtr->isAlive)
+									 return;
+								 if (safeServer) {
+									 safeServer->handleRequest(socket, statePtr, h);
+								 }
+							 });
+				});
 		}
 
-		std::string await_resume() { return result; }
+		std::string await_resume() { return state->result; }
 
 		~CodeAwaiter()
 		{
@@ -76,12 +101,12 @@ public:
 		}
 	};
 
-	CodeAwaiter waitForCode() { return CodeAwaiter{this, ""}; }
+	CodeAwaiter waitForCode() { return CodeAwaiter{this}; }
 
 private:
 	QTcpServer *server_ = nullptr;
 
-	void handleRequest(QTcpSocket *socket, std::string &resultOut, std::coroutine_handle<> h)
+	void handleRequest(QTcpSocket *socket, std::shared_ptr<CodeAwaiterState> statePtr, std::coroutine_handle<> h)
 	{
 		QByteArray data = socket->readAll();
 		QString request = QString::fromUtf8(data);
@@ -98,17 +123,19 @@ private:
 			QUrlQuery query(url);
 
 			if (query.hasQueryItem("code")) {
-				resultOut = query.queryItemValue("code").toStdString();
+				statePtr->result = query.queryItemValue("code").toStdString();
 				success = true;
 			}
 		}
 
 		sendResponse(socket, success);
 
-		connect(socket, &QTcpSocket::disconnected, [socket, h]() {
+		connect(socket, &QTcpSocket::disconnected, socket, [socket, h, statePtr]() {
 			socket->deleteLater();
-			if (!h.done())
+
+			if (!statePtr->resumed.exchange(true)) {
 				h.resume();
+			}
 		});
 
 		socket->disconnectFromHost();
@@ -132,3 +159,5 @@ private:
 		socket->flush();
 	}
 };
+
+} // namespace KaitoTokyo::LiveStreamSegmenter::UI

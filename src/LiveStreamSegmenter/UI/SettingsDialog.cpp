@@ -422,6 +422,9 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 		std::string code = co_await self->currentCallbackServer_->waitForCode();
 
+		if (!self)
+			co_return;
+
 		if (code.empty()) {
 			throw std::runtime_error("Authorization code was empty.");
 		}
