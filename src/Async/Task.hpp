@@ -60,10 +60,10 @@ template<typename T> struct [[nodiscard]] Task {
 		std::suspend_always initial_suspend() { return {}; }
 		auto final_suspend() noexcept { return SymmetricTransfer<promise_type>{}; }
 
-#ifdef NDEBUG
-		template<std::size_t N, typename... Args>
-		static void *operator new(std::size_t size, std::allocator_arg_t, TaskStorage<N> &alloc, Args &&...)
+		template<typename Alloc, typename... Args>
+		static void *operator new(std::size_t size, std::allocator_arg_t, Alloc &alloc, Args &&...)
 		{
+#ifdef NDEBUG
 			std::size_t total_size = size + sizeof(TaskStoragePtr);
 
 			auto ptr = alloc.allocate(total_size);
@@ -77,26 +77,26 @@ template<typename T> struct [[nodiscard]] Task {
 			new (raw_ptr) TaskStoragePtr(std::move(ptr));
 
 			return static_cast<char *>(raw_ptr) + sizeof(TaskStoragePtr);
-		}
-
-		template<typename Object, std::size_t N, typename... Args>
-		static void *operator new(std::size_t size, Object &, std::allocator_arg_t, TaskStorage<N> &alloc,
-					  Args &&...)
-		{
-			return operator new(size, std::allocator_arg, alloc);
+#else
+			(void)alloc;
+			return ::operator new(size);
+#endif
 		}
 
 		static void *operator new(std::size_t) = delete;
 
 		static void operator delete(void *ptr, std::size_t)
 		{
+#ifdef NDEBUG
 			char *raw_ptr = static_cast<char *>(ptr) - sizeof(TaskStoragePtr);
 
 			auto *stored_ptr = reinterpret_cast<TaskStoragePtr *>(raw_ptr);
 
 			stored_ptr->~TaskStoragePtr();
-		}
+#else
+			::operator delete(ptr);
 #endif
+		}
 	};
 
 	explicit Task(std::coroutine_handle<promise_type> h) : handle_(h) {}

@@ -22,6 +22,7 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPointer>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -80,7 +81,7 @@ private:
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	Async::Task<void> runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &);
+	static Async::Task<void> runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &, QPointer<SettingsDialog> self);
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;

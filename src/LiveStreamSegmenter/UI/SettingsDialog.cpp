@@ -182,7 +182,7 @@ void SettingsDialog::onAuthButtonClicked()
 	authButton_->setEnabled(false);
 	statusLabel_->setText(tr("Waiting for browser..."));
 
-	currentAuthFlowTask_ = runAuthFlow(std::allocator_arg, currentAuthFlowTaskStorage_);
+	currentAuthFlowTask_ = runAuthFlow(std::allocator_arg, currentAuthFlowTaskStorage_, this);
 }
 
 void SettingsDialog::onClearAuthButtonClicked()
@@ -401,22 +401,25 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	return credentials;
 }
 
-Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &)
+Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &, QPointer<SettingsDialog> self)
 {
-	Auth::GoogleOAuth2ClientCredentials clientCredentials;
-	clientCredentials.client_id = clientIdDisplay_->text().toStdString();
-	clientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
+	if (!self) co_return;
 
-	googleOAuth2FlowUserAgent_ = std::make_shared<Auth::GoogleOAuth2FlowUserAgent>();
-	googleOAuth2FlowUserAgent_->onOpenUrl = [this](const std::string &url) {
+	auto logger = self->logger_;
+
+	Auth::GoogleOAuth2ClientCredentials clientCredentials;
+	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
+	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
+	self->googleOAuth2FlowUserAgent_ = std::make_shared<Auth::GoogleOAuth2FlowUserAgent>();
+	self->googleOAuth2FlowUserAgent_->onOpenUrl = [self](const std::string &url) {
 		QString qUrlStr = QString::fromStdString(url);
 
 		QMetaObject::invokeMethod(
-			this,
-			[this, qUrlStr]() {
+			self,
+			[self, qUrlStr]() {
 				bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
 				if (!success) {
-					QMessageBox msgBox(this);
+					QMessageBox msgBox(self);
 					msgBox.setIcon(QMessageBox::Warning);
 					msgBox.setWindowTitle(tr("Warning"));
 					msgBox.setText(tr("Cannot open the authorization URL in the default browser."));
@@ -430,43 +433,46 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 			Qt::QueuedConnection);
 	};
 
-	googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
+	self->googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
 								     "https://www.googleapis.com/auth/youtube.readonly",
-								     googleOAuth2FlowUserAgent_, logger_);
+								     self->googleOAuth2FlowUserAgent_, self->logger_);
 
 	std::optional<Auth::GoogleAuthResponse> result = std::nullopt;
 	QString errorMessage;
 
 	try {
 		Async::TaskStorage<> authorizeTaskStorage;
-		result = co_await googleOAuth2Flow_->authorize(std::allocator_arg, authorizeTaskStorage, "http://127.0.0.1:8080/callback", QtHttpCodeProvider,
-							       ResumeOnJThread{currentAuthTaskWorkerThread_});
+		result = co_await self->googleOAuth2Flow_->authorize(std::allocator_arg, authorizeTaskStorage, "http://127.0.0.1:8080/callback", QtHttpCodeProvider,
+								       ResumeOnJThread{self->currentAuthTaskWorkerThread_});
 	} catch (const std::exception &e) {
 		errorMessage = QString::fromStdString(e.what());
-		logger_->logException(e, "OAuth flow failed");
+		logger->logException(e, "OAuth flow failed");
 	}
 
 	co_await ResumeOnMainThread{};
 
-	googleOAuth2Flow_.reset();
-	googleOAuth2FlowUserAgent_.reset();
+	self->googleOAuth2Flow_.reset();
+	self->googleOAuth2FlowUserAgent_.reset();
 
-	authButton_->setEnabled(true);
+	self->authButton_->setEnabled(true);
 
 	if (result) {
-		logger_->info("Authorization successful!");
-		statusLabel_->setText(tr("Authorized (Not Saved)"));
+		logger->info("Authorization successful!");
 
-		QMessageBox::information(this, tr("Success"), tr("Authorization successful!"));
+		if (!self) co_return;
+
+		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
+		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 	} else {
-		statusLabel_->setText(tr("Authorization Failed"));
+		if (!self) co_return;
 
+		self->statusLabel_->setText(tr("Authorization Failed"));
 		QString msg = tr("Authorization failed.");
 		if (!errorMessage.isEmpty()) {
 			msg += "\n" + errorMessage;
 		}
-		QMessageBox::critical(this, tr("Error"), msg);
+		QMessageBox::critical(self, tr("Error"), msg);
 	}
 }
 
