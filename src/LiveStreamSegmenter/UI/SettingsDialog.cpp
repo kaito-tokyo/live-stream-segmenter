@@ -130,7 +130,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 }
 
-SettingsDialog::~SettingsDialog() {
+SettingsDialog::~SettingsDialog()
+{
 	currentAuthTaskWorkerThread_ = {};
 }
 

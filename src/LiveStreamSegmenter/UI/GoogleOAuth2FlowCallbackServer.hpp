@@ -46,7 +46,8 @@ public:
 	{
 		server_ = new QTcpServer(this);
 		if (!server_->listen(QHostAddress::LocalHost, 0)) {
-			throw std::runtime_error(fmt::format("InitError(GoogleOAuth2FlowCallbackServer):{}", server_->errorString().toStdString()));
+			throw std::runtime_error(fmt::format("InitError(GoogleOAuth2FlowCallbackServer):{}",
+							     server_->errorString().toStdString()));
 		}
 	}
 
@@ -69,7 +70,11 @@ public:
 		GoogleOAuth2FlowCallbackServer *server;
 		QMetaObject::Connection conn;
 
-		explicit CodeAwaiter(GoogleOAuth2FlowCallbackServer *s) : server(s), state(std::make_shared<CodeAwaiterState>()) {}
+		explicit CodeAwaiter(GoogleOAuth2FlowCallbackServer *s)
+			: server(s),
+			  state(std::make_shared<CodeAwaiterState>())
+		{
+		}
 
 		~CodeAwaiter()
 		{
