@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter
+ * KaitoTokyo GoogleAuth Library
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * This software is licensed under the MIT License.
@@ -13,7 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::GoogleAuth {
 
 struct GoogleOAuth2ClientCredentials {
 	std::string ver = "1.0";
@@ -23,4 +23,4 @@ struct GoogleOAuth2ClientCredentials {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredentials, ver, client_id, client_secret)
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::GoogleAuth

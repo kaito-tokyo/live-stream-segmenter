@@ -7,13 +7,22 @@ target_link_libraries(
     OBS::obs-frontend-api
     Qt6::Core
     Qt6::Widgets
+    Qt6::Network
     BridgeUtils
     Logger
-    ${CMAKE_PROJECT_NAME}_Auth
+    GoogleAuth
     ${CMAKE_PROJECT_NAME}_API
     ${CMAKE_PROJECT_NAME}_Store
 )
-target_sources(${CMAKE_PROJECT_NAME}_UI PRIVATE JsonDropArea.hpp StreamSegmenterDock.hpp SettingsDialog.hpp)
+target_sources(
+  ${CMAKE_PROJECT_NAME}_UI
+  PRIVATE
+    fmt_qstring_formatter.hpp
+    GoogleOAuth2FlowCallbackServer.hpp
+    JsonDropArea.hpp
+    SettingsDialog.hpp
+    StreamSegmenterDock.hpp
+)
 
 target_compile_options(
   ${CMAKE_PROJECT_NAME}_UI

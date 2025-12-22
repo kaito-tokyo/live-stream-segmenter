@@ -8,11 +8,13 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
 #pragma once
+
+#include <memory>
 
 #include <QComboBox>
 #include <QDialog>
@@ -20,6 +22,7 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPointer>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -30,9 +33,22 @@
 #include <AuthStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
 
+#include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"
 
+#ifdef __APPLE__
+#include <jthread.hpp>
+#else
+#include <thread>
+#endif
+
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
+
+#ifdef __APPLE__
+namespace jthread_ns = josuttis;
+#else
+namespace jthread_ns = std;
+#endif
 
 struct SettingsDialogGoogleOAuth2ClientCredentials {
 	QString client_id;
@@ -65,6 +81,9 @@ private:
 
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
+
+	static Async::Task<void> runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &,
+					     QPointer<SettingsDialog> self);
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -110,9 +129,11 @@ private:
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 
-	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
-	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;
-	std::optional<Auth::GoogleAuthResponse> googleOAuth2TokenResponse_;
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
+	Async::Task<void> currentAuthFlowTask_{nullptr};
+	Async::TaskStorage<> currentAuthFlowTaskStorage_;
+	jthread_ns::jthread currentAuthTaskWorkerThread_;
+	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI

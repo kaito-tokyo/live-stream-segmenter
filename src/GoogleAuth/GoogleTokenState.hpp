@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter
+ * KaitoTokyo GoogleAuth Library
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * This software is licensed under the MIT License.
@@ -18,7 +18,7 @@
 
 #include "GoogleAuthResponse.hpp"
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::GoogleAuth {
 
 using Timestamp = std::int64_t;
 
@@ -117,4 +117,4 @@ inline void to_json(nlohmann::json &j, const GoogleTokenState &p)
 		j["expires_at"] = *p.expires_at;
 }
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::GoogleAuth

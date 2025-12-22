@@ -57,14 +57,13 @@ endif()
 
 find_package(libobs REQUIRED)
 find_package(obs-frontend-api REQUIRED)
-find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Network Widgets Core)
 
 if(VCPKG_TARGET_TRIPLET)
   list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}")
 
   find_package(CURL CONFIG REQUIRED)
   find_package(fmt CONFIG REQUIRED)
-  find_package(httplib CONFIG REQUIRED)
   find_package(nlohmann_json CONFIG REQUIRED)
 elseif(USE_PKGCONFIG)
   find_package(PkgConfig REQUIRED)
