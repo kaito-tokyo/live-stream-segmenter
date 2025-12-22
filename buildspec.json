@@ -38,7 +38,7 @@
   },
   "name": "live-stream-segmenter",
   "displayName": "Live Stream Segmenter",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Kaito Udagawa",
   "website": "https://kaito-tokyo.github.io/live-stream-segmenter/",
   "email": "umireon@kaito.tokyo"
