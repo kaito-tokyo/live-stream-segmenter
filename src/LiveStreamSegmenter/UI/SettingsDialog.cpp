@@ -405,7 +405,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 		uint16_t port = self->currentCallbackServer_->serverPort();
 		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		logger->error("Opening authorization URL: {}", authUrl);
+		logger->info("Opening authorization URL: {}", authUrl);
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
