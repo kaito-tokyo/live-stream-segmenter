@@ -42,7 +42,7 @@ public:
 	{
 		server_ = new QTcpServer(this);
 		if (!server_->listen(QHostAddress::LocalHost, 0)) {
-			qWarning() << "Failed to start local auth server";
+			throw std::runtime_error(fmt::format("InitError(GoogleOAuth2FlowCallbackServer):{}", server_->errorString().toStdString()));
 		}
 	}
 

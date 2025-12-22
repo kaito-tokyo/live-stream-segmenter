@@ -10,8 +10,6 @@
 #pragma once
 
 #include <coroutine>
-#include <exception>
-#include <utility>
 
 namespace KaitoTokyo::Async {
 
