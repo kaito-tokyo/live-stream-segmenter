@@ -1,3 +1,8 @@
+// [MODIFIED]
+// This file has been modified from the original version.
+// Change: Namespace changed from 'std' to 'josuttis' to avoid conflicts with libc++.
+// Date: 2025-12-22
+
 // -----------------------------------------------------
 // cooperative interruptable and joining thread:
 // -----------------------------------------------------
@@ -11,18 +16,18 @@
 #include <functional>  // for invoke()
 #include <iostream>    // for debugging output
 
-namespace std {
+namespace josuttis {
 
-//***************************************** 
+//*****************************************
 //* class jthread
-//* - joining std::thread with signaling stop/end support 
-//***************************************** 
+//* - joining std::thread with signaling stop/end support
+//*****************************************
 class jthread
 {
   public:
-    //***************************************** 
+    //*****************************************
     //* standardized API:
-    //***************************************** 
+    //*****************************************
     // - cover full API of std::thread
     //   to be able to switch from std::thread to std::jthread
 
@@ -59,7 +64,7 @@ class jthread
       return ::std::thread::hardware_concurrency();
     };
 
-    //***************************************** 
+    //*****************************************
     // - supplementary API:
     //   - for the calling thread:
     [[nodiscard]] stop_source get_stop_source() noexcept;
@@ -69,9 +74,9 @@ class jthread
     }
 
 
-  //***************************************** 
+  //*****************************************
   //* implementation:
-  //***************************************** 
+  //*****************************************
 
   private:
     //*** API for the starting thread:
@@ -82,9 +87,9 @@ class jthread
 
 //**********************************************************************
 
-//***************************************** 
+//*****************************************
 //* implementation of class jthread
-//***************************************** 
+//*****************************************
 
 // default constructor:
 inline jthread::jthread() noexcept
@@ -169,6 +174,6 @@ inline void jthread::swap(jthread& t) noexcept {
 }
 
 
-} // std
+} // josuttis
 
 #endif // JTHREAD_HPP

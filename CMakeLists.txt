@@ -99,7 +99,10 @@ else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
-add_subdirectory(vendor/josuttis-jthread)
+if(APPLE)
+  set(JTHREAD_LIBRARIES jthread::jthread)
+  add_subdirectory(vendor/josuttis-jthread)
+endif()
 
 include(CheckIncludeFileCXX)
 check_include_file_cxx(immintrin.h HAVE_IMMINTRIN_H)
