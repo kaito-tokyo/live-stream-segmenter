@@ -39,7 +39,7 @@
 #ifdef __APPLE__
 #include <jthread.hpp>
 #else
-#include <jthread>
+#include <thread>
 #endif
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
