@@ -52,7 +52,7 @@ public:
 	{
 		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl)
-			throw std::runtime_error("InitError(GoogleOAuth2Flow::startOAuth2Flow)");
+			throw std::runtime_error("InitError(GoogleOAuth2Flow::getAuthorizationUrl)");
 
 		CurlHelper::CurlUrlSearchParams qp(curl.get());
 		qp.append("client_id", clientCredentials_.client_id);
