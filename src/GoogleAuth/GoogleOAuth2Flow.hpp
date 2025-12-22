@@ -55,8 +55,9 @@ public:
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
 	template<typename CodeProvider, typename ContextSwitcher>
-	Async::Task<std::optional<GoogleAuthResponse>> authorize(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &redirectUri, CodeProvider &&codeProvider,
-								 ContextSwitcher &&contextSwitcher)
+	Async::Task<std::optional<GoogleAuthResponse>>
+	authorize(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &redirectUri,
+		  CodeProvider &&codeProvider, ContextSwitcher &&contextSwitcher)
 	{
 		// 1. Initialize Curl (Check)
 		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);

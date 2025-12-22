@@ -69,14 +69,10 @@ struct WaitForAuthCode {
 
 	bool await_ready() { return false; }
 
-	void await_suspend(std::coroutine_handle<> h)
-	{
-		new AuthCallbackReceiver(port, h, result_code);
-	}
+	void await_suspend(std::coroutine_handle<> h) { new AuthCallbackReceiver(port, h, result_code); }
 
 	std::string await_resume() { return result_code; }
 };
-
 
 inline Async::Task<std::string> QtHttpCodeProvider(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &)
 {
@@ -401,9 +397,11 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	return credentials;
 }
 
-Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &, QPointer<SettingsDialog> self)
+Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &,
+					      QPointer<SettingsDialog> self)
 {
-	if (!self) co_return;
+	if (!self)
+		co_return;
 
 	auto logger = self->logger_;
 
@@ -433,17 +431,18 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 			Qt::QueuedConnection);
 	};
 
-	self->googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
-								     "https://www.googleapis.com/auth/youtube.readonly",
-								     self->googleOAuth2FlowUserAgent_, self->logger_);
+	self->googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(
+		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly", self->googleOAuth2FlowUserAgent_,
+		self->logger_);
 
 	std::optional<Auth::GoogleAuthResponse> result = std::nullopt;
 	QString errorMessage;
 
 	try {
 		Async::TaskStorage<> authorizeTaskStorage;
-		result = co_await self->googleOAuth2Flow_->authorize(std::allocator_arg, authorizeTaskStorage, "http://127.0.0.1:8080/callback", QtHttpCodeProvider,
-								       ResumeOnJThread{self->currentAuthTaskWorkerThread_});
+		result = co_await self->googleOAuth2Flow_->authorize(
+			std::allocator_arg, authorizeTaskStorage, "http://127.0.0.1:8080/callback", QtHttpCodeProvider,
+			ResumeOnJThread{self->currentAuthTaskWorkerThread_});
 	} catch (const std::exception &e) {
 		errorMessage = QString::fromStdString(e.what());
 		logger->logException(e, "OAuth flow failed");
@@ -451,7 +450,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 	co_await ResumeOnMainThread{};
 
-	if (!self) co_return;
+	if (!self)
+		co_return;
 
 	self->googleOAuth2Flow_.reset();
 	self->googleOAuth2FlowUserAgent_.reset();
