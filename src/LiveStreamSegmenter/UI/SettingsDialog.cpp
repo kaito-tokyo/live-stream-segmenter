@@ -145,9 +145,6 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 
 SettingsDialog::~SettingsDialog()
 {
-	if (googleOAuth2FlowUserAgent_) {
-		googleOAuth2FlowUserAgent_->onOpenUrl = nullptr;
-	}
 }
 
 void SettingsDialog::accept()
@@ -405,18 +402,12 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 	auto logger = self->logger_;
 
-	// 1. 重複していた定義を整理
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
-	// 2. UserAgent の設定は不要なので全削除
-
-	// 3. Flowの初期化
-	// UserAgent はもう使わないので、コンストラクタ引数から削除するか、nullptr を渡す設計に変更推奨
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
 		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly",
-		nullptr, // UserAgentは不要になったので nullptr (要: Flowクラス側の修正)
 		logger);
 
 	auto flow = self->googleOAuth2Flow_;
@@ -424,26 +415,21 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
 
 	try {
-		// [Step 1] URL生成
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
 
-		// [Step 2] ブラウザを開く (ベタ書き・メインスレッドなので直接実行OK)
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
 
 		if (!success) {
-			// 失敗時のダイアログ表示
-			QMessageBox msgBox(self); // selfは親として有効
+			QMessageBox msgBox(self);
 			msgBox.setIcon(QMessageBox::Warning);
 			msgBox.setWindowTitle(tr("Warning"));
 			msgBox.setText(tr("Cannot open the authorization URL in the default browser."));
 			msgBox.setInformativeText(tr("Please manually visit:\n<a href=\"%1\">%1</a>").arg(qUrlStr));
 			msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextBrowserInteraction);
 			msgBox.exec();
-			// ブラウザが開かなくても手動でいけるかもしれないので、処理は続行してOK
 		}
 
-		// [Step 3] コード待機
 		Async::TaskStorage<> codeProviderStorage;
 		std::string code = co_await QtHttpCodeProvider(std::allocator_arg, codeProviderStorage, authUrl);
 
@@ -451,25 +437,19 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 			throw std::runtime_error("Authorization code was empty.");
 		}
 
-		// [Step 4] スレッド切り替え (ここから重い処理)
 		co_await ResumeOnJThread{self->currentAuthTaskWorkerThread_};
 
-		// [Step 5] トークン交換
 		result = flow->exchangeCodeForToken(code, redirectUri);
-
 	} catch (const std::exception &e) {
 		logger->logException(e, "OAuth flow failed");
 	}
 
-	// [Step 6] メインスレッド復帰
 	co_await ResumeOnMainThread{};
 
 	if (!self)
 		co_return;
 
-	// クリーンアップ
 	self->googleOAuth2Flow_.reset();
-	// UserAgent の reset も不要
 
 	self->authButton_->setEnabled(true);
 
