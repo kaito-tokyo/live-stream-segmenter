@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -78,7 +80,7 @@ private:
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	Async::Task<void> runAuthFlow();
+	Async::Task<void> runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &);
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -125,7 +127,8 @@ private:
 	QPushButton *applyButton_;
 
 	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
-	Async::Task<void> currentAuthTask_{nullptr};
+	Async::Task<void> currentAuthFlowTask_{nullptr};
+	Async::TaskStorage<> currentAuthFlowTaskStorage_;
 	jthread_ns::jthread currentAuthTaskWorkerThread_;
 
 	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;

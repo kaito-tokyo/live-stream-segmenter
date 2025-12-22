@@ -31,6 +31,8 @@
 
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
+#include <Task.hpp>
+#include <TaskStorage.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 
@@ -39,7 +41,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::UI {
 namespace {
 
 struct ResumeOnJThread {
-	jthread_ns::jthread &threadStorage; // スレッドを保持する場所への参照
+	jthread_ns::jthread &threadStorage;
 
 	bool await_ready() { return false; }
 
@@ -51,18 +53,15 @@ struct ResumeOnJThread {
 	void await_resume() {}
 };
 
-// ★ クライアントが用意する「メインスレッドへの復帰」実装
 struct ResumeOnMainThread {
 	bool await_ready() { return false; }
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		// Qtのイベントループへ戻す
 		QMetaObject::invokeMethod(qApp, [h]() { h.resume(); }, Qt::QueuedConnection);
 	}
 	void await_resume() {}
 };
 
-// コルーチンとQtのシグナルをつなぐための使い捨てワーカー
 class AuthCallbackReceiver : public QObject {
 	Q_OBJECT
 public:
@@ -74,7 +73,6 @@ public:
 		connect(server_, &QTcpServer::newConnection, this, &AuthCallbackReceiver::onNewConnection);
 
 		if (!server_->listen(QHostAddress::LocalHost, port)) {
-			// ポートが使えないなどのエラー時は空文字で即座に再開
 			qWarning() << "Failed to start local auth server on port" << port;
 			cleanupAndResume();
 		}
@@ -85,17 +83,13 @@ private slots:
 	{
 		QTcpSocket *socket = server_->nextPendingConnection();
 		connect(socket, &QTcpSocket::readyRead, this, [this, socket]() { handleReadyRead(socket); });
-		// 切断時の自動削除は手動で行うため設定しない、または親関係で管理
 	}
 
 	void handleReadyRead(QTcpSocket *socket)
 	{
-		// データ読み込み
 		QByteArray data = socket->readAll();
 		QString request = QString::fromUtf8(data);
 
-		// 簡易的なHTTPリクエストラインのパース: "GET /callback?code=... HTTP/1.1"
-		// 正規表現で最初の行からパスを抽出
 		static const QRegularExpression re("^GET\\s+(\\S+)\\s+HTTP");
 		QRegularExpressionMatch match = re.match(request);
 
@@ -105,20 +99,14 @@ private slots:
 			QUrlQuery query(url);
 
 			if (query.hasQueryItem("code")) {
-				// 成功: コードを取得
 				resultRef_ = query.queryItemValue("code").toStdString();
 				sendResponse(socket, true);
 			} else {
-				// 失敗: コードがない
 				sendResponse(socket, false);
 			}
 		}
 
-		// レスポンス送信後にソケットを閉じ、コルーチンを再開する
 		socket->disconnectFromHost();
-		// socketが完全にフラッシュされるのを待たずに閉じて良い（Qtが裏で処理する）が、
-		// 念のため少し遅延させてResumeするか、cleanupで行う。
-
 		cleanupAndResume();
 	}
 
@@ -149,7 +137,7 @@ private slots:
 		if (handle_ && !handle_.done()) {
 			handle_.resume();
 		}
-		deleteLater(); // 自分自身を削除
+		deleteLater();
 	}
 
 private:
@@ -158,17 +146,14 @@ private:
 	std::string &resultRef_;
 };
 
-// コルーチン内で co_await するためのオブジェクト
-struct WaitForQtAuthCode {
+struct WaitForAuthCode {
 	uint16_t port;
 	std::string result_code;
 
-	bool await_ready() { return false; } // 常にサスペンドする
+	bool await_ready() { return false; }
 
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		// ワーカーを作成。処理完了後に deleteLater() で自壊する。
-		// 親を持たせない(nullptr)ことで、メインスレッドのイベントループで動作させる。
 		new AuthCallbackReceiver(port, h, result_code);
 	}
 
@@ -177,11 +162,9 @@ struct WaitForQtAuthCode {
 
 } // namespace
 
-// ユーザーコードプロバイダの実装
-Async::Task<std::string> QtHttpCodeProvider(const std::string & /*authUrl*/)
+Async::Task<std::string> QtHttpCodeProvider(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &)
 {
-	// ここで Qt のイベントループと協調して停止・待機する
-	std::string code = co_await WaitForQtAuthCode{8080};
+	std::string code = co_await WaitForAuthCode{8080};
 	co_return code;
 }
 
@@ -281,7 +264,7 @@ void SettingsDialog::onAuthButtonClicked()
 	authButton_->setEnabled(false);
 	statusLabel_->setText(tr("Waiting for browser..."));
 
-	currentAuthTask_ = runAuthFlow();
+	currentAuthFlowTask_ = runAuthFlow(std::allocator_arg, currentAuthFlowTaskStorage_);
 }
 
 void SettingsDialog::onClearAuthButtonClicked()
@@ -500,23 +483,16 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	return credentials;
 }
 
-// ---------------------------------------------------------
-// 2. 認証フローの実体（コルーチン）
-// ---------------------------------------------------------
-Async::Task<void> SettingsDialog::runAuthFlow()
+Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &)
 {
-	// --- [メインスレッド] 準備フェーズ ---
-
 	Auth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
 
-	// UserAgentの設定
 	googleOAuth2FlowUserAgent_ = std::make_shared<Auth::GoogleOAuth2FlowUserAgent>();
 	googleOAuth2FlowUserAgent_->onOpenUrl = [this](const std::string &url) {
 		QString qUrlStr = QString::fromStdString(url);
 
-		// Qtのスレッドで実行されるように保証
 		QMetaObject::invokeMethod(
 			this,
 			[this, qUrlStr]() {
@@ -536,53 +512,36 @@ Async::Task<void> SettingsDialog::runAuthFlow()
 			Qt::QueuedConnection);
 	};
 
-	// Flowの初期化
 	googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(clientCredentials,
 								     "https://www.googleapis.com/auth/youtube.readonly",
 								     googleOAuth2FlowUserAgent_, logger_);
 
-	// 結果を格納する変数
 	std::optional<Auth::GoogleAuthResponse> result = std::nullopt;
 	QString errorMessage;
 
-	// --- [非同期] 実行フェーズ ---
 	try {
-		// authorizeを呼び出し、完了を待つ
-		// Note: 重い処理（トークン交換）の直前に ResumeOnJThread で別スレッドに移動します
-		result = co_await googleOAuth2Flow_->authorize("http://127.0.0.1:8080/callback", QtHttpCodeProvider,
+		Async::TaskStorage<> authorizeTaskStorage;
+		result = co_await googleOAuth2Flow_->authorize(std::allocator_arg, authorizeTaskStorage, "http://127.0.0.1:8080/callback", QtHttpCodeProvider,
 							       ResumeOnJThread{currentAuthTaskWorkerThread_});
 	} catch (const std::exception &e) {
 		errorMessage = QString::fromStdString(e.what());
 		logger_->logException(e, "OAuth flow failed");
 	}
 
-	// --- [メインスレッド] 結果処理フェーズ ---
-
-	// UI操作のために必ずメインスレッドに戻る
 	co_await ResumeOnMainThread{};
 
-	// フローオブジェクトの破棄（必要に応じて）
 	googleOAuth2Flow_.reset();
 	googleOAuth2FlowUserAgent_.reset();
 
-	// UIのロック解除
 	authButton_->setEnabled(true);
 
 	if (result) {
-		// 成功時の処理
 		logger_->info("Authorization successful!");
 		statusLabel_->setText(tr("Authorized (Not Saved)"));
 
-		// 取得したトークンをストアに保存
-		// authStore_->setGoogleToken(*result); // ※実装に合わせて調整してください
-
 		QMessageBox::information(this, tr("Success"), tr("Authorization successful!"));
 
-		// 必要ならここでSave処理を呼ぶ
-		// storeSettings();
-
 	} else {
-		// 失敗時の処理
 		statusLabel_->setText(tr("Authorization Failed"));
 
 		QString msg = tr("Authorization failed.");

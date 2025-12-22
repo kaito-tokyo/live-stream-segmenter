@@ -55,7 +55,7 @@ public:
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
 	template<typename CodeProvider, typename ContextSwitcher>
-	Async::Task<std::optional<GoogleAuthResponse>> authorize(std::string redirectUri, CodeProvider &&codeProvider,
+	Async::Task<std::optional<GoogleAuthResponse>> authorize(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &redirectUri, CodeProvider &&codeProvider,
 								 ContextSwitcher &&contextSwitcher)
 	{
 		// 1. Initialize Curl (Check)
@@ -84,7 +84,8 @@ public:
 
 		// 4. Wait for Code (Delegate to User)
 		logger_->info("Waiting for authorization code via user provider...");
-		std::string code = co_await codeProvider(authUrl);
+		Async::TaskStorage<> codeProviderTaskStorage;
+		std::string code = co_await codeProvider(std::allocator_arg, codeProviderTaskStorage, authUrl);
 
 		if (code.empty()) {
 			logger_->error("Authorization code was empty.");
