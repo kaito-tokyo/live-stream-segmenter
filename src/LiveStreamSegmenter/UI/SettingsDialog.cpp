@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
@@ -269,12 +269,12 @@ void SettingsDialog::setupUi()
 	dropArea_->setText(tr("Drag & Drop credentials.json here"));
 	dropArea_->setAlignment(Qt::AlignCenter);
 	dropArea_->setStyleSheet(R"(
-        QLabel {
-            border: 2px dashed palette(highlight);
-            color: palette(text);
-            border-radius: 6px;
-            padding: 16px;
-        }
+	QLabel {
+	    border: 2px dashed palette(highlight);
+	    color: palette(text);
+	    border-radius: 6px;
+	    padding: 16px;
+	}
     )");
 
 	credLayout_->addWidget(dropArea_);

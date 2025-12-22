@@ -99,20 +99,6 @@ else()
   message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
-if(APPLE)
-  set(STACKTRACE_COMPONENT stacktrace_basic)
-elseif(MSVC)
-  set(STACKTRACE_COMPONENT stacktrace_windbg)
-else()
-  set(STACKTRACE_COMPONENT stacktrace_addr2line)
-endif()
-
-if(VCPKG_TARGET_TRIPLET)
-  find_package(Boost CONFIG REQUIRED COMPONENTS thread ${STACKTRACE_COMPONENT})
-else()
-  find_package(Boost REQUIRED COMPONENTS thread ${STACKTRACE_COMPONENT})
-endif()
-
 add_subdirectory(vendor/josuttis-jthread)
 
 include(CheckIncludeFileCXX)
