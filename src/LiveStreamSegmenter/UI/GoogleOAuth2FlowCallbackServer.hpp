@@ -135,7 +135,7 @@ private:
 		connect(socket, &QTcpSocket::disconnected, socket, [socket, h, statePtr]() {
 			socket->deleteLater();
 
-			if (!statePtr->resumed.exchange(true)) {
+			if (statePtr->isAlive && !statePtr->resumed.exchange(true)) {
 				h.resume();
 			}
 		});
