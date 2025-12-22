@@ -10,7 +10,7 @@ target_link_libraries(
     Qt6::Network
     BridgeUtils
     Logger
-    ${CMAKE_PROJECT_NAME}_Auth
+    GoogleAuth
     ${CMAKE_PROJECT_NAME}_API
     ${CMAKE_PROJECT_NAME}_Store
 )

@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter
+ * KaitoTokyo GoogleAuth Library
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * This software is licensed under the MIT License.

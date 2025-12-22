@@ -178,7 +178,7 @@ struct WaitForQtAuthCode {
 } // namespace
 
 // ユーザーコードプロバイダの実装
-Auth::AuthTask<std::string> QtHttpCodeProvider(const std::string & /*authUrl*/)
+Async::Task<std::string> QtHttpCodeProvider(const std::string & /*authUrl*/)
 {
 	// ここで Qt のイベントループと協調して停止・待機する
 	std::string code = co_await WaitForQtAuthCode{8080};
@@ -503,7 +503,7 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 // ---------------------------------------------------------
 // 2. 認証フローの実体（コルーチン）
 // ---------------------------------------------------------
-Auth::AuthTask<void> SettingsDialog::runAuthFlow()
+Async::Task<void> SettingsDialog::runAuthFlow()
 {
 	// --- [メインスレッド] 準備フェーズ ---
 

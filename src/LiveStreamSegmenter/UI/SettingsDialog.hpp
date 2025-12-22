@@ -78,7 +78,7 @@ private:
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	Auth::AuthTask<void> runAuthFlow();
+	Async::Task<void> runAuthFlow();
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -125,7 +125,7 @@ private:
 	QPushButton *applyButton_;
 
 	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
-	Auth::AuthTask<void> currentAuthTask_{nullptr};
+	Async::Task<void> currentAuthTask_{nullptr};
 	jthread_ns::jthread currentAuthTaskWorkerThread_;
 
 	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;

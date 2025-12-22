@@ -62,7 +62,7 @@ template<typename T> struct [[nodiscard]] Task {
 
 #ifdef NDEBUG
 		template<std::size_t N, typename... Args>
-		static void *operator new(std::size_t size, TaskStorage<N> &alloc, Args &&...)
+		static void *operator new(std::size_t size, std::allocator_arg_t, TaskStorage<N> &alloc, Args &&...)
 		{
 			std::size_t total_size = size + sizeof(TaskStoragePtr);
 
@@ -79,9 +79,16 @@ template<typename T> struct [[nodiscard]] Task {
 			return static_cast<char *>(raw_ptr) + sizeof(TaskStoragePtr);
 		}
 
+		template<typename Object, std::size_t N, typename... Args>
+		static void *operator new(std::size_t size, Object &, std::allocator_arg_t, TaskStorage<N> &alloc,
+					  Args &&...)
+		{
+			return operator new(size, std::allocator_arg, alloc);
+		}
+
 		static void *operator new(std::size_t) = delete;
 
-		static void operator delete(void *ptr, std::size_t size)
+		static void operator delete(void *ptr, std::size_t)
 		{
 			char *raw_ptr = static_cast<char *>(ptr) - sizeof(TaskStoragePtr);
 

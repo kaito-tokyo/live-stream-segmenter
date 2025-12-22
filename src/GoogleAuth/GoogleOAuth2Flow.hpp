@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter
+ * KaitoTokyo GoogleAuth Library
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * This software is licensed under the MIT License.
@@ -24,7 +24,8 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
-#include "AuthTask.hpp"
+#include <Task.hpp>
+
 #include "GoogleAuthResponse.hpp"
 #include "GoogleOAuth2ClientCredentials.hpp"
 
@@ -54,8 +55,8 @@ public:
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
 	template<typename CodeProvider, typename ContextSwitcher>
-	AuthTask<std::optional<GoogleAuthResponse>> authorize(std::string redirectUri, CodeProvider &&codeProvider,
-							      ContextSwitcher &&contextSwitcher)
+	Async::Task<std::optional<GoogleAuthResponse>> authorize(std::string redirectUri, CodeProvider &&codeProvider,
+								 ContextSwitcher &&contextSwitcher)
 	{
 		// 1. Initialize Curl (Check)
 		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
