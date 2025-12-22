@@ -7,6 +7,7 @@ target_link_libraries(
     OBS::obs-frontend-api
     Qt6::Core
     Qt6::Widgets
+    Qt6::Network
     BridgeUtils
     Logger
     ${CMAKE_PROJECT_NAME}_Auth

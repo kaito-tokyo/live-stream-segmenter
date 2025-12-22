@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
@@ -32,7 +32,19 @@
 
 #include "JsonDropArea.hpp"
 
+#ifdef __APPLE__
+#include <jthread.hpp>
+#else
+#include <jthread>
+#endif
+
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
+
+#ifdef __APPLE__
+namespace jthread_ns = josuttis;
+#else
+namespace jthread_ns = std;
+#endif
 
 struct SettingsDialogGoogleOAuth2ClientCredentials {
 	QString client_id;
@@ -65,6 +77,8 @@ private:
 
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
+
+	Auth::AuthTask<void> runAuthFlow();
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -111,6 +125,9 @@ private:
 	QPushButton *applyButton_;
 
 	std::shared_ptr<Auth::GoogleOAuth2Flow> googleOAuth2Flow_ = nullptr;
+	Auth::AuthTask<void> currentAuthTask_{nullptr};
+	jthread_ns::jthread currentAuthTaskWorkerThread_;
+
 	std::shared_ptr<Auth::GoogleOAuth2FlowUserAgent> googleOAuth2FlowUserAgent_ = nullptr;
 	std::optional<Auth::GoogleAuthResponse> googleOAuth2TokenResponse_;
 };
