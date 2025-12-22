@@ -31,18 +31,12 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-struct GoogleOAuth2FlowUserAgent {
-	std::function<void(const std::string &url)> onOpenUrl;
-};
-
 class GoogleOAuth2Flow {
 public:
 	GoogleOAuth2Flow(GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
-			 std::shared_ptr<GoogleOAuth2FlowUserAgent> userAgent,
 			 std::shared_ptr<const Logger::ILogger> logger)
 		: clientCredentials_(std::move(clientCredentials)),
 		  scopes_(std::move(scopes)),
-		  userAgent_(std::move(userAgent)),
 		  logger_(std::move(logger))
 	{
 	}
@@ -54,19 +48,9 @@ public:
 	GoogleOAuth2Flow(GoogleOAuth2Flow &&) = delete;
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
-	template<typename CodeProvider, typename ContextSwitcher>
-	Async::Task<std::optional<GoogleAuthResponse>>
-	authorize(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &redirectUri,
-		  CodeProvider &&codeProvider, ContextSwitcher &&contextSwitcher)
+	std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri) const
 	{
-		// 1. Initialize Curl (Check)
-		const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
-		if (!curl)
-			throw std::runtime_error("InitError(authorize)");
-
-		// 2. Build Auth URL
-		using namespace CurlHelper;
-		CurlUrlSearchParams qp(curl.get());
+		CurlHelper::CurlUrlSearchParams qp(curl.get());
 		qp.append("client_id", clientCredentials_.client_id);
 		qp.append("redirect_uri", redirectUri);
 		qp.append("response_type", "code");
@@ -74,34 +58,17 @@ public:
 		qp.append("access_type", "offline");
 		qp.append("prompt", "consent");
 
-		const std::string authUrl =
-			fmt::format("https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
-		logger_->info("GoogleOAuth2Flow opening {}", authUrl);
+		return fmt::format("https://accounts.google.com/o/oauth2/v2/auth?{}", qp.toString());
+	}
 
-		// 3. Notify User to open Browser
-		if (userAgent_->onOpenUrl) {
-			userAgent_->onOpenUrl(authUrl);
-		}
-
-		// 4. Wait for Code (Delegate to User)
-		logger_->info("Waiting for authorization code via user provider...");
-		Async::TaskStorage<> codeProviderTaskStorage;
-		std::string code = co_await codeProvider(std::allocator_arg, codeProviderTaskStorage, authUrl);
-
-		if (code.empty()) {
-			logger_->error("Authorization code was empty.");
-			co_return std::nullopt;
-		}
-
-		co_await contextSwitcher;
-
-		logger_->info("Received code. Exchanging for token...");
-
-		// 5. Exchange Code for Token
+	std::optional<GoogleAuthResponse> GoogleOAuth2Flow::exchangeCodeForToken(const std::string &code,
+										 const std::string &redirectUri)
+	{
 		try {
+			logger_->info("Received code. Exchanging for token...");
 			auto result = exchangeCode(clientCredentials_, code, redirectUri);
 			logger_->info("GoogleOAuth2Flow exchanged token successfully.");
-			co_return result;
+			return result;
 		} catch (const std::exception &e) {
 			logger_->logException(e, "GoogleOAuth2Flow failed to exchange token.");
 			throw;
@@ -156,7 +123,6 @@ private:
 
 	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::string scopes_;
-	std::shared_ptr<GoogleOAuth2FlowUserAgent> userAgent_;
 	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
