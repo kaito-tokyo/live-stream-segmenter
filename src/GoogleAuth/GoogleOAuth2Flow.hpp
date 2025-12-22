@@ -108,6 +108,8 @@ private:
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT, 10L);
 		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
+		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
 		const CURLcode res = curl_easy_perform(curl.get());
 
