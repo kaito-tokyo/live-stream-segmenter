@@ -18,6 +18,7 @@
 #include <curl/curl.h>
 #include <fmt/format.h>
 #include <httplib.h>
+#include <jthread.hpp>
 #include <nlohmann/json.hpp>
 
 #include <CurlUrlSearchParams.hpp>
