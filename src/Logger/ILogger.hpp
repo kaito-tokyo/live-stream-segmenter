@@ -17,7 +17,6 @@
 #include <string>
 #include <utility>
 
-#include <boost/stacktrace.hpp>
 #include <fmt/format.h>
 
 namespace KaitoTokyo::Logger {
@@ -108,23 +107,17 @@ public:
 	}
 
 	/**
-	 * @brief Logs an exception with context and a stack trace.
+	 * @brief Logs an exception with context.
 	 *
 	 * Guaranteed not to throw an exception. This method is safe to call
-	 * from within a catch block. It will print a full stack trace.
+	 * from within a catch block.
 	 *
 	 * @param e The exception that was caught.
 	 * @param context A string view describing the context where the exception occurred.
 	 */
 	void logException(const std::exception &e, std::string_view context) const noexcept
-	try {
-		const auto st = boost::stacktrace::stacktrace(0, 32);
-		error("{}: {}\n--- Stack Trace ---\n{}", context, e.what(), boost::stacktrace::to_string(st));
-	} catch (const std::exception &log_ex) {
-		// Fallback if logging the stack trace itself fails
-		error("[LOGGER FATAL] Failed during exception logging: %s\n", log_ex.what());
-	} catch (...) {
-		error("[LOGGER FATAL] Unknown error during exception logging.");
+	{
+		error("{}: {}\n", context, e.what());
 	}
 
 	/**

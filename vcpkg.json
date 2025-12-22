@@ -2,16 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "dependencies": [
     {
-      "name": "boost-stacktrace",
-      "platform": "windows"
-    },
-    {
-      "name": "boost-stacktrace",
-      "default-features": false,
-      "platform": "!windows"
-    },
-    "boost-thread",
-    {
       "name": "cpp-httplib",
       "default-features": false,
       "features": [
