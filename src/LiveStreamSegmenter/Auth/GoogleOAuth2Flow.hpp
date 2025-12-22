@@ -33,7 +33,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
 
-	#ifdef __APPLE__
+#ifdef __APPLE__
 namespace jthread_ns = josuttis;
 #else
 namespace jthread_ns = std;
@@ -70,7 +70,7 @@ public:
 		server_ = std::make_shared<httplib::Server>();
 
 		worker_ = jthread_ns::jthread([logger = logger_, server = server_, userAgent = userAgent_,
-				   clientCredentials = clientCredentials_, scopes = scopes_](auto stoken) {
+					       clientCredentials = clientCredentials_, scopes = scopes_](auto stoken) {
 			jthread_ns::stop_callback callback(stoken, [server]() {
 				if (server && server->is_running()) {
 					server->stop();
