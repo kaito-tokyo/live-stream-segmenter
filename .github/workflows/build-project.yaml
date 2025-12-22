@@ -38,6 +38,7 @@ jobs:
 
       - name: Read metadata
         id: metadata
+        shell: bash
         run: |
           {
             echo "buildspec<<EOF"
@@ -47,12 +48,15 @@ jobs:
           echo "ImageVersion=$ImageVersion" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies via Homebrew
+        shell: bash
         run: brew install -q cmake xcbeautify
 
       - name: Set up vcpkg
+        shell: bash
         run: echo "VCPKG_ROOT=$VCPKG_INSTALLATION_ROOT" >> "$GITHUB_ENV"
 
       - name: Install dependencies from vcpkg
+        shell: bash
         run: ./scripts/install-vcpkg-macos.sh
 
       - name: Restore libobs cache
@@ -68,25 +72,31 @@ jobs:
 
       - name: Download dependencies without obs-studio
         if: steps.libobs-cache.outputs.cache-hit == 'true'
+        shell: bash
         run: cmake -DWITH_OBS_STUDIO=OFF -P scripts/download-deps.cmake
 
       - name: Download dependencies
         if: steps.libobs-cache.outputs.cache-hit != 'true'
+        shell: bash
         env:
           ENABLE_XCBEAUTIFY: true
         run: cmake -P scripts/download-deps.cmake
 
       - name: Build libobs
         if: steps.libobs-cache.outputs.cache-hit != 'true'
+        shell: bash
         run: scripts/build-obs-studio-macos.sh 2>&1 | tee Build_libobs.log | xcbeautify
 
       - name: Configure
+        shell: bash
         run: cmake --preset macos
 
       - name: Build
+        shell: bash
         run: cmake --build --preset macos 2>&1 | tee Build.log | xcbeautify
 
       - name: Test
+        shell: bash
         run: ctest --preset macos --output-on-failure --parallel 4 --output-junit report.xml
 
       - name: Upload Build Artifacts

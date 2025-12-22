@@ -18,8 +18,11 @@
 #include <curl/curl.h>
 #include <fmt/format.h>
 #include <httplib.h>
-#include <jthread.hpp>
 #include <nlohmann/json.hpp>
+
+#ifdef __APPLE__
+#include <jthread.hpp>
+#endif
 
 #include <CurlUrlSearchParams.hpp>
 #include <CurlVectorWriter.hpp>
@@ -29,6 +32,12 @@
 #include "GoogleOAuth2ClientCredentials.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+
+#ifdef __APPLE__
+namespace jthread_ns = josuttis;
+#else
+namespace jthread_ns = std;
+#endif
 
 struct GoogleOAuth2FlowUserAgent {
 	std::function<void(const std::string &url)> onOpenUrl;
@@ -60,10 +69,9 @@ public:
 	{
 		server_ = std::make_shared<httplib::Server>();
 
-		worker_ = std::jthread([logger = logger_, server = server_, userAgent = userAgent_,
-					clientCredentials = clientCredentials_,
-					scopes = scopes_](std::stop_token stoken) {
-			std::stop_callback callback(stoken, [server]() {
+		worker_ = jthread_ns::jthread([logger = logger_, server = server_, userAgent = userAgent_,
+					       clientCredentials = clientCredentials_, scopes = scopes_](auto stoken) {
+			jthread_ns::stop_callback callback(stoken, [server]() {
 				if (server && server->is_running()) {
 					server->stop();
 				}
@@ -197,7 +205,7 @@ private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 
 	std::shared_ptr<httplib::Server> server_;
-	std::jthread worker_;
+	jthread_ns::jthread worker_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Auth
