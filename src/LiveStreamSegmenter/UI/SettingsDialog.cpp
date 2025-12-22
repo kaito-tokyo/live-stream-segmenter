@@ -35,6 +35,7 @@
 #include <TaskStorage.hpp>
 
 #include "fmt_qstring_formatter.hpp"
+#include "GoogleOAuth2FlowCallback.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -62,90 +63,6 @@ struct ResumeOnMainThread {
 	void await_resume() {}
 };
 
-class AuthCallbackReceiver : public QObject {
-	Q_OBJECT
-public:
-	AuthCallbackReceiver(uint16_t port, std::coroutine_handle<> h, std::string &resultRef)
-		: handle_(h),
-		  resultRef_(resultRef)
-	{
-		server_ = new QTcpServer(this);
-		connect(server_, &QTcpServer::newConnection, this, &AuthCallbackReceiver::onNewConnection);
-
-		if (!server_->listen(QHostAddress::LocalHost, port)) {
-			qWarning() << "Failed to start local auth server on port" << port;
-			cleanupAndResume();
-		}
-	}
-
-private slots:
-	void onNewConnection()
-	{
-		QTcpSocket *socket = server_->nextPendingConnection();
-		connect(socket, &QTcpSocket::readyRead, this, [this, socket]() { handleReadyRead(socket); });
-	}
-
-	void handleReadyRead(QTcpSocket *socket)
-	{
-		QByteArray data = socket->readAll();
-		QString request = QString::fromUtf8(data);
-
-		static const QRegularExpression re("^GET\\s+(\\S+)\\s+HTTP");
-		QRegularExpressionMatch match = re.match(request);
-
-		if (match.hasMatch()) {
-			QString pathAndQuery = match.captured(1);
-			QUrl url(pathAndQuery);
-			QUrlQuery query(url);
-
-			if (query.hasQueryItem("code")) {
-				resultRef_ = query.queryItemValue("code").toStdString();
-				sendResponse(socket, true);
-			} else {
-				sendResponse(socket, false);
-			}
-		}
-
-		socket->disconnectFromHost();
-		cleanupAndResume();
-	}
-
-	void sendResponse(QTcpSocket *socket, bool success)
-	{
-		QString content =
-			success ? "<html><body><h1>Login Successful</h1><p>You can close this window now.</p></body></html>"
-				: "<html><body><h1>Login Failed</h1><p>Invalid request.</p></body></html>";
-
-		QString response = QString("HTTP/1.1 200 OK\r\n"
-					   "Content-Type: text/html; charset=utf-8\r\n"
-					   "Content-Length: %1\r\n"
-					   "Connection: close\r\n"
-					   "\r\n"
-					   "%2")
-					   .arg(content.toUtf8().size())
-					   .arg(content);
-
-		socket->write(response.toUtf8());
-		socket->flush();
-	}
-
-	void cleanupAndResume()
-	{
-		if (server_) {
-			server_->close();
-		}
-		if (handle_ && !handle_.done()) {
-			handle_.resume();
-		}
-		deleteLater();
-	}
-
-private:
-	QTcpServer *server_ = nullptr;
-	std::coroutine_handle<> handle_;
-	std::string &resultRef_;
-};
-
 struct WaitForAuthCode {
 	uint16_t port;
 	std::string result_code;
@@ -160,13 +77,14 @@ struct WaitForAuthCode {
 	std::string await_resume() { return result_code; }
 };
 
-} // namespace
 
-Async::Task<std::string> QtHttpCodeProvider(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &)
+inline Async::Task<std::string> QtHttpCodeProvider(std::allocator_arg_t, Async::TaskStorage<> &, const std::string &)
 {
 	std::string code = co_await WaitForAuthCode{8080};
 	co_return code;
 }
+
+} // namespace
 
 SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
@@ -553,5 +471,3 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
-
-#include "SettingsDialog.moc"
