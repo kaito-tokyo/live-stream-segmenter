@@ -63,8 +63,16 @@ public:
 
 	struct CodeAwaiter {
 		GoogleOAuth2FlowCallbackServer *server;
-		std::string result;
 		QMetaObject::Connection conn;
+
+		explicit CodeAwaiter(GoogleOAuth2FlowCallbackServer *s) : server(s), state(std::make_shared<CodeAwaiterState>()) {}
+
+		~CodeAwaiter()
+		{
+			if (conn) {
+				QObject::disconnect(conn);
+			}
+		}
 
 		std::shared_ptr<CodeAwaiterState> state;
 
@@ -94,13 +102,6 @@ public:
 		}
 
 		std::string await_resume() { return state->result; }
-
-		~CodeAwaiter()
-		{
-			if (conn) {
-				QObject::disconnect(conn);
-			}
-		}
 	};
 
 	CodeAwaiter waitForCode() { return CodeAwaiter{this}; }

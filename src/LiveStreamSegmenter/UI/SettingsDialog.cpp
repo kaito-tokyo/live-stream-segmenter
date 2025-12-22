@@ -54,10 +54,15 @@ struct ResumeOnJThread {
 };
 
 struct ResumeOnMainThread {
+	QPointer<QObject> context;
+	explicit ResumeOnMainThread(QObject *c) : context(c) {}
+
 	bool await_ready() { return false; }
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		QMetaObject::invokeMethod(qApp, [h]() { h.resume(); }, Qt::QueuedConnection);
+		if (context) {
+			QMetaObject::invokeMethod(context, [h]() { h.resume(); }, Qt::QueuedConnection);
+		}
 	}
 	void await_resume() {}
 };
@@ -125,7 +130,9 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 }
 
-SettingsDialog::~SettingsDialog() {}
+SettingsDialog::~SettingsDialog() {
+	currentAuthTaskWorkerThread_ = {};
+}
 
 void SettingsDialog::accept()
 {
@@ -436,7 +443,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 		logger->logException(e, "OAuth flow failed");
 	}
 
-	co_await ResumeOnMainThread{};
+	co_await ResumeOnMainThread{self};
 
 	if (!self)
 		co_return;
