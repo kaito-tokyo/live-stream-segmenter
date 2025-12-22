@@ -29,7 +29,7 @@
 #include "GoogleAuthResponse.hpp"
 #include "GoogleOAuth2ClientCredentials.hpp"
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::GoogleAuth {
 
 struct GoogleOAuth2FlowUserAgent {
 	std::function<void(const std::string &url)> onOpenUrl;
@@ -160,4 +160,4 @@ private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::GoogleAuth

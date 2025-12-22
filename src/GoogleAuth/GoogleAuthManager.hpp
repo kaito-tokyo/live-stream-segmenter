@@ -26,7 +26,7 @@
 #include "GoogleOAuth2ClientCredentials.hpp"
 #include "GoogleTokenState.hpp"
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::GoogleAuth {
 
 struct GoogleAuthManagerCallback {
 	std::function<void(GoogleTokenState)> onTokenStore;
@@ -175,4 +175,4 @@ private:
 	GoogleTokenState currentTokenState_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::GoogleAuth

@@ -343,7 +343,7 @@ void SettingsDialog::setupUi()
 
 void SettingsDialog::storeSettings()
 {
-	Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
+	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
 	authStore_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
@@ -405,10 +405,10 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 
 	auto logger = self->logger_;
 
-	Auth::GoogleOAuth2ClientCredentials clientCredentials;
+	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
-	self->googleOAuth2FlowUserAgent_ = std::make_shared<Auth::GoogleOAuth2FlowUserAgent>();
+	self->googleOAuth2FlowUserAgent_ = std::make_shared<GoogleAuth::GoogleOAuth2FlowUserAgent>();
 	self->googleOAuth2FlowUserAgent_->onOpenUrl = [self](const std::string &url) {
 		QString qUrlStr = QString::fromStdString(url);
 
@@ -431,11 +431,11 @@ Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskS
 			Qt::QueuedConnection);
 	};
 
-	self->googleOAuth2Flow_ = std::make_shared<Auth::GoogleOAuth2Flow>(
+	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
 		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly", self->googleOAuth2FlowUserAgent_,
 		self->logger_);
 
-	std::optional<Auth::GoogleAuthResponse> result = std::nullopt;
+	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
 	QString errorMessage;
 
 	try {

@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
@@ -41,25 +41,25 @@ public:
 	AuthStore(AuthStore &&) = delete;
 	AuthStore &operator=(AuthStore &&) = delete;
 
-	void setGoogleOAuth2ClientCredentials(Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials)
+	void setGoogleOAuth2ClientCredentials(GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials)
 	{
 		std::scoped_lock lock(mutex_);
 		googleOAuth2ClientCredentials_ = std::move(googleOAuth2ClientCredentials);
 	}
 
-	Auth::GoogleOAuth2ClientCredentials getGoogleOAuth2ClientCredentials() const
+	GoogleAuth::GoogleOAuth2ClientCredentials getGoogleOAuth2ClientCredentials() const
 	{
 		std::scoped_lock lock(mutex_);
 		return googleOAuth2ClientCredentials_;
 	}
 
-	void setGoogleTokenState(const Auth::GoogleTokenState &tokenState)
+	void setGoogleTokenState(const GoogleAuth::GoogleTokenState &tokenState)
 	{
 		std::scoped_lock lock(mutex_);
 		googleTokenState_ = tokenState;
 	}
 
-	Auth::GoogleTokenState getGoogleTokenState() const
+	GoogleAuth::GoogleTokenState getGoogleTokenState() const
 	{
 		std::scoped_lock lock(mutex_);
 		return googleTokenState_;
@@ -123,8 +123,8 @@ private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	mutable std::mutex mutex_;
-	Auth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
-	Auth::GoogleTokenState googleTokenState_;
+	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
+	GoogleAuth::GoogleTokenState googleTokenState_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

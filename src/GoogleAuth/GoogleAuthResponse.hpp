@@ -14,7 +14,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace KaitoTokyo::LiveStreamSegmenter::Auth {
+namespace KaitoTokyo::GoogleAuth {
 
 struct GoogleAuthResponse {
 	std::string ver = "1.0";
@@ -67,4 +67,4 @@ inline void to_json(nlohmann::json &j, const GoogleAuthResponse &p)
 		j["scope"] = *p.scope;
 }
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::Auth
+} // namespace KaitoTokyo::GoogleAuth
