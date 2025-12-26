@@ -138,7 +138,7 @@ SettingsDialog::~SettingsDialog() {}
 
 void SettingsDialog::accept()
 {
-	storeSettings();
+	saveSettings();
 	QDialog::accept();
 }
 
@@ -197,7 +197,7 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 
 void SettingsDialog::onApply()
 {
-	storeSettings();
+	saveSettings();
 	if (authStore_->getGoogleTokenState().isAuthorized()) {
 		statusLabel_->setText(tr("Authorized (Saved)"));
 	} else {
@@ -333,7 +333,7 @@ void SettingsDialog::setupUi()
 	resize(500, 700);
 }
 
-void SettingsDialog::storeSettings()
+void SettingsDialog::saveSettings()
 {
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
@@ -341,6 +341,7 @@ void SettingsDialog::storeSettings()
 	authStore_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
 
 	authStore_->saveAuthStore();
+
 }
 
 inline SettingsDialogGoogleOAuth2ClientCredentials
