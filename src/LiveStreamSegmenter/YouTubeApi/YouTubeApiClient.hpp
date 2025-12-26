@@ -35,7 +35,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 class YouTubeApiClient {
 public:
-	explicit YouTubeApiClient();
+	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() = default;
 
 	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken);

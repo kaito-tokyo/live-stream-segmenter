@@ -113,7 +113,7 @@ std::vector<nlohmann::json> performList(const char *url, const char *accessToken
 	return items;
 }
 
-YouTubeApiClient::YouTubeApiClient(std::shared_ptr<Logger::ILogger> logger) : logger_(std::move(logger)) {}
+YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {}
 
 std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string &accessToken)
 {

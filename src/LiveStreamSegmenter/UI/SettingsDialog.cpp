@@ -469,7 +469,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 Async::Task<void> SettingsDialog::fetchStreamKeys()
 {
-	YouTubeApi::YouTubeApiClient client([] {});
+	YouTubeApi::YouTubeApiClient client(logger_);
 	co_return;
 }
 
