@@ -208,7 +208,10 @@ struct [[nodiscard("Task objects own the running coroutine. Do not discard witho
 	 */
 	explicit operator bool() const noexcept { return handle != nullptr; }
 
-	[[nodiscard]] bool await_ready() { return handle.done(); }
+	[[nodiscard]] bool await_ready() const noexcept
+	{
+		return !handle || handle.done();
+	}
 
 	std::coroutine_handle<> await_suspend(std::coroutine_handle<> caller)
 	{
