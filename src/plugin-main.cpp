@@ -22,23 +22,21 @@
 
 #include <MainPluginContext.hpp>
 
-using namespace KaitoTokyo::BridgeUtils;
-using namespace KaitoTokyo::Logger;
-
-using namespace KaitoTokyo::LiveStreamSegmenter::Controller;
+using namespace KaitoTokyo;
+using namespace KaitoTokyo::LiveStreamSegmenter;
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
-static std::shared_ptr<const ILogger> g_logger;
-static std::shared_ptr<MainPluginContext> g_mainPluginContext;
+static std::shared_ptr<const Logger::ILogger> g_logger;
+static std::shared_ptr<Controller::MainPluginContext> g_mainPluginContext;
 
 bool obs_module_load(void)
 {
-	g_logger = std::make_shared<ObsLogger>("[" PLUGIN_NAME "]");
+	g_logger = std::make_shared<BridgeUtils::ObsLogger>("[" PLUGIN_NAME "]");
 
 	if (QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window())) {
-		g_mainPluginContext = MainPluginContext::create(g_logger, mainWindow);
+		g_mainPluginContext = Controller::MainPluginContext::create(g_logger, mainWindow);
 	} else {
 		g_logger->error("Failed to get main window");
 		g_logger->error("plugin load failed (version {})", PLUGIN_VERSION);
@@ -51,7 +49,8 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
+	std::shared_ptr<const Logger::ILogger> logger = g_logger;
 	g_mainPluginContext.reset();
 	g_logger.reset();
-	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
+	logger->info("plugin unloaded");
 }
