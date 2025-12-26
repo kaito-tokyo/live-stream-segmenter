@@ -21,8 +21,6 @@
  * SOFTWARE.
  */
 
-#pragma once
-
 #include "YouTubeApiClient.hpp"
 
 #include <functional>
@@ -113,14 +111,16 @@ std::vector<nlohmann::json> performList(const char *url, const char *accessToken
 	return items;
 }
 
+} // anonymous namespace
+
 YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {}
 
-std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string &accessToken)
+std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string &accessToken) const
 {
 	std::vector<YouTubeStreamKey> streamKeys;
 
 	const char *url =
-		"https://www.googleapis.com/youtube/v3/liveStreamKeys?part=snippet,cdn&mine=true&maxResults=50";
+	        "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
 
 	auto items = performList(url, accessToken.c_str());
 
@@ -148,7 +148,5 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 
 	return streamKeys;
 }
-
-} // anonymous namespace
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

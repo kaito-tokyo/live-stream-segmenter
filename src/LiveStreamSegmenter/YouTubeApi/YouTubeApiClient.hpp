@@ -38,10 +38,10 @@ public:
 	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() = default;
 
-	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken);
+	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken) const;
 
 private:
-	std::shared_ptr<Logger::ILogger> logger_;
+	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
