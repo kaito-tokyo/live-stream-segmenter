@@ -32,7 +32,6 @@
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <Task.hpp>
-#include <TaskStorage.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 
@@ -163,7 +162,7 @@ void SettingsDialog::onAuthButtonClicked()
 	authButton_->setEnabled(false);
 	statusLabel_->setText(tr("Waiting for browser..."));
 
-	currentAuthFlowTask_ = runAuthFlow(std::allocator_arg, currentAuthFlowTaskStorage_, this);
+	currentAuthFlowTask_ = runAuthFlow(this);
 	currentAuthFlowTask_.start();
 }
 
@@ -388,8 +387,7 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	return credentials;
 }
 
-Async::Task<void> SettingsDialog::runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &,
-					      QPointer<SettingsDialog> self)
+Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 {
 	if (!self)
 		co_return;
