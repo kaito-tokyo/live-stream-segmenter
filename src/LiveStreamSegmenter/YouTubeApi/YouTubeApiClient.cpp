@@ -119,8 +119,7 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 {
 	std::vector<YouTubeStreamKey> streamKeys;
 
-	const char *url =
-	        "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
+	const char *url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
 
 	auto items = performList(url, accessToken.c_str());
 

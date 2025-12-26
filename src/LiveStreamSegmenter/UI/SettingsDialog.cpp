@@ -131,9 +131,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	currentFetchStreamKeysTask_.start();
 }
 
-SettingsDialog::~SettingsDialog()
-{
-}
+SettingsDialog::~SettingsDialog() {}
 
 void SettingsDialog::accept()
 {
@@ -475,7 +473,8 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 
 	co_await ResumeOnGlobalQThreadPool{};
 	try {
-		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(), logger_);
+		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(),
+								logger_);
 		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
@@ -484,7 +483,8 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 				logger->info("A fresh access token for YouTube is available.");
 				accessToken = tokenState.access_token;
 			} else {
-				logger->info("Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
+				logger->info(
+					"Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 				GoogleAuth::GoogleTokenState newTokenState =
