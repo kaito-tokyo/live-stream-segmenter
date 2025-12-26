@@ -80,6 +80,11 @@ public:
 		};
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
+		if (!ofs.is_open()) {
+			logger_->error("FileOpenError(AuthStore::saveAuthStore): Could not open file {}", configPath.string());
+			return false;
+		}
+
 		ofs << j.dump();
 
 		return true;
