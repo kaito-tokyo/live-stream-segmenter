@@ -72,12 +72,13 @@ public:
 			return false;
 		}
 
+		std::scoped_lock lock(mutex_);
+
 		nlohmann::json j{
 			{"googleOAuth2ClientCredentials", googleOAuth2ClientCredentials_},
 			{"googleTokenState", googleTokenState_},
 		};
 
-		std::scoped_lock lock(mutex_);
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		ofs << j.dump();
 
