@@ -82,8 +82,7 @@ private:
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	static Async::Task<void> runAuthFlow(std::allocator_arg_t, Async::TaskStorage<> &,
-					     QPointer<SettingsDialog> self);
+	static Async::Task<void> runAuthFlow(QPointer<SettingsDialog> self);
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -131,7 +130,6 @@ private:
 
 	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
 	Async::Task<void> currentAuthFlowTask_{nullptr};
-	Async::TaskStorage<> currentAuthFlowTaskStorage_;
 	jthread_ns::jthread currentAuthTaskWorkerThread_;
 	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
 };
