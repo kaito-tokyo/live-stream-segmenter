@@ -36,6 +36,17 @@ struct [[nodiscard]] JoinTask {
 	JoinTask(const JoinTask &) = delete;
 	JoinTask &operator=(const JoinTask &) = delete;
 	JoinTask(JoinTask &&other) noexcept : handle(other.handle) { other.handle = nullptr; }
+	JoinTask &operator=(JoinTask &&other) noexcept
+	{
+		if (this != &other) {
+			if (handle) {
+				handle.destroy();
+			}
+			handle = other.handle;
+			other.handle = nullptr;
+		}
+		return *this;
+	}
 
 	void start()
 	{
