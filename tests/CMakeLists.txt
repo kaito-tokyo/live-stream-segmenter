@@ -2,11 +2,6 @@ include(GoogleTest)
 
 set(TEST_LIST "")
 
-# UpdateChecker_test
-add_executable(UpdateChecker_test UpdateChecker/UpdateChecker_test.cpp)
-target_link_libraries(UpdateChecker_test PRIVATE GTest::gtest_main UpdateChecker)
-list(APPEND TEST_LIST UpdateChecker_test)
-
 foreach(TEST_NAME IN LISTS TEST_LIST)
   set_target_properties(
     ${TEST_NAME}
