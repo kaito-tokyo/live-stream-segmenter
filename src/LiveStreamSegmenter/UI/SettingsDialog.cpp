@@ -123,6 +123,9 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthButtonClicked);
 	connect(clearAuthButton_, &QPushButton::clicked, this, &SettingsDialog::onClearAuthButtonClicked);
 
+	connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty);
+	connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty);
+
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
@@ -167,7 +170,7 @@ void SettingsDialog::onAuthButtonClicked()
 
 void SettingsDialog::onClearAuthButtonClicked()
 {
-	authStore_->clearGoogleTokenState();
+	authStore_->setGoogleTokenState({});
 	statusLabel_->setText(tr("Cleared to be Unauthorized"));
 	logger_->info("Cleared stored Google OAuth2 token.");
 }

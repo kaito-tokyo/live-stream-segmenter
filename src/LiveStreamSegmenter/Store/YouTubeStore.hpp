@@ -14,20 +14,18 @@
 
 #pragma once
 
+#include <exception>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <mutex>
 
-#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include <obs-frontend-api.h>
-#include <obs.h>
-#include <util/config-file.h>
 
 #include <ILogger.hpp>
-
-#include <GoogleOAuth2ClientCredentials.hpp>
-#include <GoogleTokenState.hpp>
+#include <ObsUnique.hpp>
 #include <YouTubeTypes.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
@@ -66,54 +64,68 @@ public:
 		return streamKeyB_;
 	}
 
-	void saveYouTubeStore() noexcept
-	{
+	bool saveYouTubeStore() noexcept
+	try {
+		std::filesystem::path configPath = getConfigPath();
+		if (configPath.empty()) {
+			return false;
+		}
+
+		nlohmann::json j{
+			{"streamKeyA", streamKeyA_},
+			{"streamKeyB", streamKeyB_},
+		};
+
 		std::scoped_lock lock(mutex_);
-		saveToConfig("YouTubeStore_streamKeyA", streamKeyA_);
-		saveToConfig("YouTubeStore_streamKeyB", streamKeyB_);
+		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
+		ofs << j.dump();
+
+		return true;
+	} catch (const std::exception &e) {
+		logger_->error("Error(YouTubeStore::saveYouTubeStore):{}", e.what());
+		return false;
+	} catch (...) {
+		logger_->error("UnknownError(YouTubeStore::saveYouTubeStore)");
+		return false;
 	}
 
 	void restoreYouTubeStore() noexcept
-	{
+	try {
+		std::filesystem::path configPath = getConfigPath();
+		if (configPath.empty()) {
+			return;
+		}
+
 		std::scoped_lock lock(mutex_);
-		restoreFromConfig("YouTubeStore_streamKeyA", streamKeyA_);
-		restoreFromConfig("YouTubeStore_streamKeyB", streamKeyB_);
+		std::ifstream ifs(configPath, std::ios::in);
+		if (ifs.is_open()) {
+			nlohmann::json j;
+			ifs >> j;
+
+			streamKeyA_ = j.value("streamKeyA", YouTubeApi::YouTubeStreamKey{});
+			streamKeyB_ = j.value("streamKeyB", YouTubeApi::YouTubeStreamKey{});
+		}
+	} catch (const std::exception &e) {
+		logger_->error("Error(YouTubeStore::restoreYouTubeStore):{}", e.what());
+		streamKeyA_ = YouTubeApi::YouTubeStreamKey{};
+		streamKeyB_ = YouTubeApi::YouTubeStreamKey{};
+	} catch (...) {
+		logger_->error("UnknownError(YouTubeStore::restoreYouTubeStore)");
+		streamKeyA_ = YouTubeApi::YouTubeStreamKey{};
+		streamKeyB_ = YouTubeApi::YouTubeStreamKey{};
 	}
 
 private:
-	void saveToConfig(const char *key, const nlohmann::json &json) noexcept
+	std::filesystem::path getConfigPath() const
 	{
-		config_t *config = obs_frontend_get_profile_config();
-		try {
-			std::string jsonString = json.dump();
-			config_set_string(config, PLUGIN_NAME, key, jsonString.c_str());
-			config_save(config);
-		} catch (const std::exception &e) {
-			logger_->logException(e, "StoreError(YouTubeStore::saveToConfig):" + std::string(key));
-		} catch (...) {
-			logger_->error("UnknownError(YouTubeStore::saveToConfig):{}", key);
+		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
+		if (!profilePathRaw) {
+			logger_->error("ProfilePathError(YouTubeStore::getConfigPath)");
+			return {};
 		}
-	}
 
-	template<typename T> void restoreFromConfig(const char *key, T &target) noexcept
-	{
-		config_t *config = obs_frontend_get_profile_config();
-		const char *jsonCstr = config_get_string(config, PLUGIN_NAME, key);
-
-		if (jsonCstr == nullptr || jsonCstr[0] == '\0') {
-			logger_->info("{} not found in config.", key);
-		} else {
-			try {
-				nlohmann::json j = nlohmann::json::parse(jsonCstr);
-				j.get_to(target);
-				logger_->info("{} restored successfully.", key);
-			} catch (const std::exception &e) {
-				logger_->logException(e, "RestoreError(YouTubeStore::restoreFromConfig):" +
-								 std::string(key));
-			} catch (...) {
-				logger_->error("UnknownError(YouTubeStore::restoreFromConfig):{}", key);
-			}
-		}
+		std::filesystem::path profilePath(reinterpret_cast<const char8_t *>(profilePathRaw.get()));
+		return profilePath / "live-stream-segmenter_YouTubeStore.json";
 	}
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
