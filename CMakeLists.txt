@@ -6,7 +6,6 @@ include(init)
 project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION} LANGUAGES C CXX)
 
 option(BUILD_TESTING "Build test cases" ON)
-option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
 if(MSVC)
@@ -54,15 +53,6 @@ elseif(APPLE)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-universal"
   )
-endif()
-
-if(ENABLE_ASAN)
-  if(MSVC)
-    add_compile_options(/fsanitize=address)
-  else()
-    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-    add_link_options(-fsanitize=address)
-  endif()
 endif()
 
 find_package(libobs REQUIRED)
