@@ -84,6 +84,8 @@ private:
 
 	static Async::Task<void> runAuthFlow(QPointer<SettingsDialog> self);
 
+	Async::Task<void> fetchStreamKeys();
+
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 

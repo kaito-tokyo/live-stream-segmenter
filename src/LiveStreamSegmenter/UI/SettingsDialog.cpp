@@ -32,6 +32,7 @@
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <Task.hpp>
+#include <YouTubeApiClient.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 
@@ -464,6 +465,12 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		QString msg = tr("Authorization failed.");
 		QMessageBox::critical(self, tr("Error"), msg);
 	}
+}
+
+Async::Task<void> SettingsDialog::fetchStreamKeys()
+{
+	YouTubeApi::YouTubeApiClient client([] {});
+	co_return;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
