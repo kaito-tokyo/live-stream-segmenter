@@ -68,9 +68,11 @@ struct ResumeOnQtMainThread {
 } // anonymous namespace
 
 SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
+			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
 	  authStore_(std::move(authStore)),
+	  youTubeStore_(std::move(youTubeStore)),
 	  logger_(std::move(logger)),
 
 	  // 1. Main Structure
@@ -299,14 +301,14 @@ void SettingsDialog::setupUi()
 
 	// Key A
 	streamKeyLabelA_->setText(tr("Stream Key A"));
-	streamKeyComboA_->setPlaceholderText(tr("Authenticate to fetch keys..."));
+	streamKeyComboA_->setPlaceholderText(tr("-"));
 	streamKeyComboA_->setEnabled(false);
 	streamKeyComboA_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	streamKeyFormLayout->addRow(streamKeyLabelA_, streamKeyComboA_);
 
 	// Key B
 	streamKeyLabelB_->setText(tr("Stream Key B"));
-	streamKeyComboB_->setPlaceholderText(tr("Authenticate to fetch keys..."));
+	streamKeyComboB_->setPlaceholderText(tr("-"));
 	streamKeyComboB_->setEnabled(false);
 	streamKeyComboB_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	streamKeyFormLayout->addRow(streamKeyLabelB_, streamKeyComboB_);
@@ -342,6 +344,21 @@ void SettingsDialog::saveSettings()
 
 	authStore_->saveAuthStore();
 
+	int streamKeyAIndex = streamKeyComboA_->currentIndex();
+	if (streamKeyAIndex >= 0) {
+		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex].id);
+	} else {
+		youTubeStore_->setStreamKeyA("");
+	}
+
+	int streamKeyBIndex = streamKeyComboB_->currentIndex();
+	if (streamKeyBIndex >= 0) {
+		youTubeStore_->setStreamKeyB(streamKeys_[streamKeyBIndex].id);
+	} else {
+		youTubeStore_->setStreamKeyB("");
+	}
+
+	youTubeStore_->saveYouTubeStore();
 }
 
 inline SettingsDialogGoogleOAuth2ClientCredentials
@@ -507,14 +524,27 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 
 		streamKeys_ = std::move(streamKeys);
 
-		for (const auto &key : streamKeys_) {
+		std::string currentStreamKeyA = youTubeStore_->getStreamKeyA();
+		std::string currentStreamKeyB = youTubeStore_->getStreamKeyB();
+
+		for (std::size_t i = 0; i < streamKeys_.size(); ++i) {
+			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
+
+			streamKeyComboA_->setEnabled(true);
+			streamKeyComboB_->setEnabled(true);
+
 			QString displayText = QString::fromStdString(
 				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 
-			streamKeyComboA_->setEnabled(true);
-			streamKeyComboB_->setEnabled(true);
+			if (currentStreamKeyA == key.id) {
+				streamKeyComboA_->setCurrentIndex(i);
+			}
+
+			if (currentStreamKeyB == key.id) {
+				streamKeyComboB_->setCurrentIndex(i);
+			}
 		}
 
 	} catch (const std::exception &e) {

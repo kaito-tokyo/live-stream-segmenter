@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
@@ -28,6 +28,7 @@
 #include <ILogger.hpp>
 
 #include <AuthStore.hpp>
+#include <YouTubeStore.hpp>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -45,10 +46,11 @@ public:
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
-	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore)
+	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore) { authStore_ = std::move(authStore); }
+
+	void setYouTubeStore(std::shared_ptr<Store::YouTubeStore> youTubeStore)
 	{
-		std::scoped_lock lock(mutex_);
-		authStore_ = std::move(authStore);
+		youTubeStore_ = std::move(youTubeStore);
 	}
 
 private slots:
@@ -112,6 +114,7 @@ private:
 	QPushButton *const segmentNowButton_;
 
 	std::shared_ptr<Store::AuthStore> authStore_;
+	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	mutable std::mutex mutex_;
 };
 
