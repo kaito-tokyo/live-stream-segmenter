@@ -125,7 +125,7 @@ private:
 		}
 
 		std::filesystem::path profilePath(reinterpret_cast<const char8_t *>(profilePathRaw.get()));
-		return profilePath / "live-stream-segmenter_YouTubeStore.json";ream-key-2
+		return profilePath / "live-stream-segmenter_YouTubeStore.json";
 	}
 
 	const std::shared_ptr<const Logger::ILogger> logger_;

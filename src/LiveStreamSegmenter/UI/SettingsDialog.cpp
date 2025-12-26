@@ -125,9 +125,6 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthButtonClicked);
 	connect(clearAuthButton_, &QPushButton::clicked, this, &SettingsDialog::onClearAuthButtonClicked);
 
-	connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty);
-	connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty);
-
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
@@ -346,16 +343,16 @@ void SettingsDialog::saveSettings()
 
 	int streamKeyAIndex = streamKeyComboA_->currentIndex();
 	if (streamKeyAIndex >= 0) {
-		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex].id);
+		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex]);
 	} else {
-		youTubeStore_->setStreamKeyA("");
+		youTubeStore_->setStreamKeyA({});
 	}
 
 	int streamKeyBIndex = streamKeyComboB_->currentIndex();
 	if (streamKeyBIndex >= 0) {
-		youTubeStore_->setStreamKeyB(streamKeys_[streamKeyBIndex].id);
+		youTubeStore_->setStreamKeyB(streamKeys_[streamKeyBIndex]);
 	} else {
-		youTubeStore_->setStreamKeyB("");
+		youTubeStore_->setStreamKeyB({});
 	}
 
 	youTubeStore_->saveYouTubeStore();
@@ -524,8 +521,8 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 
 		streamKeys_ = std::move(streamKeys);
 
-		std::string currentStreamKeyA = youTubeStore_->getStreamKeyA();
-		std::string currentStreamKeyB = youTubeStore_->getStreamKeyB();
+		YouTubeApi::YouTubeStreamKey currentStreamKeyA = youTubeStore_->getStreamKeyA();
+		YouTubeApi::YouTubeStreamKey currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
 		for (std::size_t i = 0; i < streamKeys_.size(); ++i) {
 			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
@@ -538,15 +535,17 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 
-			if (currentStreamKeyA == key.id) {
+			if (currentStreamKeyA.id == key.id) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
 
-			if (currentStreamKeyB == key.id) {
+			if (currentStreamKeyB.id == key.id) {
 				streamKeyComboB_->setCurrentIndex(i);
 			}
 		}
 
+		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty, Qt::UniqueConnection);
+		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty, Qt::UniqueConnection);
 	} catch (const std::exception &e) {
 		logger->logException(e, "Failed to fetch stream keys");
 	}
