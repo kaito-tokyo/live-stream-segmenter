@@ -26,12 +26,15 @@
 #include <QRegularExpression>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QThreadPool>
 #include <QUrl>
 #include <QUrlQuery>
 
+#include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <Task.hpp>
+#include <YouTubeApiClient.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 
@@ -39,22 +42,18 @@ namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 namespace {
 
-struct ResumeOnJThread {
-	jthread_ns::jthread &threadStorage;
-
+struct ResumeOnGlobalQThreadPool {
 	bool await_ready() { return false; }
-
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		threadStorage = jthread_ns::jthread([h] { h.resume(); });
+		QThreadPool::globalInstance()->start([h]() { h.resume(); });
 	}
-
 	void await_resume() {}
 };
 
-struct ResumeOnMainThread {
+struct ResumeOnQtMainThread {
 	QPointer<QObject> context;
-	explicit ResumeOnMainThread(QObject *c) : context(c) {}
+	explicit ResumeOnQtMainThread(QObject *c) : context(c) {}
 
 	bool await_ready() { return false; }
 	void await_suspend(std::coroutine_handle<> h)
@@ -66,7 +65,7 @@ struct ResumeOnMainThread {
 	void await_resume() {}
 };
 
-} // namespace
+} // anonymous namespace
 
 SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
@@ -127,12 +126,12 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
+
+	currentFetchStreamKeysTask_ = fetchStreamKeys();
+	currentFetchStreamKeysTask_.start();
 }
 
-SettingsDialog::~SettingsDialog()
-{
-	currentAuthTaskWorkerThread_ = {};
-}
+SettingsDialog::~SettingsDialog() {}
 
 void SettingsDialog::accept()
 {
@@ -435,20 +434,19 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 			throw std::runtime_error("Authorization code was empty.");
 		}
 
-		co_await ResumeOnJThread{self->currentAuthTaskWorkerThread_};
+		co_await ResumeOnGlobalQThreadPool{};
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
 		logger->logException(e, "OAuth flow failed");
 	}
 
-	co_await ResumeOnMainThread{self};
+	co_await ResumeOnQtMainThread{self};
 
 	if (!self)
 		co_return;
 
 	self->currentCallbackServer_.reset();
-	self->currentAuthTaskWorkerThread_ = jthread_ns::jthread();
 	self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
@@ -463,6 +461,60 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		self->statusLabel_->setText(tr("Authorization Failed"));
 		QString msg = tr("Authorization failed.");
 		QMessageBox::critical(self, tr("Error"), msg);
+	}
+
+	self->currentFetchStreamKeysTask_ = self->fetchStreamKeys();
+	self->currentFetchStreamKeysTask_.start();
+}
+
+Async::Task<void> SettingsDialog::fetchStreamKeys()
+{
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	co_await ResumeOnGlobalQThreadPool{};
+	try {
+		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(),
+								logger_);
+		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
+
+		std::string accessToken;
+		if (tokenState.isAuthorized()) {
+			if (tokenState.isAccessTokenFresh()) {
+				logger->info("A fresh access token for YouTube is available.");
+				accessToken = tokenState.access_token;
+			} else {
+				logger->info(
+					"Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
+				GoogleAuth::GoogleAuthResponse freshAuthResponse =
+					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
+				GoogleAuth::GoogleTokenState newTokenState =
+					tokenState.withUpdatedAuthResponse(freshAuthResponse);
+				authStore_->setGoogleTokenState(newTokenState);
+				accessToken = freshAuthResponse.access_token;
+				logger->info("Fetched a fresh access token for YouTube.");
+			}
+		}
+		logger->info("Access token: {}", accessToken);
+
+		YouTubeApi::YouTubeApiClient client(logger);
+		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
+
+		co_await ResumeOnQtMainThread{this};
+
+		streamKeys_ = std::move(streamKeys);
+
+		for (const auto &key : streamKeys_) {
+			QString displayText = QString::fromStdString(
+				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));
+			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
+			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
+
+			streamKeyComboA_->setEnabled(true);
+			streamKeyComboB_->setEnabled(true);
+		}
+
+	} catch (const std::exception &e) {
+		logger->logException(e, "Failed to fetch stream keys");
 	}
 }
 

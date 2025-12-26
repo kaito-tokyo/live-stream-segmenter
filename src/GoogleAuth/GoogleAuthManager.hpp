@@ -28,25 +28,17 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-struct GoogleAuthManagerCallback {
-	std::function<void(GoogleTokenState)> onTokenStore;
-	std::function<void()> onTokenInvalidate;
-};
-
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(GoogleOAuth2ClientCredentials clientCredentials, GoogleAuthManagerCallback callback,
-			  std::shared_ptr<const Logger::ILogger> logger,
-			  std::optional<GoogleTokenState> storedTokenState = std::nullopt)
+	GoogleAuthManager(GoogleOAuth2ClientCredentials clientCredentials,
+			  std::shared_ptr<const Logger::ILogger> logger)
 		: clientCredentials_(std::move(clientCredentials)),
-		  callback_(std::move(callback)),
 		  logger_(std::move(logger))
 	{
-		if (storedTokenState.has_value()) {
-			currentTokenState_ = storedTokenState.value();
+		if (clientCredentials_.client_id.empty() || clientCredentials_.client_secret.empty()) {
+			throw std::runtime_error("CredentialsMissingError(GoogleAuthManager::GoogleAuthManager)");
 		}
 	}
-
 	~GoogleAuthManager() noexcept = default;
 
 	GoogleAuthManager(const GoogleAuthManager &) = delete;
@@ -54,84 +46,16 @@ public:
 	GoogleAuthManager(GoogleAuthManager &&) = delete;
 	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
 
-	bool isAuthenticated() const
+	GoogleAuthResponse fetchFreshAuthResponse(const std::string &refreshToken) const
 	{
-		std::scoped_lock lock(mutex_);
-		return currentTokenState_.isAuthorized();
-	};
-
-	void updateTokenState(const GoogleTokenState &tokenState)
-	{
-		{
-			std::scoped_lock lock(mutex_);
-			currentTokenState_ = tokenState;
-		}
-		callback_.onTokenStore(tokenState);
-	}
-
-	void clear()
-	{
-		{
-			std::scoped_lock lock(mutex_);
-			currentTokenState_.clear();
-		}
-		callback_.onTokenInvalidate();
-	}
-
-	std::string getAccessToken()
-	{
-		std::optional<std::string> refreshToken;
-
-		{
-			std::scoped_lock lock(mutex_);
-
-			if (!currentTokenState_.isAuthorized()) {
-				throw std::runtime_error("NotAuthorizedError(getAccessToken)");
-			}
-
-			if (currentTokenState_.isAccessTokenFresh()) {
-				return currentTokenState_.access_token;
-			}
-
-			refreshToken = currentTokenState_.refresh_token;
-		}
-
-		if (clientCredentials_.client_id.empty() || clientCredentials_.client_secret.empty()) {
-			throw std::runtime_error("CredentialsMissingError(getAccessToken)");
-		}
-
-		if (refreshToken.has_value()) {
-			GoogleAuthResponse tokenResponse = refreshTokenState(*refreshToken);
-
-			GoogleTokenState tokenState;
-			{
-				std::scoped_lock lock(mutex_);
-				currentTokenState_ = currentTokenState_.withUpdatedAuthResponse(tokenResponse);
-				tokenState = currentTokenState_;
-			}
-
-			callback_.onTokenStore(tokenState);
-
-			return tokenState.access_token;
-		} else {
-			throw std::runtime_error("TokenRefreshError(getAccessToken)");
-		}
-	}
-
-private:
-	GoogleAuthResponse refreshTokenState(const std::string &refreshToken)
-	{
-		using nlohmann::json;
-		using namespace CurlHelper;
-
 		std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 		if (!curl) {
-			throw std::runtime_error("InitError(refreshTokenState)");
+			throw std::runtime_error("InitError(GoogleAuthManager::fetchFreshAuthResponse)");
 		}
 
-		CurlVectorWriterBuffer readBuffer;
+		CurlHelper::CurlVectorWriterBuffer readBuffer;
 
-		CurlUrlSearchParams postParams(curl.get());
+		CurlHelper::CurlUrlSearchParams postParams(curl.get());
 		postParams.append("client_id", clientCredentials_.client_id);
 		postParams.append("client_secret", clientCredentials_.client_secret);
 		postParams.append("refresh_token", refreshToken);
@@ -142,7 +66,7 @@ private:
 		curl_easy_setopt(curl.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
 		curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
 		curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, postData.c_str());
-		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlVectorWriter);
+		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);       // 60 second timeout
 		curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
@@ -158,21 +82,17 @@ private:
 			throw std::runtime_error("NetworkError:" + err);
 		}
 
-		json j = json::parse(readBuffer.begin(), readBuffer.end());
-
+		nlohmann::json j = nlohmann::json::parse(readBuffer.begin(), readBuffer.end());
 		if (j.contains("error")) {
-			throw std::runtime_error("APIError(refreshTokenState):" + j["error"].dump());
+			throw std::runtime_error("APIError(GoogleAuthManager::fetchFreshAuthResponse):" +
+						 j["error"].dump());
 		}
 
 		return j.get<GoogleAuthResponse>();
 	}
 
 	const GoogleOAuth2ClientCredentials clientCredentials_;
-	GoogleAuthManagerCallback callback_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
-
-	mutable std::mutex mutex_;
-	GoogleTokenState currentTokenState_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

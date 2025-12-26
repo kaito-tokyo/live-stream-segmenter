@@ -11,7 +11,7 @@ target_link_libraries(
     BridgeUtils
     Logger
     GoogleAuth
-    ${CMAKE_PROJECT_NAME}_API
+    ${CMAKE_PROJECT_NAME}_YouTubeApi
     ${CMAKE_PROJECT_NAME}_Store
 )
 target_sources(

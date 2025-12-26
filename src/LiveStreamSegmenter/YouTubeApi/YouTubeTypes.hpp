@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace KaitoTokyo::LiveStreamSegmenter::API {
+namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 /**
  * @brief Represents a YouTube stream key and its associated metadata.
@@ -35,4 +35,4 @@ struct YouTubeStreamKey {
 	std::string cdn_ingestionInfo_backupIngestionAddress;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::API
+} // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

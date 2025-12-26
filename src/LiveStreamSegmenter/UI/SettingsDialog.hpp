@@ -25,6 +25,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QTabWidget>
+#include <QThreadPool>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -32,23 +33,12 @@
 
 #include <AuthStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
+#include <YouTubeTypes.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"
 
-#ifdef __APPLE__
-#include <jthread.hpp>
-#else
-#include <thread>
-#endif
-
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
-
-#ifdef __APPLE__
-namespace jthread_ns = josuttis;
-#else
-namespace jthread_ns = std;
-#endif
 
 struct SettingsDialogGoogleOAuth2ClientCredentials {
 	QString client_id;
@@ -83,6 +73,8 @@ private:
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
 	static Async::Task<void> runAuthFlow(QPointer<SettingsDialog> self);
+
+	Async::Task<void> fetchStreamKeys();
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
@@ -128,10 +120,13 @@ private:
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 
+	std::vector<YouTubeApi::YouTubeStreamKey> streamKeys_;
+
 	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
-	Async::Task<void> currentAuthFlowTask_{nullptr};
-	jthread_ns::jthread currentAuthTaskWorkerThread_;
+	Async::Task<void> currentAuthFlowTask_ = {};
 	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
+
+	Async::Task<void> currentFetchStreamKeysTask_ = {};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
