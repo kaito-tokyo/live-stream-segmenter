@@ -33,6 +33,7 @@
 
 #include <AuthStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
+#include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
@@ -49,8 +50,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger,
-		       QWidget *parent = nullptr);
+	SettingsDialog(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youTubeStore,
+		       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~SettingsDialog() override;
 
 public slots:
@@ -66,7 +67,7 @@ private slots:
 private:
 	void setupUi();
 
-	void storeSettings();
+	void saveSettings();
 	void restoreSettings();
 
 	SettingsDialogGoogleOAuth2ClientCredentials
@@ -77,6 +78,7 @@ private:
 	Async::Task<void> fetchStreamKeys();
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
+	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// --- UI Components ---

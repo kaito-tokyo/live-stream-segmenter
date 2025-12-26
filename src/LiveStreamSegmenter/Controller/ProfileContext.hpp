@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
+ * but WITHOUT ANY WARRANTY; for more details see the file
  * "LICENSE.GPL-3.0-or-later" in the distribution root.
  */
 
@@ -19,6 +19,7 @@
 #include <ILogger.hpp>
 
 #include <AuthStore.hpp>
+#include <YouTubeStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
@@ -27,11 +28,14 @@ class ProfileContext {
 public:
 	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
-		  dock_(dock),
-		  authStore_(std::make_shared<Store::AuthStore>(logger_))
+		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
+		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
+		  dock_(dock)
 	{
 		authStore_->restoreAuthStore();
+		youTubeStore_->restoreYouTubeStore();
 		dock_->setAuthStore(authStore_);
+		dock_->setYouTubeStore(youTubeStore_);
 	}
 
 	~ProfileContext() noexcept = default;
@@ -44,6 +48,7 @@ public:
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	std::shared_ptr<Store::AuthStore> authStore_;
+	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	UI::StreamSegmenterDock *const dock_;
 };
 
