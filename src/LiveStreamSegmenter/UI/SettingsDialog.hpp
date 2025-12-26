@@ -66,7 +66,7 @@ private slots:
 private:
 	void setupUi();
 
-	void storeSettings();
+	void saveSettings();
 	void restoreSettings();
 
 	SettingsDialogGoogleOAuth2ClientCredentials
