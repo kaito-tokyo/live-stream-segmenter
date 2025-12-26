@@ -1,15 +1,19 @@
 /*
- * Live Stream Segmenter
+ * Live Stream Segmenter - UI Module
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file
- * "LICENSE.GPL-3.0-or-later" in the distribution root.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -33,6 +37,7 @@
 
 #include <AuthStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
+#include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
@@ -49,8 +54,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger,
-		       QWidget *parent = nullptr);
+	SettingsDialog(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youTubeStore,
+		       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~SettingsDialog() override;
 
 public slots:
@@ -66,7 +71,7 @@ private slots:
 private:
 	void setupUi();
 
-	void storeSettings();
+	void saveSettings();
 	void restoreSettings();
 
 	SettingsDialogGoogleOAuth2ClientCredentials
@@ -77,6 +82,7 @@ private:
 	Async::Task<void> fetchStreamKeys();
 
 	const std::shared_ptr<Store::AuthStore> authStore_;
+	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// --- UI Components ---

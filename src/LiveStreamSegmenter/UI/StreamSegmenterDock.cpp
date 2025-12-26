@@ -230,7 +230,7 @@ void StreamSegmenterDock::setupUi()
 
 void StreamSegmenterDock::onSettingsButtonClicked()
 {
-	SettingsDialog settingsDialog(authStore_, logger_, this);
+	SettingsDialog settingsDialog(authStore_, youTubeStore_, logger_, this);
 	settingsDialog.exec();
 }
 

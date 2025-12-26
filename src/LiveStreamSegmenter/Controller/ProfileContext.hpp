@@ -1,15 +1,19 @@
 /*
- * Live Stream Segmenter
+ * Live Stream Segmenter - Controller Module
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; for more details see the file 
- * "LICENSE.GPL-3.0-or-later" in the distribution root.
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -19,6 +23,7 @@
 #include <ILogger.hpp>
 
 #include <AuthStore.hpp>
+#include <YouTubeStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
@@ -27,11 +32,14 @@ class ProfileContext {
 public:
 	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
-		  dock_(dock),
-		  authStore_(std::make_shared<Store::AuthStore>(logger_))
+		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
+		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
+		  dock_(dock)
 	{
 		authStore_->restoreAuthStore();
+		youTubeStore_->restoreYouTubeStore();
 		dock_->setAuthStore(authStore_);
+		dock_->setYouTubeStore(youTubeStore_);
 	}
 
 	~ProfileContext() noexcept = default;
@@ -44,6 +52,7 @@ public:
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	std::shared_ptr<Store::AuthStore> authStore_;
+	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	UI::StreamSegmenterDock *const dock_;
 };
 
