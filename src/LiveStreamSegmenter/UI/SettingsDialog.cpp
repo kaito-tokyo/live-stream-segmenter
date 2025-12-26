@@ -527,7 +527,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		streamKeyComboA_->setEnabled(true);
 		streamKeyComboB_->setEnabled(true);
 
-		for (std::size_t i = 0; i < streamKeys_.size(); ++i) {
+		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
 			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
 
 
