@@ -530,7 +530,6 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
 			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
 
-
 			QString displayText = QString::fromStdString(
 				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));

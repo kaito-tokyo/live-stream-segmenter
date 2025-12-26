@@ -46,7 +46,8 @@ public:
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
-	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore) {
+	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore)
+	{
 		std::scoped_lock lock(mutex_);
 		authStore_ = std::move(authStore);
 	}

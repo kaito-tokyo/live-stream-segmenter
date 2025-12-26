@@ -80,7 +80,8 @@ public:
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open()) {
-			logger_->error("FileOpenError(YouTubeStore::saveYouTubeStore): Could not open file {}", configPath.string());
+			logger_->error("FileOpenError(YouTubeStore::saveYouTubeStore): Could not open file {}",
+				       configPath.string());
 			return false;
 		}
 
