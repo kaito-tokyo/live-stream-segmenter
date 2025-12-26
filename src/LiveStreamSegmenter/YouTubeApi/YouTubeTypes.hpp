@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 /**
@@ -34,5 +36,10 @@ struct YouTubeStreamKey {
 	std::string cdn_ingestionInfo_ingestionAddress;
 	std::string cdn_ingestionInfo_backupIngestionAddress;
 };
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(YouTubeStreamKey, id, kind, snippet_title, snippet_description, snippet_channelId,
+				   snippet_publishedAt, snippet_privacyStatus, cdn_ingestionType, cdn_resolution,
+				   cdn_frameRate, cdn_isReusable, cdn_region, cdn_ingestionInfo_streamName,
+				   cdn_ingestionInfo_ingestionAddress, cdn_ingestionInfo_backupIngestionAddress)
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
