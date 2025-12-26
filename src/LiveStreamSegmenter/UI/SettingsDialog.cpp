@@ -544,8 +544,10 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			}
 		}
 
-		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty, Qt::UniqueConnection);
-		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty, Qt::UniqueConnection);
+		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
+			Qt::UniqueConnection);
+		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
+			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
 		logger->logException(e, "Failed to fetch stream keys");
 	}
