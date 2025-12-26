@@ -524,11 +524,12 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		YouTubeApi::YouTubeStreamKey currentStreamKeyA = youTubeStore_->getStreamKeyA();
 		YouTubeApi::YouTubeStreamKey currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
+		streamKeyComboA_->setEnabled(true);
+		streamKeyComboB_->setEnabled(true);
+
 		for (std::size_t i = 0; i < streamKeys_.size(); ++i) {
 			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
 
-			streamKeyComboA_->setEnabled(true);
-			streamKeyComboB_->setEnabled(true);
 
 			QString displayText = QString::fromStdString(
 				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));

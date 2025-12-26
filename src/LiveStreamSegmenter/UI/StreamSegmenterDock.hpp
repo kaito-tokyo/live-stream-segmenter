@@ -46,10 +46,14 @@ public:
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
 
-	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore) { authStore_ = std::move(authStore); }
+	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore) {
+		std::scoped_lock lock(mutex_);
+		authStore_ = std::move(authStore);
+	}
 
 	void setYouTubeStore(std::shared_ptr<Store::YouTubeStore> youTubeStore)
 	{
+		std::scoped_lock lock(mutex_);
 		youTubeStore_ = std::move(youTubeStore);
 	}
 
@@ -113,9 +117,9 @@ private:
 	QPushButton *const settingsButton_;
 	QPushButton *const segmentNowButton_;
 
+	mutable std::mutex mutex_;
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
-	mutable std::mutex mutex_;
 };
 
 } // namespace UI
