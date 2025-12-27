@@ -60,14 +60,10 @@ if(ENABLE_UBSAN)
   if(MSVC)
     message(
       WARNING
-        "ENABLE_UBSAN is enabled, but UBSan flags are not applied for MSVC due to limited support and incompatible flag syntax."
+      "ENABLE_UBSAN is enabled, but UBSan flags are not applied for MSVC due to limited support and incompatible flag syntax."
     )
   else()
-    add_compile_options(
-      -fsanitize=undefined
-      -fno-omit-frame-pointer
-      -fno-sanitize-recover=undefined
-    )
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
     add_link_options(-fsanitize=undefined)
   endif()
 endif()
