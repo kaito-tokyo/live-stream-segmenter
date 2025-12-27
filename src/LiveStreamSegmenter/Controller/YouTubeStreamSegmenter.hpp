@@ -38,6 +38,7 @@ public:
 	YouTubeStreamSegmenter(YouTubeStreamSegmenter &&) = delete;
 	YouTubeStreamSegmenter &operator=(YouTubeStreamSegmenter &&) = delete;
 
+public slots:
 	void startContinuousSession();
 	void stopContinuousSession();
 	void segmentCurrentSession();
