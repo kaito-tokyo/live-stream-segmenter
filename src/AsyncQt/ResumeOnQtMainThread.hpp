@@ -23,46 +23,22 @@
 
 #pragma once
 
-#include <QObject>
+#include <coroutine>
 
-#include <ILogger.hpp>
-#include <Task.hpp>
+#include <QMetaObject>
+#include <QPointer>
 
-#include "TaskLauncher.hpp"
+struct ResumeOnQtMainThread {
+	QPointer<QObject> context;
 
-namespace KaitoTokyo::AsyncQt {
+	bool await_ready() { return false; }
 
-void TaskLauncher::launch(Async::Task<void> task, std::shared_ptr<const Logger::ILogger> logger, QObject *parent)
-{
-	if (!task)
-		throw std::invalid_argument("TaskNullError(TaskLauncher::launch)");
-
-	if (!logger)
-		throw std::invalid_argument("LoggerNullError(TaskLauncher::launch)");
-
-	auto *launcher = new TaskLauncher(std::move(task), std::move(logger), parent);
-	launcher->start();
-}
-
-TaskLauncher::TaskLauncher(Async::Task<void> task, std::shared_ptr<const Logger::ILogger> logger, QObject *parent)
-	: QObject(parent)
-{
-	task_ = [this, task = std::move(task), logger = std::move(logger)]() mutable -> Async::Task<void> {
-		try {
-			co_await task;
-		} catch (const std::exception &e) {
-			logger->error("error=Error\tlocation=TaskLauncher::TaskLauncher\tmessage={}", e.what());
-		} catch (...) {
-			logger->error("error=UnknownError\tlocation=TaskLauncher::TaskLauncher");
+	void await_suspend(std::coroutine_handle<> h)
+	{
+		if (context) {
+			QMetaObject::invokeMethod(context, [h]() { h.resume(); }, Qt::QueuedConnection);
 		}
+	}
 
-		this->deleteLater();
-	}();
-}
-
-void TaskLauncher::start()
-{
-	task_.start();
-}
-
-} // namespace KaitoTokyo::AsyncQt
+	void await_resume() {}
+};

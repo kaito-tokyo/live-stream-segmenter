@@ -1,4 +1,5 @@
 add_library(AsyncQt STATIC)
 target_include_directories(AsyncQt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(AsyncQt PUBLIC Qt6::Core Logger)
-target_sources(AsyncQt PRIVATE TaskLauncher.hpp TaskLauncher.cpp)
+target_link_libraries(AsyncQt PUBLIC Qt6::Core Logger Async)
+target_sources(AsyncQt PRIVATE TaskQtLauncher.hpp TaskQtLauncher.cpp)
+set_target_properties(AsyncQt PROPERTIES AUTOMOC ON)

@@ -26,7 +26,7 @@
 #include <YouTubeStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
-#include "YouTubeStreamSegmenter.hpp"
+#include "YouTubeStreamSegmenterMainLoop.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -37,7 +37,7 @@ public:
 		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
 		  dock_(dock),
-		  youTubeStreamSegmenter_(std::make_shared<YouTubeStreamSegmenter>(logger_))
+		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(logger_))
 	{
 		authStore_->restoreAuthStore();
 		youTubeStore_->restoreYouTubeStore();
@@ -45,12 +45,12 @@ public:
 		dock_->setYouTubeStore(youTubeStore_);
 
 		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenter_.get(),
-				 &YouTubeStreamSegmenter::startContinuousSession);
+				 &YouTubeStreamSegmenterMainLoop::startContinuousSession);
 
 		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenter_.get(),
-				 &YouTubeStreamSegmenter::stopContinuousSession);
+				 &YouTubeStreamSegmenterMainLoop::stopContinuousSession);
 		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-				 youTubeStreamSegmenter_.get(), &YouTubeStreamSegmenter::segmentCurrentSession);
+				 youTubeStreamSegmenter_.get(), &YouTubeStreamSegmenterMainLoop::segmentCurrentSession);
 	}
 
 	~ProfileContext() noexcept = default;
@@ -65,7 +65,7 @@ private:
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	UI::StreamSegmenterDock *const dock_;
-	std::shared_ptr<YouTubeStreamSegmenter> youTubeStreamSegmenter_;
+	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

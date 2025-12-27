@@ -30,17 +30,19 @@
 
 namespace KaitoTokyo::AsyncQt {
 
-class TaskLauncher : public QObject {
+class TaskQtLauncher : public QObject {
 	Q_OBJECT
 
 public:
 	static void launch(Async::Task<void> task, std::shared_ptr<const Logger::ILogger> logger,
 			   QObject *parent = nullptr);
 
-private:
-	Async::Task<void> task_;
+	~TaskQtLauncher() override;
 
-	explicit TaskLauncher(Async::Task<void> task, std::shared_ptr<const Logger::ILogger> logger, QObject *parent);
+private:
+	Async::Task<void> wrappedTask_;
+
+	explicit TaskQtLauncher(Async::Task<void> task, std::shared_ptr<const Logger::ILogger> logger, QObject *parent);
 	void start();
 };
 
