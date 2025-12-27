@@ -1,4 +1,5 @@
 add_subdirectory(Async)
+add_subdirectory(AsyncQt)
 add_subdirectory(Logger)
 add_subdirectory(GoogleAuth)
 

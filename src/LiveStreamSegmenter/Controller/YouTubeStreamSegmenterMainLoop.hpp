@@ -18,25 +18,42 @@
 
 #pragma once
 
+#include <condition_variable>
 #include <memory>
 
 #include <QObject>
+#include <QPointer>
+#include <QWidget>
 
+#include <Channel.hpp>
 #include <ILogger.hpp>
+#include <Task.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-class YouTubeStreamSegmenter : public QObject {
+class YouTubeStreamSegmenterMainLoop : public QObject {
 	Q_OBJECT
 
-public:
-	explicit YouTubeStreamSegmenter(std::shared_ptr<const Logger::ILogger> logger);
-	~YouTubeStreamSegmenter() override;
+	enum class MessageType {
+		StartContinuousSession,
+		StopContinuousSession,
+		SegmentCurrentSession,
+	};
 
-	YouTubeStreamSegmenter(const YouTubeStreamSegmenter &) = delete;
-	YouTubeStreamSegmenter &operator=(const YouTubeStreamSegmenter &) = delete;
-	YouTubeStreamSegmenter(YouTubeStreamSegmenter &&) = delete;
-	YouTubeStreamSegmenter &operator=(YouTubeStreamSegmenter &&) = delete;
+	struct Message {
+		MessageType type;
+	};
+
+public:
+	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+	~YouTubeStreamSegmenterMainLoop() override;
+
+	YouTubeStreamSegmenterMainLoop(const YouTubeStreamSegmenterMainLoop &) = delete;
+	YouTubeStreamSegmenterMainLoop &operator=(const YouTubeStreamSegmenterMainLoop &) = delete;
+	YouTubeStreamSegmenterMainLoop(YouTubeStreamSegmenterMainLoop &&) = delete;
+	YouTubeStreamSegmenterMainLoop &operator=(YouTubeStreamSegmenterMainLoop &&) = delete;
+
+	void startMainLoop();
 
 public slots:
 	void startContinuousSession();
@@ -45,6 +62,13 @@ public slots:
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
+	QWidget *const parent_;
+
+	Async::Channel<Message> channel_;
+	Async::Task<void> mainLoopTask_;
+
+	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
