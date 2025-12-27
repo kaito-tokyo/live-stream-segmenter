@@ -1,5 +1,5 @@
 /*
- * KaitoTokyo AsyncQt Library
+ * KaitoTokyo Async Library
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,21 +24,52 @@
 #pragma once
 
 #include <coroutine>
+#include <iostream>
+#include <string>
 
-#include <QMetaObject>
-#include <QPointer>
+namespace KaitoTokyo::Async {
 
-struct ResumeOnQtMainThread {
-	QPointer<QObject> context;
+struct Generator {
+	struct promise_type {
+		std::string current_value;
 
-	bool await_ready() { return false; }
-
-	void await_suspend(std::coroutine_handle<> h)
-	{
-		if (context) {
-			QMetaObject::invokeMethod(context, [h]() { h.resume(); }, Qt::QueuedConnection);
+		Generator get_return_object()
+		{
+			return Generator{std::coroutine_handle<promise_type>::from_promise(*this)};
 		}
+
+		std::suspend_always initial_suspend() { return {}; }
+
+		std::suspend_always final_suspend() noexcept { return {}; }
+
+		std::suspend_always yield_value(std::string value)
+		{
+			current_value = value;
+			return {};
+		}
+
+		void return_void() {}
+		void unhandled_exception() { std::terminate(); }
+	};
+
+	std::coroutine_handle<promise_type> handle;
+
+	Generator(std::coroutine_handle<promise_type> h) : handle(h) {}
+	~Generator()
+	{
+		if (handle)
+			handle.destroy();
 	}
 
-	void await_resume() {}
+	void resume()
+	{
+		if (handle && !handle.done())
+			handle.resume();
+	}
+
+	bool done() { return !handle || handle.done(); }
+
+	std::string get_value() { return handle.promise().current_value; }
 };
+
+} // namespace KaitoTokyo::Async

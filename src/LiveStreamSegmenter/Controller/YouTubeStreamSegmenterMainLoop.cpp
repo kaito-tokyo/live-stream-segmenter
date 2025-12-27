@@ -20,17 +20,24 @@
 
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QPointer>
 #include <QThreadPool>
+#include <QMainWindow>
 
+#include <ResumeOnQObject.hpp>
 #include <ResumeOnQThreadPool.hpp>
-#include <ResumeOnQtMainThread.hpp>
-#include <TaskQtLauncher.hpp>
+#include <Task.hpp>
+#include <Generator.hpp>
+
+#include <obs-frontend-api.h>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger)
+YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger,
+							       QWidget *parent)
 	: QObject(nullptr),
-	  logger_(std::move(logger))
+	  logger_(std::move(logger)),
+	  parent_(parent)
 {
 }
 
@@ -75,69 +82,8 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 
 Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(YouTubeStreamSegmenterMainLoop *self)
 {
-	struct RunGuard {
-		std::atomic<bool> &flag;
-		RunGuard(std::atomic<bool> &f) : flag(f) { flag.store(true, std::memory_order_release); }
-		~RunGuard() { flag.store(false, std::memory_order_release); }
-	} runGuard{self->isRunning_};
-
-	std::shared_ptr<const Logger::ILogger> logger = self->logger_;
-
 	while (true) {
-		co_await ResumeOnQThreadPool(QThreadPool::globalInstance());
-
-		Async::Task<void> task;
-		{
-			std::unique_lock lock(self->mutex_);
-
-			while (self->taskQueue_.empty() && !self->stopRequested_) {
-				self->cv_.wait(lock);
-			}
-
-			if (self->stopRequested_) {
-				break;
-			}
-
-			task = std::move(self->taskQueue_.front());
-			self->taskQueue_.pop_front();
-		}
-
-		try {
-			co_await task;
-		} catch (const std::exception &e) {
-			logger->error("error=Error\tlocation=YouTubeStreamSegmenterMainLoop::mainLoop\tmessage={}",
-				      e.what());
-		} catch (...) {
-			logger->error("error=UnknownError\tlocation=YouTubeStreamSegmenterMainLoop::mainLoop");
-		}
 	}
-}
-
-Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(YouTubeStreamSegmenterMainLoop *)
-{
-	co_await ResumeOnQtMainThread();
-	QMessageBox::information(nullptr, "Info", "Starting continuous YouTube live stream session");
-}
-
-Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(YouTubeStreamSegmenterMainLoop *)
-{
-	co_await ResumeOnQtMainThread();
-	QMessageBox::information(nullptr, "Info", "Stopping continuous YouTube live stream session");
-}
-
-Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentCurrentSessionTask(YouTubeStreamSegmenterMainLoop *)
-{
-	co_await ResumeOnQtMainThread();
-	QMessageBox::information(nullptr, "Info", "Segmenting current YouTube live stream session");
-}
-
-void YouTubeStreamSegmenterMainLoop::enqueueTask(Async::Task<void> task)
-{
-	{
-		std::scoped_lock lock(mutex_);
-		taskQueue_.emplace_back(std::move(task));
-	}
-	cv_.notify_one();
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

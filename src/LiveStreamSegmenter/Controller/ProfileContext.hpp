@@ -54,6 +54,8 @@ public:
 		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
 				 youTubeStreamSegmenterMainLoop_.get(),
 				 &YouTubeStreamSegmenterMainLoop::segmentCurrentSession);
+
+		youTubeStreamSegmenterMainLoop_->startMainLoop();
 	}
 
 	~ProfileContext() noexcept = default;

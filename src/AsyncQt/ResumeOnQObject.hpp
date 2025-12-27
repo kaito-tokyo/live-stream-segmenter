@@ -25,21 +25,35 @@
 
 #include <coroutine>
 
-#include <QThreadPool>
+#include <QMetaObject>
+#include <QPointer>
 
 namespace KaitoTokyo::AsyncQt {
 
-struct ResumeOnQThreadPool {
-	QThreadPool *threadPool;
+class ResumeOnQObject {
+public:
+	ResumeOnQObject(QObject *context, std::shared_ptr<const Logger::ILogger> logger)
+		: context_(context),
+		  logger_(std::move(logger))
+	{
+		if (context_ == nullptr) {
+			logger->error("error=ContextIsNull\tlocation=ResumeOnQObject::ResumeOnQObject");
+			throw std::invalid_argument("ContextIsNullError");
+		}
+	}
 
 	bool await_ready() { return false; }
 
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		threadPool->start([h]() { h.resume(); });
+		QMetaObject::invokeMethod(context_, [h]() { h.resume(); }, Qt::QueuedConnection);
 	}
 
 	void await_resume() {}
+
+private:
+	QObject *context_;
+	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::AsyncQt

@@ -23,6 +23,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QWidget>
 
 #include <ILogger.hpp>
 #include <Task.hpp>
@@ -33,7 +34,8 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	Q_OBJECT
 
 public:
-	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger);
+	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger,
+						QWidget *parent = nullptr);
 	~YouTubeStreamSegmenterMainLoop() override;
 
 	YouTubeStreamSegmenterMainLoop(const YouTubeStreamSegmenterMainLoop &) = delete;
@@ -50,23 +52,11 @@ public slots:
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
-
-	std::mutex mutex_;
-	std::condition_variable cv_;
-	std::deque<Async::Task<void>> taskQueue_;
-
-	bool stopRequested_{false};
-	std::atomic<bool> isRunning_{false};
+	QWidget *const parent_;
 
 	Async::Task<void> mainLoopTask_;
 
 	static Async::Task<void> mainLoop(YouTubeStreamSegmenterMainLoop *self);
-
-	static Async::Task<void> startContinuousSessionTask(YouTubeStreamSegmenterMainLoop *self);
-	static Async::Task<void> stopContinuousSessionTask(YouTubeStreamSegmenterMainLoop *self);
-	static Async::Task<void> segmentCurrentSessionTask(YouTubeStreamSegmenterMainLoop *self);
-
-	void enqueueTask(Async::Task<void> task);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
