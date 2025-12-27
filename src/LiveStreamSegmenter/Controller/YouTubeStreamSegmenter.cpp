@@ -21,21 +21,25 @@
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 YouTubeStreamSegmenter::YouTubeStreamSegmenter(std::shared_ptr<const Logger::ILogger> logger)
-	: QObject(nullptr), logger_(std::move(logger))
+	: QObject(nullptr),
+	  logger_(std::move(logger))
 {
 }
 
 YouTubeStreamSegmenter::~YouTubeStreamSegmenter() = default;
 
-void YouTubeStreamSegmenter::startContinuousSession() {
+void YouTubeStreamSegmenter::startContinuousSession()
+{
 	logger_->info("Starting continuous YouTube live stream session");
 }
 
-void YouTubeStreamSegmenter::stopContinuousSession() {
+void YouTubeStreamSegmenter::stopContinuousSession()
+{
 	logger_->info("Stopping continuous YouTube live stream session");
 }
 
-void YouTubeStreamSegmenter::segmentCurrentSession() {
+void YouTubeStreamSegmenter::segmentCurrentSession()
+{
 	logger_->info("Segmenting current YouTube live stream session");
 }
 
