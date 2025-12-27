@@ -18,6 +18,8 @@
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
+#include <optional>
+
 #include <QMessageBox>
 #include <QMetaObject>
 #include <QPointer>
@@ -27,7 +29,8 @@
 #include <ResumeOnQObject.hpp>
 #include <ResumeOnQThreadPool.hpp>
 #include <Task.hpp>
-#include <Generator.hpp>
+#include <Channel.hpp>
+#include <Join.hpp>
 
 #include <obs-frontend-api.h>
 
@@ -43,46 +46,59 @@ YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<c
 
 YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 {
-	{
-		std::scoped_lock lock(mutex_);
-		stopRequested_ = true;
-		cv_.notify_all();
-	}
-
-	if (mainLoopTask_) {
-		while (isRunning_.load(std::memory_order_acquire)) {
-			std::this_thread::yield();
-		}
-	}
+	channel_.close();
+	Async::join(std::move(mainLoopTask_));
 }
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(this);
+	mainLoopTask_ = mainLoop(channel_, logger_, parent_);
 	mainLoopTask_.start();
+	logger_->info("YouTubeStreamSegmenterMainLoop started");
 }
 
 void YouTubeStreamSegmenterMainLoop::startContinuousSession()
 {
 	logger_->info("Starting continuous YouTube live stream session");
-	enqueueTask(startContinuousSessionTask(this));
+	channel_.send(Message{MessageType::StartContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::stopContinuousSession()
 {
 	logger_->info("Stopping continuous YouTube live stream session");
-	enqueueTask(stopContinuousSessionTask(this));
+	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 {
 	logger_->info("Segmenting current YouTube live stream session");
-	enqueueTask(segmentCurrentSessionTask(this));
+	channel_.send(Message{MessageType::SegmentCurrentSession});
 }
 
-Async::Generator<void> YouTubeStreamSegmenterMainLoop::mainLoop(YouTubeStreamSegmenterMainLoop *self)
+Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Message> &channel,
+							   std::shared_ptr<const Logger::ILogger> logger,
+							   QWidget *parent)
 {
 	while (true) {
+		std::optional<Message> message = co_await channel.receive();
+
+		if (!message.has_value()) {
+			break;
+		}
+
+		switch (message->type) {
+		case MessageType::StartContinuousSession:
+			QMessageBox::information(parent, "Info", "StartContinuousSession received");
+			break;
+		case MessageType::StopContinuousSession:
+			QMessageBox::information(parent, "Info", "StopContinuousSession received");
+			break;
+		case MessageType::SegmentCurrentSession:
+			QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
+			break;
+		default:
+			logger->warn("Received unknown message type in YouTubeStreamSegmenterMainLoop");
+		}
 	}
 }
 

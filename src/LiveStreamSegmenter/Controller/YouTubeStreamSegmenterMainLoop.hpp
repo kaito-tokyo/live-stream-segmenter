@@ -25,6 +25,7 @@
 #include <QPointer>
 #include <QWidget>
 
+#include <Channel.hpp>
 #include <ILogger.hpp>
 #include <Task.hpp>
 
@@ -33,9 +34,18 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 class YouTubeStreamSegmenterMainLoop : public QObject {
 	Q_OBJECT
 
+	enum class MessageType {
+		StartContinuousSession,
+		StopContinuousSession,
+		SegmentCurrentSession,
+	};
+
+	struct Message {
+		MessageType type;
+	};
+
 public:
-	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger,
-						QWidget *parent = nullptr);
+	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 	~YouTubeStreamSegmenterMainLoop() override;
 
 	YouTubeStreamSegmenterMainLoop(const YouTubeStreamSegmenterMainLoop &) = delete;
@@ -54,9 +64,11 @@ private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
 
+	Async::Channel<Message> channel_;
 	Async::Task<void> mainLoopTask_;
 
-	static Async::Task<void> mainLoop(YouTubeStreamSegmenterMainLoop *self);
+	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
