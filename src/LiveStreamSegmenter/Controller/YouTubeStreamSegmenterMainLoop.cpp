@@ -18,6 +18,8 @@
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
+#include <optional>
+
 #include <QMessageBox>
 
 #include <Join.hpp>
