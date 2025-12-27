@@ -44,16 +44,14 @@ public:
 		dock_->setAuthStore(authStore_);
 		dock_->setYouTubeStore(youTubeStore_);
 
-		std::shared_ptr<YouTubeStreamSegmenter> youTubeStreamSegmenter = youTubeStreamSegmenter_;
+		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenter_.get(),
+				 [self = youTubeStreamSegmenter_.get()]() { self->startContinuousSession(); });
 
-		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked,
-				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->startContinuousSession(); });
-
-		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked,
-				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->stopContinuousSession(); });
-
+		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenter_.get(),
+				 [self = youTubeStreamSegmenter_.get()]() { self->stopContinuousSession(); });
 		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->segmentCurrentSession(); });
+				 youTubeStreamSegmenter_.get(),
+				 [self = youTubeStreamSegmenter_.get()]() { self->segmentCurrentSession(); });
 	}
 
 	~ProfileContext() noexcept = default;
