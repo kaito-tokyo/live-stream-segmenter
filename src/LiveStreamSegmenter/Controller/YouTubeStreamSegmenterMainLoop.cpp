@@ -113,19 +113,19 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(YouTubeStreamSegmente
 	}
 }
 
-Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(YouTubeStreamSegmenterMainLoop *self)
+Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(YouTubeStreamSegmenterMainLoop *)
 {
 	co_await ResumeOnQtMainThread();
 	QMessageBox::information(nullptr, "Info", "Starting continuous YouTube live stream session");
 }
 
-Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(YouTubeStreamSegmenterMainLoop *self)
+Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(YouTubeStreamSegmenterMainLoop *)
 {
 	co_await ResumeOnQtMainThread();
 	QMessageBox::information(nullptr, "Info", "Stopping continuous YouTube live stream session");
 }
 
-Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentCurrentSessionTask(YouTubeStreamSegmenterMainLoop *self)
+Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentCurrentSessionTask(YouTubeStreamSegmenterMainLoop *)
 {
 	co_await ResumeOnQtMainThread();
 	QMessageBox::information(nullptr, "Info", "Segmenting current YouTube live stream session");
