@@ -31,7 +31,7 @@ class YouTubeStreamSegmenter : public QObject {
 
 public:
 	explicit YouTubeStreamSegmenter(std::shared_ptr<const Logger::ILogger> logger);
-	~YouTubeStreamSegmenter() noexcept = default;
+	~YouTubeStreamSegmenter() override;
 
 	YouTubeStreamSegmenter(const YouTubeStreamSegmenter &) = delete;
 	YouTubeStreamSegmenter &operator=(const YouTubeStreamSegmenter &) = delete;

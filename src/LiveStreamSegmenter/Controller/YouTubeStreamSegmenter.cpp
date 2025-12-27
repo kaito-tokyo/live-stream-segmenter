@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "YouTubeStreamSegmenter.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
@@ -26,6 +24,8 @@ YouTubeStreamSegmenter::YouTubeStreamSegmenter(std::shared_ptr<const Logger::ILo
 	: QObject(nullptr), logger_(std::move(logger))
 {
 }
+
+YouTubeStreamSegmenter::~YouTubeStreamSegmenter() = default;
 
 void YouTubeStreamSegmenter::startContinuousSession() {
 	logger_->info("Starting continuous YouTube live stream session");
@@ -39,4 +39,6 @@ void YouTubeStreamSegmenter::segmentCurrentSession() {
 	logger_->info("Segmenting current YouTube live stream session");
 }
 
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
+
