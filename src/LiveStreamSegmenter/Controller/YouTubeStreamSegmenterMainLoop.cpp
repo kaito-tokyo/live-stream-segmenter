@@ -94,7 +94,13 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> a
 		}
 	}
 	YouTubeApi::YouTubeApiClient apiClient(logger);
-	apiClient.createLiveBroadcast(accessToken, "TEST", "Test Stream from Live Stream Segmenter");
+
+	YouTubeApi::YouTubeLiveBroadcastSettings settings;
+	settings.snippet_title = "TEST";
+	settings.snippet_scheduledStartTime = "2025-12-30T00:00:00Z";
+	settings.snippet_description = "Test Stream from Live Stream Segmenter";
+	settings.status_privacyStatus = "private";
+	apiClient.createLiveBroadcast(accessToken, settings);
 	co_return;
 }
 

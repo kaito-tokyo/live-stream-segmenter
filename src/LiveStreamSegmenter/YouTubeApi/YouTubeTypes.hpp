@@ -25,14 +25,10 @@
 
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
-/**
- * @brief Represents a YouTube stream key and its associated metadata.
- * Contains stream ID, title, stream name, resolution, and frame rate.
- */
 struct YouTubeStreamKey {
 	std::string id;
 	std::string kind;
@@ -51,19 +47,27 @@ struct YouTubeStreamKey {
 	std::string cdn_ingestionInfo_backupIngestionAddress;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(YouTubeStreamKey, id, kind, snippet_title, snippet_description, snippet_channelId,
-				   snippet_publishedAt, snippet_privacyStatus, cdn_ingestionType, cdn_resolution,
-				   cdn_frameRate, cdn_isReusable, cdn_region, cdn_ingestionInfo_streamName,
-				   cdn_ingestionInfo_ingestionAddress, cdn_ingestionInfo_backupIngestionAddress)
+void to_json(nlohmann::json &j, const YouTubeStreamKey &p);
+void from_json(const nlohmann::json &j, YouTubeStreamKey &p);
 
-struct YouTubeBroadcast {
-	std::string id;
+struct YouTubeLiveBroadcastSettings {
 	std::string snippet_title;
-	std::string snippet_description;
 	std::string snippet_scheduledStartTime;
-	std::string status_privacyStatus;
-	std::string contentDetails_boundStreamId;
-	std::string kind;
+	std::string snippet_description;
+
+	std::string status_privacyStatus = "private";
+	bool status_selfDeclaredMadeForKids = false;
+
+	bool contentDetails_enableAutoStart = false;
+	bool contentDetails_enableAutoStop = false;
+	bool contentDetails_enableDvr = true;
+	bool contentDetails_enableEmbed = true;
+	bool contentDetails_recordFromStart = true;
+	std::string contentDetails_latencyPreference = "normal"; // "normal", "low", "ultraLow"
+
+	bool contentDetails_monitorStream_enableMonitorStream = false;
 };
+
+void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

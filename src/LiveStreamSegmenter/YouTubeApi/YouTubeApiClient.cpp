@@ -190,50 +190,22 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 	return streamKeys;
 }
 
-YouTubeBroadcast YouTubeApiClient::createLiveBroadcast(
-	const std::string &accessToken,
-	const std::string &title,
-	const std::string &scheduledStartTime,
-	const std::string &privacyStatus
-) const
+void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
+					   const YouTubeLiveBroadcastSettings &settings) const
 {
-	nlohmann::json requestBody;
-	requestBody["snippet"]["title"] = title;
-	requestBody["snippet"]["scheduledStartTime"] = scheduledStartTime;
-	requestBody["status"]["privacyStatus"] = privacyStatus;
-	requestBody["status"]["selfDeclaredMadeForKids"] = false;
+	// バリデーション
+	if (settings.snippet_title.empty() || settings.snippet_scheduledStartTime.empty()) {
+		throw std::invalid_argument("Title and ScheduledStartTime are required.");
+	}
 
+	// JSON変換 (ここで上記の to_json が呼ばれ、ネスト構造が作られます)
+	nlohmann::json requestBody = settings;
 	std::string bodyStr = requestBody.dump();
 
+	// POST実行
 	std::string responseBody = doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", accessToken.c_str(), bodyStr.c_str());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
-
-	logger_->info("createLiveBroadcast response: {}", j.dump());
-
-	if (j.contains("error")) {
-		throw std::runtime_error(std::string("APIError(createLiveBroadcast):") + j["error"].dump());
-	}
-
-	YouTubeBroadcast broadcast;
-	broadcast.id = j.value("id", "");
-	broadcast.kind = j.value("kind", "");
-
-	if (j.contains("snippet")) {
-		broadcast.snippet_title = j["snippet"].value("title", "");
-		broadcast.snippet_description = j["snippet"].value("description", "");
-		broadcast.snippet_scheduledStartTime = j["snippet"].value("scheduledStartTime", "");
-	}
-
-	if (j.contains("status")) {
-		broadcast.status_privacyStatus = j["status"].value("privacyStatus", "");
-	}
-
-	if (j.contains("contentDetails")) {
-		broadcast.contentDetails_boundStreamId = j["contentDetails"].value("boundStreamId", "");
-	}
-
-	return broadcast;
+	logger_->info("Created live broadcast: {}", responseBody);
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
