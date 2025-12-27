@@ -190,30 +190,50 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 	return streamKeys;
 }
 
-void YouTubeApiClient::createLiveStream(const std::string &accessToken, const std::string &title,
-					const std::string &description, const std::string &ingestionType,
-					const std::string &frameRate, const std::string &resolution) const
+YouTubeBroadcast YouTubeApiClient::createLiveBroadcast(
+	const std::string &accessToken,
+	const std::string &title,
+	const std::string &scheduledStartTime,
+	const std::string &privacyStatus
+) const
 {
-	const char *url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails,status";
-
 	nlohmann::json requestBody;
+	requestBody["snippet"]["title"] = title;
+	requestBody["snippet"]["scheduledStartTime"] = scheduledStartTime;
+	requestBody["status"]["privacyStatus"] = privacyStatus;
+	requestBody["status"]["selfDeclaredMadeForKids"] = false;
 
-	requestBody["snippet"] = {{"title", title}, {"description", description}};
+	std::string bodyStr = requestBody.dump();
 
-	requestBody["cdn"] = {{"ingestionType", ingestionType}, {"frameRate", frameRate}, {"resolution", resolution}};
+	std::string responseBody = doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", accessToken.c_str(), bodyStr.c_str());
 
-	requestBody["contentDetails"] = {{"isReusable", true}};
-
-	std::string jsonString = requestBody.dump();
-
-	std::string responseBody = doPost(url, accessToken.c_str(), jsonString.c_str());
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
-	logger_->info("createLiveStream response: {}", j.dump());
+	logger_->info("createLiveBroadcast response: {}", j.dump());
 
 	if (j.contains("error")) {
-		throw std::runtime_error(std::string("APIError(createLiveStream):") + j["error"].dump());
+		throw std::runtime_error(std::string("APIError(createLiveBroadcast):") + j["error"].dump());
 	}
+
+	YouTubeBroadcast broadcast;
+	broadcast.id = j.value("id", "");
+	broadcast.kind = j.value("kind", "");
+
+	if (j.contains("snippet")) {
+		broadcast.snippet_title = j["snippet"].value("title", "");
+		broadcast.snippet_description = j["snippet"].value("description", "");
+		broadcast.snippet_scheduledStartTime = j["snippet"].value("scheduledStartTime", "");
+	}
+
+	if (j.contains("status")) {
+		broadcast.status_privacyStatus = j["status"].value("privacyStatus", "");
+	}
+
+	if (j.contains("contentDetails")) {
+		broadcast.contentDetails_boundStreamId = j["contentDetails"].value("boundStreamId", "");
+	}
+
+	return broadcast;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

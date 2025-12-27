@@ -56,4 +56,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(YouTubeStreamKey, id, kind, snippet_title, sn
 				   cdn_frameRate, cdn_isReusable, cdn_region, cdn_ingestionInfo_streamName,
 				   cdn_ingestionInfo_ingestionAddress, cdn_ingestionInfo_backupIngestionAddress)
 
+struct YouTubeBroadcast {
+	std::string id;
+	std::string snippet_title;
+	std::string snippet_description;
+	std::string snippet_scheduledStartTime;
+	std::string status_privacyStatus;
+	std::string contentDetails_boundStreamId;
+	std::string kind;
+};
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

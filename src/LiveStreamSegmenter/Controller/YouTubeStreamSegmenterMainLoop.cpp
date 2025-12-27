@@ -94,7 +94,7 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> a
 		}
 	}
 	YouTubeApi::YouTubeApiClient apiClient(logger);
-	apiClient.createLiveStream(accessToken, "TEST", "Test Stream from Live Stream Segmenter", "hls");
+	apiClient.createLiveBroadcast(accessToken, "TEST", "Test Stream from Live Stream Segmenter");
 	co_return;
 }
 
