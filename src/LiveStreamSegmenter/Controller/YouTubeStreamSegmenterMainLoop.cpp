@@ -23,12 +23,16 @@
 #include <QMessageBox>
 
 #include <Join.hpp>
+#include <YouTubeApiClient.hpp>
+#include <GoogleAuthManager.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger,
+YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<Store::AuthStore> authStore,
+							       std::shared_ptr<const Logger::ILogger> logger,
 							       QWidget *parent)
 	: QObject(nullptr),
+	  authStore_(std::move(authStore)),
 	  logger_(std::move(logger)),
 	  parent_(parent)
 {
@@ -42,7 +46,7 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(channel_, logger_, parent_);
+	mainLoopTask_ = mainLoop(channel_, authStore_, logger_, parent_);
 	mainLoopTask_.start();
 	logger_->info("YouTubeStreamSegmenterMainLoop started");
 }
@@ -65,7 +69,39 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 	channel_.send(Message{MessageType::SegmentCurrentSession});
 }
 
+namespace {
+
+Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> authStore,
+					     std::shared_ptr<const Logger::ILogger> logger)
+{
+	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
+	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
+	std::string accessToken;
+	if (tokenState.isAuthorized()) {
+		if (tokenState.isAccessTokenFresh()) {
+			logger->info("A fresh access token for YouTube is available.");
+			accessToken = tokenState.access_token;
+		} else {
+			logger->info(
+				"Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
+			GoogleAuth::GoogleAuthResponse freshAuthResponse =
+				authManager.fetchFreshAuthResponse(tokenState.refresh_token);
+			GoogleAuth::GoogleTokenState newTokenState =
+				tokenState.withUpdatedAuthResponse(freshAuthResponse);
+			authStore->setGoogleTokenState(newTokenState);
+			accessToken = freshAuthResponse.access_token;
+			logger->info("Fetched a fresh access token for YouTube.");
+		}
+	}
+	YouTubeApi::YouTubeApiClient apiClient(logger);
+	apiClient.createLiveStream(accessToken, "TEST", "Test Stream from Live Stream Segmenter", "hls");
+	co_return;
+}
+
+} // anonymous namespace
+
 Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Message> &channel,
+							   std::shared_ptr<Store::AuthStore> authStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
 							   QWidget *parent)
 {
@@ -77,9 +113,12 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		}
 
 		switch (message->type) {
-		case MessageType::StartContinuousSession:
-			QMessageBox::information(parent, "Info", "StartContinuousSession received");
+		case MessageType::StartContinuousSession: {
+			auto task = startContinuousSessionTask(authStore, logger);
+			task.start();
+			co_await task;
 			break;
+		}
 		case MessageType::StopContinuousSession:
 			QMessageBox::information(parent, "Info", "StopContinuousSession received");
 			break;

@@ -39,6 +39,10 @@ public:
 	~YouTubeApiClient() = default;
 
 	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken) const;
+	void createLiveStream(const std::string &accessToken, const std::string &title,
+			      const std::string &description = "", const std::string &ingestionType = "rtmp",
+			      const std::string &frameRate = "variable",
+			      const std::string &resolution = "variable") const;
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;

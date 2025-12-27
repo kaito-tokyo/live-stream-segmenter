@@ -421,7 +421,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		clientCredentials, "https://www.googleapis.com/auth/youtube.readonly", logger);
+		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", logger);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
