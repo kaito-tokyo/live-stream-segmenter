@@ -24,7 +24,6 @@
 #pragma once
 
 #include <coroutine>
-#include <memory>
 #include <stdexcept>
 
 #include <QThreadPool>
