@@ -21,18 +21,8 @@
 #include <optional>
 
 #include <QMessageBox>
-#include <QMetaObject>
-#include <QPointer>
-#include <QThreadPool>
-#include <QMainWindow>
 
-#include <ResumeOnQObject.hpp>
-#include <ResumeOnQThreadPool.hpp>
-#include <Task.hpp>
-#include <Channel.hpp>
 #include <Join.hpp>
-
-#include <obs-frontend-api.h>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 

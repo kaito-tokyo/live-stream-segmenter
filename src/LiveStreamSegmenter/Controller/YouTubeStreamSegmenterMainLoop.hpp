@@ -22,7 +22,6 @@
 #include <memory>
 
 #include <QObject>
-#include <QPointer>
 #include <QWidget>
 
 #include <Channel.hpp>
