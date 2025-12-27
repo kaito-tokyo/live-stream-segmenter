@@ -24,6 +24,7 @@
 #include <QObject>
 #include <QWidget>
 
+#include <AuthStore.hpp>
 #include <Channel.hpp>
 #include <ILogger.hpp>
 #include <Task.hpp>
@@ -44,7 +45,8 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	explicit YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Store::AuthStore> authStore,
+				       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 	~YouTubeStreamSegmenterMainLoop() override;
 
 	YouTubeStreamSegmenterMainLoop(const YouTubeStreamSegmenterMainLoop &) = delete;
@@ -60,13 +62,14 @@ public slots:
 	void segmentCurrentSession();
 
 private:
+	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
 
 	Async::Channel<Message> channel_;
 	Async::Task<void> mainLoopTask_;
 
-	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+	static Async::Task<void> mainLoop(Async::Channel<Message> &channel, std::shared_ptr<Store::AuthStore> authStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 };
 

@@ -40,6 +40,8 @@ public:
 
 	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken) const;
 
+	void createLiveBroadcast(const std::string &accessToken, const YouTubeLiveBroadcastSettings &settings) const;
+
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 };

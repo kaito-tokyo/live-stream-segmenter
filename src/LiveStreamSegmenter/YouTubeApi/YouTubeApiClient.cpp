@@ -27,6 +27,7 @@
 #include <future>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <nlohmann/json.hpp>
 
@@ -43,7 +44,7 @@ std::string doGet(const char *url, const char *accessToken)
 		throw std::invalid_argument("URLEmptyError(doGet)");
 	}
 
-	CURL *curl = curl_easy_init();
+	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 	if (!curl) {
 		throw std::runtime_error("InitError(doGet)");
 	}
@@ -54,24 +55,65 @@ std::string doGet(const char *url, const char *accessToken)
 	std::string authHeader = std::string("Authorization: Bearer ") + accessToken;
 	headers = curl_slist_append(headers, authHeader.c_str());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+	curl_easy_setopt(curl.get(), CURLOPT_URL, url);
+	curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_MAXREDIRS, 5L);
 
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
 
-	CURLcode res = curl_easy_perform(curl);
+	CURLcode res = curl_easy_perform(curl.get());
 
 	curl_slist_free_all(headers);
-	curl_easy_cleanup(curl);
 
 	if (res != CURLE_OK) {
 		throw std::runtime_error(std::string("NetworkError(doGet):") + curl_easy_strerror(res));
+	}
+
+	return std::string(readBuffer.begin(), readBuffer.end());
+}
+
+std::string doPost(const char *url, const char *accessToken, const char *body)
+{
+	if (!url || url[0] == '\0') {
+		throw std::invalid_argument("URLEmptyError(YouTubeApiClient::doPost)");
+	}
+
+	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
+	if (!curl) {
+		throw std::runtime_error("InitError(YouTubeApiClient::doPost)");
+	}
+
+	CurlHelper::CurlVectorWriterBuffer readBuffer;
+	struct curl_slist *headers = NULL;
+
+	std::string authHeader = std::string("Authorization: Bearer ") + accessToken;
+	headers = curl_slist_append(headers, authHeader.c_str());
+	headers = curl_slist_append(headers, "Content-Type: application/json");
+
+	curl_easy_setopt(curl.get(), CURLOPT_URL, url);
+	curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, body);
+
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
+
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
+
+	CURLcode res = curl_easy_perform(curl.get());
+
+	curl_slist_free_all(headers);
+
+	if (res != CURLE_OK) {
+		throw std::runtime_error(std::string("NetworkError(YouTubeApiClient::doPost):") +
+					 curl_easy_strerror(res));
 	}
 
 	return std::string(readBuffer.begin(), readBuffer.end());
@@ -146,6 +188,26 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 	}
 
 	return streamKeys;
+}
+
+void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
+					   const YouTubeLiveBroadcastSettings &settings) const
+{
+	// バリデーション
+	if (settings.snippet_title.empty() || settings.snippet_scheduledStartTime.empty()) {
+		throw std::invalid_argument("Title and ScheduledStartTime are required.");
+	}
+
+	// JSON変換 (ここで上記の to_json が呼ばれ、ネスト構造が作られます)
+	nlohmann::json requestBody = settings;
+	std::string bodyStr = requestBody.dump();
+
+	// POST実行
+	std::string responseBody =
+		doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
+		       accessToken.c_str(), bodyStr.c_str());
+
+	logger_->info("Created live broadcast: {}", responseBody);
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
