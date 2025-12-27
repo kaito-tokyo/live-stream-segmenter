@@ -203,7 +203,9 @@ void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
 	std::string bodyStr = requestBody.dump();
 
 	// POST実行
-	std::string responseBody = doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails", accessToken.c_str(), bodyStr.c_str());
+	std::string responseBody =
+		doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
+		       accessToken.c_str(), bodyStr.c_str());
 
 	logger_->info("Created live broadcast: {}", responseBody);
 }
