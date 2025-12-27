@@ -80,7 +80,7 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 	enqueueTask(segmentCurrentSessionTask(this));
 }
 
-Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(YouTubeStreamSegmenterMainLoop *self)
+Async::Generator<void> YouTubeStreamSegmenterMainLoop::mainLoop(YouTubeStreamSegmenterMainLoop *self)
 {
 	while (true) {
 	}

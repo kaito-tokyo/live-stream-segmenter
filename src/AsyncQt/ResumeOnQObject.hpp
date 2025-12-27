@@ -24,6 +24,8 @@
 #pragma once
 
 #include <coroutine>
+#include <memory>
+#include <stdexcept>
 
 #include <QMetaObject>
 #include <QPointer>
@@ -32,28 +34,54 @@ namespace KaitoTokyo::AsyncQt {
 
 class ResumeOnQObject {
 public:
-	ResumeOnQObject(QObject *context, std::shared_ptr<const Logger::ILogger> logger)
-		: context_(context),
-		  logger_(std::move(logger))
+	ResumeOnQObject(QObject *context) : context_(context)
 	{
 		if (context_ == nullptr) {
-			logger->error("error=ContextIsNull\tlocation=ResumeOnQObject::ResumeOnQObject");
-			throw std::invalid_argument("ContextIsNullError");
+			throw std::invalid_argument("ContextIsNullError(ResumeOnQObject::ResumeOnQObject)");
 		}
 	}
 
-	bool await_ready() { return false; }
+	bool await_ready() const
+	{
+		if (!context_) {
+			throw std::runtime_error("ContextDeletedError(ResumeOnQObject::await_ready)");
+		}
+
+		return QThread::currentThread() == context_->thread();
+	}
 
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		QMetaObject::invokeMethod(context_, [h]() { h.resume(); }, Qt::QueuedConnection);
+		if (!context_) {
+			error_ = std::make_exception_ptr(
+				std::runtime_error("ContextDeletedError(ResumeOnQObject::await_suspend)"));
+			h.resume();
+			return;
+		}
+
+		bool queued = QMetaObject::invokeMethod(context_, [h]() mutable { h.resume(); }, Qt::QueuedConnection);
+
+		if (!queued) {
+			error_ = std::make_exception_ptr(
+				std::runtime_error("InvokeMethodFailedError(ResumeOnQObject::await_suspend)"));
+			h.resume();
+		}
 	}
 
-	void await_resume() {}
+	void await_resume()
+	{
+		if (error_) {
+			std::rethrow_exception(error_);
+		}
+
+		if (!context_) {
+			throw std::runtime_error("ContextDeletedError(ResumeOnQObject::await_resume)");
+		}
+	}
 
 private:
-	QObject *context_;
-	std::shared_ptr<const Logger::ILogger> logger_;
+	QPointer<QObject> context_;
+	std::exception_ptr error_ = nullptr;
 };
 
 } // namespace KaitoTokyo::AsyncQt

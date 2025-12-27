@@ -24,22 +24,33 @@
 #pragma once
 
 #include <coroutine>
+#include <memory>
+#include <stdexcept>
 
 #include <QThreadPool>
 
 namespace KaitoTokyo::AsyncQt {
 
-struct ResumeOnQThreadPool {
-	QThreadPool *threadPool;
-
-	bool await_ready() { return false; }
-
-	void await_suspend(std::coroutine_handle<> h)
+class ResumeOnQThreadPool {
+public:
+	ResumeOnQThreadPool(QThreadPool *threadPool_) : threadPool(threadPool_)
 	{
-		threadPool->start([h]() { h.resume(); });
+		if (threadPool_ == nullptr) {
+			throw std::invalid_argument("ThreadPoolIsNullError");
+		}
 	}
 
-	void await_resume() {}
+	bool await_ready() const noexcept { return false; }
+
+	void await_suspend(std::coroutine_handle<> h) const
+	{
+		threadPool->start([h]() mutable { h.resume(); });
+	}
+
+	void await_resume() const noexcept {}
+
+private:
+	QThreadPool *threadPool;
 };
 
 } // namespace KaitoTokyo::AsyncQt
