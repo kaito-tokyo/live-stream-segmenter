@@ -62,6 +62,11 @@ public:
 		youTubeStore_ = std::move(youTubeStore);
 	}
 
+signals:
+	void startButtonClicked();
+	void stopButtonClicked();
+	void segmentNowButtonClicked();
+
 private slots:
 	void onSettingsButtonClicked();
 

@@ -90,6 +90,11 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> 
 	  currentTimeRemainingText_("--")
 {
 	setupUi();
+
+	connect(startButton_, &QPushButton::clicked, this, &StreamSegmenterDock::startButtonClicked);
+	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
+	connect(segmentNowButton_, &QPushButton::clicked, this, &StreamSegmenterDock::segmentNowButtonClicked);
+	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
 
 void StreamSegmenterDock::setupUi()
@@ -228,8 +233,6 @@ void StreamSegmenterDock::setupUi()
 	bottomControlLayout_->addWidget(settingsButton_);
 	bottomControlLayout_->addWidget(segmentNowButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
-
-	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
 
 void StreamSegmenterDock::onSettingsButtonClicked()

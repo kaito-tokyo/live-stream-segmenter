@@ -26,6 +26,8 @@
 #include <YouTubeStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
+#include "YouTubeStreamSegmenter.hpp"
+
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
@@ -34,12 +36,27 @@ public:
 		: logger_(std::move(logger)),
 		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
-		  dock_(dock)
+		  dock_(dock),
+		  youTubeStreamSegmenter_(std::make_shared<YouTubeStreamSegmenter>(logger_))
 	{
 		authStore_->restoreAuthStore();
 		youTubeStore_->restoreYouTubeStore();
 		dock_->setAuthStore(authStore_);
 		dock_->setYouTubeStore(youTubeStore_);
+
+		std::shared_ptr<YouTubeStreamSegmenter> youTubeStreamSegmenter = youTubeStreamSegmenter_;
+
+		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, [youTubeStreamSegmenter]() {
+			youTubeStreamSegmenter->startContinuousSession();
+		});
+
+		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, [youTubeStreamSegmenter]() {
+			youTubeStreamSegmenter->stopContinuousSession();
+		});
+
+		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked, [youTubeStreamSegmenter]() {
+			youTubeStreamSegmenter->segmentCurrentSession();
+		});
 	}
 
 	~ProfileContext() noexcept = default;
@@ -54,6 +71,7 @@ private:
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	UI::StreamSegmenterDock *const dock_;
+	std::shared_ptr<YouTubeStreamSegmenter> youTubeStreamSegmenter_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
