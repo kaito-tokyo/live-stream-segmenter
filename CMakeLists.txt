@@ -6,6 +6,7 @@ include(init)
 project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION} LANGUAGES C CXX)
 
 option(BUILD_TESTING "Build test cases" ON)
+option(ENABLE_UBSAN "Enable Undefined Behavior Sanitizer" OFF)
 option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
 if(MSVC)
@@ -53,6 +54,18 @@ elseif(APPLE)
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-qt6-${QT6_VERSION}-universal"
     "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-deps-${PREBUILT_VERSION}-universal"
   )
+endif()
+
+if(ENABLE_UBSAN)
+  if(MSVC)
+    message(
+      WARNING
+      "ENABLE_UBSAN is enabled, but UBSan flags are not applied for MSVC due to limited support and incompatible flag syntax."
+    )
+  else()
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
+    add_link_options(-fsanitize=undefined)
+  endif()
 endif()
 
 find_package(libobs REQUIRED)
