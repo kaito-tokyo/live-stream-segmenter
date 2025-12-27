@@ -46,17 +46,14 @@ public:
 
 		std::shared_ptr<YouTubeStreamSegmenter> youTubeStreamSegmenter = youTubeStreamSegmenter_;
 
-		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, [youTubeStreamSegmenter]() {
-			youTubeStreamSegmenter->startContinuousSession();
-		});
+		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked,
+				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->startContinuousSession(); });
 
-		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, [youTubeStreamSegmenter]() {
-			youTubeStreamSegmenter->stopContinuousSession();
-		});
+		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked,
+				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->stopContinuousSession(); });
 
-		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked, [youTubeStreamSegmenter]() {
-			youTubeStreamSegmenter->segmentCurrentSession();
-		});
+		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
+				 [youTubeStreamSegmenter]() { youTubeStreamSegmenter->segmentCurrentSession(); });
 	}
 
 	~ProfileContext() noexcept = default;

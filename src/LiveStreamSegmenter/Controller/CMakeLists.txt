@@ -8,7 +8,4 @@ target_sources(
   ${CMAKE_PROJECT_NAME}_Controller
   PRIVATE MainPluginContext.hpp ProfileContext.hpp YouTubeStreamSegmenter.cpp YouTubeStreamSegmenter.hpp
 )
-set_target_properties(
-  ${CMAKE_PROJECT_NAME}_Controller
-  PROPERTIES AUTOMOC ON
-)
+set_target_properties(${CMAKE_PROJECT_NAME}_Controller PROPERTIES AUTOMOC ON)
