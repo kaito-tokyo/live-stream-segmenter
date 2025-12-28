@@ -46,14 +46,12 @@ struct TemporaryFile {
 
 	TemporaryFile(std::string name)
 	{
-		// ランダムなサフィックスを生成してディレクトリ名に付与
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_int_distribution<> dist(0, 999999);
 
 		std::string uniqueSuffix = std::to_string(dist(gen));
 
-		// "live-stream-segmenter-test-123456" のようなディレクトリを作る
 		tempDir = std::filesystem::temp_directory_path() / ("live-stream-segmenter-test-" + uniqueSuffix);
 
 		std::filesystem::create_directories(tempDir);
