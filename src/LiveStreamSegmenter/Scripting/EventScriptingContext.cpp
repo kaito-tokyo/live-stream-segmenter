@@ -30,7 +30,8 @@ extern "C" const uint8_t qjsc_ini_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime, const std::filesystem::path &dbPath)
+EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime,
+					     const std::filesystem::path &dbPath)
 	: scriptingRuntime_(scriptingRuntime),
 	  logger_(scriptingRuntime_.logger_),
 	  rt_(scriptingRuntime_.rt_),
