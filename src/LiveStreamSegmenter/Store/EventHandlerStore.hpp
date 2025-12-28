@@ -54,7 +54,6 @@ public:
 		eventHandlerScript_ = std::move(eventHandlerScript);
 	}
 
-
 	bool save() const
 	{
 		std::shared_ptr<const Logger::ILogger> logger = logger_;
