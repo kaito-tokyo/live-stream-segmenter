@@ -23,8 +23,9 @@
 
 #include <gtest/gtest.h>
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
+#include <random>
 #include <string_view>
 
 #include <EventScriptingContext.hpp>
@@ -34,10 +35,7 @@ using namespace KaitoTokyo::LiveStreamSegmenter;
 
 class PrintLogger : public Logger::ILogger {
 public:
-	void log(LogLevel, std::string_view message) const noexcept override
-	{
-		std::cout << message << std::endl;
-	}
+	void log(LogLevel, std::string_view message) const noexcept override { std::cout << message << std::endl; }
 
 	const char *getPrefix() const noexcept override { return ""; }
 };
@@ -48,15 +46,24 @@ struct TemporaryFile {
 
 	TemporaryFile(std::string name)
 	{
-		tempDir = "live-stream-segmenter-test";
+		// ランダムなサフィックスを生成してディレクトリ名に付与
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dist(0, 999999);
+
+		std::string uniqueSuffix = std::to_string(dist(gen));
+
+		// "live-stream-segmenter-test-123456" のようなディレクトリを作る
+		tempDir = std::filesystem::temp_directory_path() / ("live-stream-segmenter-test-" + uniqueSuffix);
+
 		std::filesystem::create_directories(tempDir);
 		path = tempDir / name;
 	}
 
 	~TemporaryFile()
 	{
-		std::filesystem::remove(path);
-		std::filesystem::remove_all(path.parent_path());
+		std::error_code ec;
+		std::filesystem::remove_all(tempDir, ec);
 	}
 };
 
@@ -139,41 +146,41 @@ TEST(EventScriptingContextTest, DbToString)
 
 TEST(EventScriptingContextTest, DbExecuteInsert)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
-        TemporaryFile tempFile("test_insert.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test_insert.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
 
-        const char* script = R"(
+	const char *script = R"(
             db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);");
             const res1 = db.execute("INSERT INTO users (name) VALUES ('Alice');");
             const res2 = db.execute("INSERT INTO users (name) VALUES ('Bob');");
             export default JSON.stringify([res1, res2]);
 	)";
-        context.loadEventHandler(script);
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        auto extractedValue = value.asString();
+	context.loadEventHandler(script);
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
 
-        ASSERT_TRUE(extractedValue.has_value());
-        ASSERT_EQ(extractedValue.value(), "[{\"changes\":1,\"lastInsertId\":1},{\"changes\":1,\"lastInsertId\":2}]");
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "[{\"changes\":1,\"lastInsertId\":1},{\"changes\":1,\"lastInsertId\":2}]");
 }
 
 TEST(EventScriptingContextTest, DbQueryWithParams)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
-        TemporaryFile tempFile("test_params.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test_params.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
 
-        const char* script = R"(
+	const char *script = R"(
             db.execute("CREATE TABLE items (name TEXT, price INTEGER);");
             db.execute("INSERT INTO items VALUES (?, ?);", "Apple", 100);
             db.execute("INSERT INTO items VALUES (?, ?);", "Banana", 200);
@@ -183,51 +190,51 @@ TEST(EventScriptingContextTest, DbQueryWithParams)
             export default JSON.stringify(result);
         )";
 
-        context.loadEventHandler(script);
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        auto extractedValue = value.asString();
+	context.loadEventHandler(script);
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
 
-        ASSERT_TRUE(extractedValue.has_value());
-        ASSERT_EQ(extractedValue.value(), "[{\"name\":\"Banana\"},{\"name\":\"Cherry\"}]");
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "[{\"name\":\"Banana\"},{\"name\":\"Cherry\"}]");
 }
 
 TEST(EventScriptingContextTest, DbQueryTypes)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
-        TemporaryFile tempFile("test_types.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test_types.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
 
-        const char* script = R"(
+	const char *script = R"(
             db.execute("CREATE TABLE types (i INTEGER, f REAL, t TEXT, n TEXT);");
             db.execute("INSERT INTO types VALUES (?, ?, ?, ?);", 42, 3.14, "hello", null);
             export default JSON.stringify(db.query("SELECT * FROM types;")[0]);
         )";
 
-        context.loadEventHandler(script);
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        auto extractedValue = value.asString();
+	context.loadEventHandler(script);
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
 
-        ASSERT_TRUE(extractedValue.has_value());
-        ASSERT_EQ(extractedValue.value(), "{\"i\":42,\"f\":3.14,\"t\":\"hello\",\"n\":null}");
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "{\"i\":42,\"f\":3.14,\"t\":\"hello\",\"n\":null}");
 }
 
 TEST(EventScriptingContextTest, DbTransaction)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
-        TemporaryFile tempFile("test_transaction.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test_transaction.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
 
-        const char* script = R"(
+	const char *script = R"(
             db.execute("CREATE TABLE data (val INTEGER);");
             db.execute("BEGIN TRANSACTION;");
             db.execute("INSERT INTO data VALUES (1);");
@@ -236,10 +243,10 @@ TEST(EventScriptingContextTest, DbTransaction)
             export default JSON.stringify(db.query("SELECT count(*) as c FROM data;"));
         )";
 
-        context.loadEventHandler(script);
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        auto extractedValue = value.asString();
+	context.loadEventHandler(script);
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
 
-        ASSERT_TRUE(extractedValue.has_value());
-        ASSERT_EQ(extractedValue.value(), "[{\"c\":2}]");
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "[{\"c\":2}]");
 }
