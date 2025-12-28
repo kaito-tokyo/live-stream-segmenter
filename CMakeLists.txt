@@ -80,6 +80,7 @@ if(VCPKG_TARGET_TRIPLET)
   find_package(nlohmann_json CONFIG REQUIRED)
   find_package(qjs CONFIG REQUIRED)
   find_package(unofficial-sqlite3 CONFIG REQUIRED)
+  find_package(absl CONFIG REQUIRED)
 
   add_library(qjs::qjs ALIAS qjs)
 elseif(USE_PKGCONFIG)

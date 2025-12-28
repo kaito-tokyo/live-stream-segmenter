@@ -29,25 +29,28 @@
 #include <quickjs.h>
 #include <sqlite3.h>
 
+#include "ScriptingRuntime.hpp"
+
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 class ScriptingDatabase {
 public:
-	explicit ScriptingDatabase(const std::filesystem::path &dbPath);
+	ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
+			  std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath);
 	~ScriptingDatabase();
 
-	void addIntrinsicsDb(std::shared_ptr<JSContext> ctx);
-
-	static ScriptingDatabase *unwrap(JSValueConst this_val);
-	static void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv);
+	void setupContext();
 
 	static JSValue query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+	static JSValue toString(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 private:
-	inline static JSClassID classId_{};
+	const std::shared_ptr<ScriptingRuntime> runtime_;
+	const std::shared_ptr<JSContext> ctx_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
-	std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_{nullptr, sqlite3_close_v2};
+	const std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

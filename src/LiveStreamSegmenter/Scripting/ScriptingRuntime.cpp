@@ -26,17 +26,18 @@
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger)
-	: logger_(logger),
+	: logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)")),
 	  rt_(std::shared_ptr<JSRuntime>(JS_NewRuntime(), JS_FreeRuntime))
 {
-	if (!logger_) {
-		throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)");
-	}
-
-	if (!rt_) {
-		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
-	}
+	JS_SetRuntimeOpaque(rt_.get(), this);
 }
 
 ScriptingRuntime::~ScriptingRuntime() = default;
+
+std::shared_ptr<JSContext> ScriptingRuntime::createContextRaw() const
+{
+	return std::shared_ptr<JSContext>(JS_NewContextRaw(rt_.get()), JS_FreeContext);
+}
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

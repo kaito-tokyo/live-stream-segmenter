@@ -30,18 +30,22 @@ extern "C" const uint8_t qjsc_ini_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime,
-					     const std::filesystem::path &dbPath)
-	: scriptingRuntime_(scriptingRuntime),
-	  logger_(scriptingRuntime_.logger_),
-	  rt_(scriptingRuntime_.rt_),
-	  ctx_(std::shared_ptr<JSContext>(JS_NewContextRaw(rt_.get()), JS_FreeContext))
+EventScriptingContext::EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
+					     std::shared_ptr<const Logger::ILogger> logger)
+	: runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument(
+				     "RuntimeNullError(EventScriptingContext::EventScriptingContext)")),
+	  ctx_(ctx ? std::move(ctx)
+		   : throw std::invalid_argument("ContextNullError(EventScriptingContext::EventScriptingContext)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerNullError(EventScriptingContext::EventScriptingContext)"))
 {
-	static_cast<void>(dbPath);
-	if (!ctx_) {
-		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
-	}
+}
 
+EventScriptingContext::~EventScriptingContext() = default;
+
+void EventScriptingContext::setupContext()
+{
 	JS_AddIntrinsicBaseObjects(ctx_.get());
 	JS_AddIntrinsicJSON(ctx_.get());
 	JS_AddIntrinsicDate(ctx_.get());
@@ -54,57 +58,61 @@ EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRu
 	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
 }
 
-EventScriptingContext::~EventScriptingContext() = default;
-
 void EventScriptingContext::loadEventHandler(const char *script)
 {
-	ScopedJSValue moduleObj(ctx_, JS_Eval(ctx_.get(), script, strlen(script), "<input>",
-					      JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
+	ScopedJSValue moduleObj(ctx_.get(), JS_Eval(ctx_.get(), script, strlen(script), "<input>",
+						    JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
 
 	if (JS_IsException(moduleObj.get())) {
 		logger_->error("Failed to compile JavaScript module.");
-		ScopedJSValue exception(ctx_, JS_GetException(ctx_.get()));
-		ScopedJSString str(ctx_, JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
+		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	} else if (!JS_IsModule(moduleObj.get())) {
 		throw std::runtime_error("InvalidModuleError(EventScriptingContext::loadEventHandler)");
 	}
 
-	ScopedJSValue ret(ctx_, JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
+	ScopedJSValue ret(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 	if (JS_IsException(ret.get())) {
 		logger_->error("Failed to execute JavaScript module.");
-		ScopedJSValue exception(ctx_, JS_GetException(ctx_.get()));
-		ScopedJSString str(ctx_, JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
+		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	}
 
 	JSModuleDef *m = static_cast<JSModuleDef *>(JS_VALUE_GET_PTR(moduleObj.get()));
 
-	ScopedJSValue evalRes(ctx_, JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
+	ScopedJSValue evalRes(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 
 	if (JS_IsException(evalRes.get())) {
 		logger_->error("Failed to execute JavaScript function.");
-		ScopedJSValue exception(ctx_, JS_GetException(ctx_.get()));
-		ScopedJSString str(ctx_, JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
+		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	}
 
-	ScopedJSValue ns(ctx_, JS_GetModuleNamespace(ctx_.get(), m));
+	ScopedJSValue ns(ctx_.get(), JS_GetModuleNamespace(ctx_.get(), m));
 	eventHandlerNs_ = std::move(ns);
 }
 
 ScopedJSValue EventScriptingContext::getModuleProperty(const char *property) const
 {
-	ScopedJSValue val(ctx_, JS_GetPropertyStr(ctx_.get(), eventHandlerNs_.get(), property));
+	ScopedJSValue val(ctx_.get(), JS_GetPropertyStr(ctx_.get(), eventHandlerNs_.get(), property));
 	return val;
 }
 
 void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *buf)
 {
-	ScopedJSValue moduleObj(ctx_, JS_ReadObject(ctx_.get(), buf, size, JS_READ_OBJ_BYTECODE));
+	ScopedJSValue moduleObj(ctx_.get(), JS_ReadObject(ctx_.get(), buf, size, JS_READ_OBJ_BYTECODE));
 
 	if (std::optional<std::string> exceptionString = moduleObj.asExceptionString()) {
 		logger_->error("name=ReadObjectError\tlocation=EventScriptingContext::loadModule\tmessage={}",
@@ -112,7 +120,7 @@ void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *b
 		throw std::runtime_error("ReadObjectError(EventScriptingContext::loadModule)");
 	}
 
-	ScopedJSValue res(ctx_, JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
+	ScopedJSValue res(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 
 	if (std::optional<std::string> exceptionString = res.asExceptionString()) {
 		logger_->error("name=EvalError\tlocation=EventScriptingContext::loadModule\tmessage={}",

@@ -2,6 +2,7 @@
 IFS=$'\n'
 include_files=(
   $(find src -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.hpp")
+  $(find tests -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.hpp")
 )
 unset IFS
 
