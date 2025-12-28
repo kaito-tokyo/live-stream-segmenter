@@ -48,7 +48,7 @@ struct TemporaryFile {
 
 	TemporaryFile(std::string name)
 	{
-		tempDir = std::filesystem::temp_directory_path() / "live-stream-segmenter-test";
+		tempDir = "live-stream-segmenter-test";
 		std::filesystem::create_directories(tempDir);
 		path = tempDir / name;
 	}
