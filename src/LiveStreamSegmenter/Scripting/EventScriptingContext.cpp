@@ -134,7 +134,7 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 	JSValue args[] = {eventObj.get()};
 	ScopedJSValue resultObj(ctx_.get(), JS_Call(ctx_.get(), func.get(), JS_UNDEFINED, 1, args));
 
-	if (std::optional<std::string> exception = eventObj.asExceptionString())
+	if (std::optional<std::string> exception = resultObj.asExceptionString())
 		throw std::runtime_error("FunctionCallError(EventScriptingContext::executeFunction):" +
 					 exception.value());
 
