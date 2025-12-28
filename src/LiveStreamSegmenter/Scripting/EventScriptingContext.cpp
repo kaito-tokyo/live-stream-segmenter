@@ -37,13 +37,13 @@ EventScriptingContext::EventScriptingContext(std::shared_ptr<ScriptingRuntime> r
 	  logger_(std::move(logger))
 {
 	if (!runtime_) {
-		throw std::invalid_argument("RuntimeNullError(ScriptingRuntime::ScriptingRuntime)");
+		throw std::invalid_argument("RuntimeNullError(EventScriptingContext::EventScriptingContext)");
 	}
 	if (!ctx_) {
-		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
+		throw std::runtime_error("InitRuntimeError(EventScriptingContext::EventScriptingContext)");
 	}
 	if (!logger_) {
-		throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)");
+		throw std::invalid_argument("LoggerNullError(EventScriptingContext::EventScriptingContext)");
 	}
 }
 
