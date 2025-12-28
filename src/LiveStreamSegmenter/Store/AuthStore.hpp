@@ -35,7 +35,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-class AuthStore : public std::enable_shared_from_this<AuthStore> {
+class AuthStore {
 public:
 	explicit AuthStore(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {};
 	~AuthStore() noexcept = default;

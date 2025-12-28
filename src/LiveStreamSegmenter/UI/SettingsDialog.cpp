@@ -34,6 +34,7 @@
 #include <QUrl>
 #include <QUrlQuery>
 
+#include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
@@ -71,13 +72,25 @@ struct ResumeOnQtMainThread {
 
 } // anonymous namespace
 
-SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
+SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+			       std::shared_ptr<Store::AuthStore> authStore,
+			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  authStore_(std::move(authStore)),
-	  youTubeStore_(std::move(youTubeStore)),
-	  logger_(std::move(logger)),
+	  runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument("RuntimeIsNullError(SettingsDialog::SettingsDialog)")),
+	  authStore_(authStore ? std::move(authStore)
+			       : throw std::invalid_argument("AuthStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  eventHandlerStore_(eventHandlerStore
+				     ? std::move(eventHandlerStore)
+				     : throw std::invalid_argument(
+					       "EventHandlerStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  youTubeStore_(youTubeStore ? std::move(youTubeStore)
+				     : throw std::invalid_argument(
+					       "YouTubeStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerIsNullError(SettingsDialog::SettingsDialog)")),
 
 	  // 1. Main Structure
 	  mainLayout_(new QVBoxLayout(this)),
@@ -219,8 +232,40 @@ void SettingsDialog::onApply()
 }
 
 void SettingsDialog::onRunScriptClicked()
-{
-	const QString scriptContent = scriptEditor_->toPlainText();
+try {
+	const std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
+	Scripting::EventScriptingContext context(runtime_, ctx, logger);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger, eventHandlerStore_->getEventHandlerDatabasePath(),
+					      false);
+	context.setupContext();
+	database.setupContext();
+	context.setupLocalStorage();
+
+	const std::string scriptContent = scriptEditor_->toPlainText().toStdString();
+	context.loadEventHandler(scriptContent.c_str());
+	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
+
+	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
+} catch (const std::exception &e) {
+	logger_->logException(e, "name=Error\tlocation=SettingsDialog::onRunScriptClicked");
+
+	QMessageBox msgBox(this);
+	msgBox.setIcon(QMessageBox::Critical);
+	msgBox.setWindowTitle(tr("Error"));
+	msgBox.setText(tr("Failed to run the event handler script."));
+	msgBox.setInformativeText(tr("Please ensure the script is valid and does not contain errors."));
+	msgBox.setDetailedText(QString::fromStdString(e.what()));
+	msgBox.exec();
+} catch (...) {
+	logger_->error("name=UnknownError\tlocation=SettingsDialog::onRunScriptClicked");
+
+	QMessageBox msgBox(this);
+	msgBox.setIcon(QMessageBox::Critical);
+	msgBox.setWindowTitle(tr("Error"));
+	msgBox.setText(tr("An unknown error occurred while running the event handler script."));
+	msgBox.exec();
 }
 
 void SettingsDialog::setupUi()
@@ -353,6 +398,8 @@ void SettingsDialog::setupUi()
 					     "    };\n"
 					     "}"));
 
+	scriptEditor_->setPlainText(QString::fromStdString(eventHandlerStore_->getEventHandlerScript()));
+
 	scriptTabLayout_->addWidget(scriptEditor_);
 	runScriptButton_->setText(tr("Run Script (Test)"));
 	scriptTabLayout_->addWidget(runScriptButton_);
@@ -377,6 +424,7 @@ void SettingsDialog::setupUi()
 
 void SettingsDialog::saveSettings()
 {
+	// Save AuthStore
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
@@ -384,6 +432,11 @@ void SettingsDialog::saveSettings()
 
 	authStore_->saveAuthStore();
 
+	// Save EventHandlerStore
+	eventHandlerStore_->setEventHandlerScript(scriptEditor_->toPlainText().toStdString());
+	eventHandlerStore_->save();
+
+	// Save YouTubeStore
 	int streamKeyAIndex = streamKeyComboA_->currentIndex();
 	if (streamKeyAIndex >= 0) {
 		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex]);
@@ -590,6 +643,9 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
+			Qt::UniqueConnection);
+
+		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
 		logger->logException(e, "Failed to fetch stream keys");

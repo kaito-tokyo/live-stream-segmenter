@@ -36,7 +36,8 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 class ScriptingDatabase {
 public:
 	ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
-			  std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath);
+			  std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath,
+			  bool write);
 	~ScriptingDatabase();
 
 	void setupContext();

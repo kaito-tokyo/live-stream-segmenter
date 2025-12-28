@@ -10,18 +10,18 @@ bun install
 bun build dayjs.ts --outfile=dayjs.bundle.js
 "$QJSC" \
   -o ../src/LiveStreamSegmenter/Scripting/dayjs_bundle.c \
-  -n 'builtin:dayjs' \
   -N qjsc_dayjs_bundle \
   -m \
+  -n 'builtin:dayjs' \
   dayjs.bundle.js
 clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/dayjs_bundle.c
 
 bun build ini.ts --outfile=ini.bundle.js
 "$QJSC" \
   -o ../src/LiveStreamSegmenter/Scripting/ini_bundle.c \
-  -n 'builtin:ini' \
   -N qjsc_ini_bundle \
   -m \
+  -n 'builtin:ini' \
   ini.bundle.js
 clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/ini_bundle.c
 
@@ -31,3 +31,12 @@ clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/ini_bundle.c
   -C \
   localstorage.js
 clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/localstorage_bundle.c
+
+"$QJSC" \
+  -o ../src/LiveStreamSegmenter/Scripting/youtube_bundle.c \
+  -N qjsc_youtube_bundle \
+  -m \
+  -n 'builtin:youtube' \
+  -P \
+  youtube.js
+clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/youtube_bundle.c
