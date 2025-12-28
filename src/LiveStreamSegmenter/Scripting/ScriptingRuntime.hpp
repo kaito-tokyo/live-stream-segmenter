@@ -71,7 +71,6 @@ private:
 
 class ScopedJSValue {
 public:
-	ScopedJSValue() noexcept : ctx_(nullptr), v_(JS_UNDEFINED) {}
 	ScopedJSValue(JSContext *ctx, JSValue v) noexcept : ctx_(ctx), v_(v) {}
 
 	~ScopedJSValue()
@@ -181,7 +180,7 @@ public:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<JSRuntime> rt_;
 
-	absl::flat_hash_map<std::type_index, JSClassID> registeredClasses_;
+	mutable absl::flat_hash_map<std::type_index, JSClassID> registeredClasses_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting
