@@ -71,6 +71,7 @@ private:
 
 class ScopedJSValue {
 public:
+	ScopedJSValue() noexcept : ctx_(nullptr), v_(JS_UNDEFINED) {}
 	ScopedJSValue(JSContext *ctx, JSValue v) noexcept : ctx_(ctx), v_(v) {}
 
 	~ScopedJSValue()
