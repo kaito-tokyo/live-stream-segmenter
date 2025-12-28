@@ -24,3 +24,10 @@ bun build ini.ts --outfile=ini.bundle.js
   -m \
   ini.bundle.js
 clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/ini_bundle.c
+
+"$QJSC" \
+  -o ../src/LiveStreamSegmenter/Scripting/localstorage_bundle.c \
+  -N qjsc_localstorage_bundle \
+  -C \
+  localstorage.js
+clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/localstorage_bundle.c

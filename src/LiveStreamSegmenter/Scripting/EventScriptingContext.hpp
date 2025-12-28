@@ -42,6 +42,7 @@ public:
 	~EventScriptingContext();
 
 	void setupContext();
+	void setupLocalStorage();
 
 	void loadEventHandler(const char *script);
 	ScopedJSValue getModuleProperty(const char *property) const;
