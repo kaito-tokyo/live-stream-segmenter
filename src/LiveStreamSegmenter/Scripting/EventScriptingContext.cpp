@@ -56,8 +56,8 @@ void EventScriptingContext::setupContext()
 	JS_AddIntrinsicEval(ctx_.get());
 	JS_AddIntrinsicPromise(ctx_.get());
 
-	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
 	loadModule(qjsc_dayjs_bundle_size, qjsc_dayjs_bundle);
+	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
 }
 
 void EventScriptingContext::setupLocalStorage()
