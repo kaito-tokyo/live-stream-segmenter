@@ -72,24 +72,37 @@ ScriptingDatabase *unwrap(JSContext *ctx, JSValueConst this_val)
 
 void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 {
-	// SQLite binds are 1-based.
-	// JS args: argv[1] corresponds to ?1, argv[2] to ?2...
 	for (int i = 1; i < argc; i++) {
 		int bindIdx = i;
 		int tag = JS_VALUE_GET_TAG(argv[i]);
 
 		if (tag == JS_TAG_INT) {
 			int64_t val;
-			JS_ToInt64(ctx, &val, argv[i]);
+
+			if (JS_ToInt64(ctx, &val, argv[i]) < 0)
+				throw std::runtime_error("Int64ConversionError(ScriptingDatabase::bindArgs)");
+
 			sqlite3_bind_int64(stmt, bindIdx, val);
 		} else if (tag == JS_TAG_FLOAT64) {
 			double val;
-			JS_ToFloat64(ctx, &val, argv[i]);
+
+			if (JS_ToFloat64(ctx, &val, argv[i]) < 0)
+				throw std::runtime_error("Float64ConversionError(ScriptingDatabase::bindArgs)");
+
 			sqlite3_bind_double(stmt, bindIdx, val);
 		} else if (tag == JS_TAG_STRING) {
 			ScopedJSString str(ctx, JS_ToCString(ctx, argv[i]));
+
+			if (!str.get())
+				throw std::runtime_error("StringConversionError(ScriptingDatabase::bindArgs)");
+
 			sqlite3_bind_text(stmt, bindIdx, str.get(), -1, SQLITE_TRANSIENT);
 		} else if (tag == JS_TAG_BOOL) {
+			int val = JS_ToBool(ctx, argv[i]);
+
+			if (val < 0)
+				throw std::runtime_error("BoolConversionError(ScriptingDatabase::bindArgs)");
+
 			sqlite3_bind_int(stmt, bindIdx, JS_ToBool(ctx, argv[i]));
 		} else if (JS_IsNull(argv[i]) || JS_IsUndefined(argv[i])) {
 			sqlite3_bind_null(stmt, bindIdx);
@@ -97,11 +110,10 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 			std::size_t len;
 			std::uint8_t *buf = JS_GetArrayBuffer(ctx, &len, argv[i]);
 
-			if (buf) {
-				sqlite3_bind_blob(stmt, bindIdx, buf, static_cast<int>(len), SQLITE_TRANSIENT);
-			} else {
-				sqlite3_bind_null(stmt, bindIdx);
-			}
+			if (!buf)
+				throw std::runtime_error("UnknownValueError(ScriptingDatabase::bindArgs)");
+
+			sqlite3_bind_blob(stmt, bindIdx, buf, static_cast<int>(len), SQLITE_TRANSIENT);
 		}
 	}
 }
@@ -110,22 +122,11 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 
 ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
 				     std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath)
-	: runtime_(std::move(runtime)),
-	  ctx_(std::move(ctx)),
-	  logger_(std::move(logger)),
+	: runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeNullError(ScriptingDatabase::ScriptingDatabase)")),
+	  ctx_(ctx ? std::move(ctx) : throw std::runtime_error("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
+	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  db_(openSqlite3(dbPath), sqlite3_close_v2)
 {
-	if (!runtime_) {
-		throw std::runtime_error("ScriptingRuntimeIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
-
-	if (!ctx_) {
-		throw std::runtime_error("ContextIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
-
-	if (!db_) {
-		throw std::runtime_error("DBIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
 }
 
 ScriptingDatabase::~ScriptingDatabase() = default;
@@ -166,7 +167,11 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 
 	ScopedStmt stmt(stmtRaw);
 
-	bindArgs(ctx, stmt.get(), argc, argv);
+	try {
+		bindArgs(ctx, stmt.get(), argc, argv);
+	} catch (const std::exception &e) {
+		return JS_ThrowTypeError(ctx, "BindArgsError: %s", e.what());
+	}
 
 	JSValue resultArr = JS_NewArray(ctx);
 	int rowIdx = 0;
@@ -234,7 +239,11 @@ JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int ar
 
 	ScopedStmt stmt(stmtRaw);
 
-	bindArgs(ctx, stmt.get(), argc, argv);
+	try {
+		bindArgs(ctx, stmt.get(), argc, argv);
+	} catch (const std::exception &e) {
+		return JS_ThrowTypeError(ctx, "BindArgsError: %s", e.what());
+	}
 
 	rc = sqlite3_step(stmt.get());
 

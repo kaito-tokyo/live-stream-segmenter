@@ -46,7 +46,23 @@ public:
 		}
 	}
 
-	const char *get() const noexcept { return str_ ? str_ : ""; }
+	ScopedJSString(const ScopedJSString &) = delete;
+	ScopedJSString &operator=(const ScopedJSString &) = delete;
+	ScopedJSString(ScopedJSString &&other) noexcept : ctx_(other.ctx_), str_(other.str_) { other.str_ = nullptr; }
+	ScopedJSString &operator=(ScopedJSString &&other) noexcept
+	{
+		if (this != &other) {
+			if (str_) {
+				JS_FreeCString(ctx_, str_);
+			}
+			ctx_ = other.ctx_;
+			str_ = other.str_;
+			other.str_ = nullptr;
+		}
+		return *this;
+	};
+
+	const char *get() const noexcept { return str_; }
 
 private:
 	JSContext *ctx_;
