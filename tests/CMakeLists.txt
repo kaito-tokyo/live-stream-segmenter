@@ -2,6 +2,10 @@ include(GoogleTest)
 
 set(TEST_LIST "")
 
+add_executable(EventScriptEngine_test Scripting/EventScriptEngine_test.cpp)
+target_link_libraries(EventScriptEngine_test PRIVATE GTest::gtest_main ${CMAKE_PROJECT_NAME}_Scripting)
+list(APPEND TEST_LIST EventScriptEngine_test)
+
 foreach(TEST_NAME IN LISTS TEST_LIST)
   set_target_properties(
     ${TEST_NAME}
