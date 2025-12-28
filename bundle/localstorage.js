@@ -39,7 +39,8 @@
 // ----------------------------------------------------------------------
 
 (function () {
-  /** * Reference to the global db object.
+  /**
+   * Reference to the global db object.
    * @type {ScriptingDatabase}
    */
   // @ts-ignore (db is injected globally from C++, so ignore TS checks)
