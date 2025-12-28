@@ -37,8 +37,8 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 EventScriptEngine::EventScriptEngine(const std::filesystem::path &dbPath,
 				     const std::shared_ptr<const Logger::ILogger> &logger)
-	: scriptingDatabase_(dbPath),
-	  logger_(logger)
+	: logger_(logger),
+	  scriptingDatabase_(dbPath)
 {
 }
 

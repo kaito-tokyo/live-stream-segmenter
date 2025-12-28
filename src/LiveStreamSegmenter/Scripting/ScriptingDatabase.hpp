@@ -45,7 +45,7 @@ public:
 	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 private:
-	JSClassID classId_;
+	inline static JSClassID classId_{};
 
 	std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_{nullptr, sqlite3_close_v2};
 };

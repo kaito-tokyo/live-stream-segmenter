@@ -30,12 +30,13 @@ extern "C" const uint8_t qjsc_ini_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime, const std::filesystem::path &)
+EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime, const std::filesystem::path &dbPath)
 	: scriptingRuntime_(scriptingRuntime),
 	  logger_(scriptingRuntime_.logger_),
 	  rt_(scriptingRuntime_.rt_),
 	  ctx_(std::shared_ptr<JSContext>(JS_NewContextRaw(rt_.get()), JS_FreeContext))
 {
+	static_cast<void>(dbPath);
 	if (!ctx_) {
 		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
 	}
@@ -112,7 +113,7 @@ void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *b
 
 	ScopedJSValue res(ctx_, JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 
-	if (std::optional<std::string> exceptionString = moduleObj.asExceptionString()) {
+	if (std::optional<std::string> exceptionString = res.asExceptionString()) {
 		logger_->error("name=EvalError\tlocation=EventScriptingContext::loadModule\tmessage={}",
 			       exceptionString.value());
 		throw std::runtime_error("EvalError(EventScriptingContext::loadModule)");

@@ -81,12 +81,12 @@ void ScriptingDatabase::addIntrinsicsDb(std::shared_ptr<JSContext> ctx)
 	JS_NewClassID(rt, &classId_);
 	JS_NewClass(rt, classId_, &kClassDef);
 
-	ScopedJSValue dbObj(ctx.get(), JS_NewObjectClass(ctx.get(), classId_));
+	ScopedJSValue dbObj(ctx, JS_NewObjectClass(ctx.get(), classId_));
 	JS_SetOpaque(dbObj.get(), this);
 
 	JS_SetPropertyFunctionList(ctx.get(), dbObj.get(), kClassFuncList, std::size(kClassFuncList));
 
-	ScopedJSValue globalObj(ctx.get(), JS_GetGlobalObject(ctx.get()));
+	ScopedJSValue globalObj(ctx, JS_GetGlobalObject(ctx.get()));
 	JS_SetPropertyStr(ctx.get(), globalObj.get(), "db", dbObj.get());
 }
 // ----------------------------------------------------------------------

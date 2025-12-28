@@ -42,7 +42,7 @@ public:
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<JSRuntime> rt_;
+	std::shared_ptr<JSRuntime> rt_{};
 	ScriptingDatabase scriptingDatabase_;
 };
 
