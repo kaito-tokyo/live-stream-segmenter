@@ -26,6 +26,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <typeindex>
 
 #include <quickjs.h>
 
@@ -128,8 +129,27 @@ public:
 	ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger);
 	~ScriptingRuntime();
 
+	ScriptingRuntime(const ScriptingRuntime &) = delete;
+	ScriptingRuntime &operator=(const ScriptingRuntime &) = delete;
+	ScriptingRuntime(ScriptingRuntime &&) = delete;
+	ScriptingRuntime &operator=(ScriptingRuntime &&) = delete;
+
+	template <typename T>
+	void registerCustomClass(const JSClassDef* classDef) {
+		JSClassID classId = 0;
+		JS_NewClassID(rt_.get(), &classId);
+
+		if (JS_NewClass(rt_.get(), classId, classDef) < 0) {
+			throw std::runtime_error("RegistrationError(ScriptingRuntime::registerCustomClass)");
+		}
+
+		registeredClasses_[std::type_index(typeid(T))] = classId;
+	}
+
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<JSRuntime> rt_;
+
+	std::unordered_map<std::type_index, JSClassID> registeredClasses_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting
