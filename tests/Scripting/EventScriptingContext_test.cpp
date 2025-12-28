@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <filesystem>
 #include <string_view>
 
 #include <EventScriptingContext.hpp>
@@ -41,11 +42,31 @@ public:
 	const char *getPrefix() const noexcept override { return ""; }
 };
 
+struct TemporaryFile {
+	std::filesystem::path tempDir;
+	std::filesystem::path path;
+
+	TemporaryFile(std::string name)
+	{
+		tempDir = std::filesystem::temp_directory_path() / "live-stream-segmenter-test";
+		std::filesystem::create_directories(tempDir);
+		path = tempDir / name;
+	}
+
+	~TemporaryFile()
+	{
+		std::filesystem::remove(path);
+		std::filesystem::remove_all(path.parent_path());
+	}
+};
+
 TEST(EventScriptingContextTest, ReturnString)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	context.setupContext();
 	context.loadEventHandler(R"(export default "42";)");
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -55,8 +76,10 @@ TEST(EventScriptingContextTest, ReturnString)
 TEST(EventScriptingContextTest, ReturnInt64)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	context.setupContext();
 	context.loadEventHandler(R"(export default 42;)");
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asInt64().has_value());
@@ -66,8 +89,10 @@ TEST(EventScriptingContextTest, ReturnInt64)
 TEST(EventScriptingContextTest, Ini)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	context.setupContext();
 	context.loadEventHandler(R"(
 		import { parse } from "builtin:ini";
 		const iniString = "[section]\nkey=value";
@@ -81,8 +106,10 @@ TEST(EventScriptingContextTest, Ini)
 TEST(EventScriptingContextTest, Dayjs)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	context.setupContext();
 	context.loadEventHandler(R"(
 		import { dayjs } from "builtin:dayjs";
 		const date = dayjs("2025-01-01");
@@ -93,16 +120,36 @@ TEST(EventScriptingContextTest, Dayjs)
 	ASSERT_EQ(value.asString(), "2025-01-01");
 }
 
-TEST(EventScriptingContextTest, DbObject)
+TEST(EventScriptingContextTest, DbToString)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
-	context.loadEventHandler(R"(
-		export default db.toString();
-	)");
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.loadEventHandler(R"(export default db.toString();)");
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	auto extractedValue = value.asString();
 	ASSERT_TRUE(extractedValue.has_value());
 	ASSERT_EQ(extractedValue.value(), "[object ScriptingDatabase]");
+}
+
+TEST(EventScriptingContextTest, DbQuerySimple)
+{
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	TemporaryFile tempFile("test.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.loadEventHandler(R"(export default JSON.stringify(db.query("SELECT 1"));)");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "[{\"1\":1}]");
 }

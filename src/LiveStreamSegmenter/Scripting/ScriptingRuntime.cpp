@@ -42,4 +42,9 @@ ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger
 
 ScriptingRuntime::~ScriptingRuntime() = default;
 
+std::shared_ptr<JSContext> ScriptingRuntime::createContextRaw() const
+{
+	return std::shared_ptr<JSContext>(JS_NewContextRaw(rt_.get()), JS_FreeContext);
+}
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

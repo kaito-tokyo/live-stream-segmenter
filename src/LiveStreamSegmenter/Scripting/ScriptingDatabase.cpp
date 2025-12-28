@@ -70,42 +70,7 @@ ScriptingDatabase *unwrap(JSContext *ctx, JSValueConst this_val)
 	return reinterpret_cast<ScriptingDatabase *>(JS_GetOpaque(this_val, classId));
 }
 
-} // anonymous namespace
-
-ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
-				     const std::filesystem::path &dbPath)
-	: runtime_(std::move(runtime)),
-	  ctx_(std::move(ctx)),
-	  db_(openSqlite3(dbPath), sqlite3_close_v2)
-{
-	if (!runtime_) {
-		throw std::runtime_error("ScriptingRuntimeIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
-
-	if (!ctx_) {
-		throw std::runtime_error("ContextIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
-
-	if (!db_) {
-		throw std::runtime_error("DBIsNullError(ScriptingDatabase::ScriptingDatabase)");
-	}
-
-	JSClassID classId = runtime_->registerCustomClass<ScriptingDatabase>(&kClassDef);
-
-	ScopedJSValue dbObj(ctx, JS_NewObjectClass(ctx.get(), classId));
-	JS_SetOpaque(dbObj.get(), this);
-
-	JS_SetPropertyFunctionList(ctx.get(), dbObj.get(), kClassFuncList, std::size(kClassFuncList));
-
-	ScopedJSValue globalObj(ctx, JS_GetGlobalObject(ctx.get()));
-	JS_SetPropertyStr(ctx.get(), globalObj.get(), "db", dbObj.get());
-}
-
-ScriptingDatabase::~ScriptingDatabase() = default;
-
-// Helper to bind arguments from JS to SQLite
-// argv[0] is SQL string, parameters start from argv[1]
-void ScriptingDatabase::bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
+void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 {
 	// SQLite binds are 1-based.
 	// JS args: argv[1] corresponds to ?1, argv[2] to ?2...
@@ -122,26 +87,62 @@ void ScriptingDatabase::bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, J
 			JS_ToFloat64(ctx, &val, argv[i]);
 			sqlite3_bind_double(stmt, bindIdx, val);
 		} else if (tag == JS_TAG_STRING) {
-			const char *str = JS_ToCString(ctx, argv[i]);
-			// SQLITE_TRANSIENT makes SQLite copy the string immediately
-			sqlite3_bind_text(stmt, bindIdx, str, -1, SQLITE_TRANSIENT);
-			JS_FreeCString(ctx, str);
+			ScopedJSString str(ctx, JS_ToCString(ctx, argv[i]));
+			sqlite3_bind_text(stmt, bindIdx, str.get(), -1, SQLITE_TRANSIENT);
 		} else if (tag == JS_TAG_BOOL) {
 			sqlite3_bind_int(stmt, bindIdx, JS_ToBool(ctx, argv[i]));
 		} else if (JS_IsNull(argv[i]) || JS_IsUndefined(argv[i])) {
 			sqlite3_bind_null(stmt, bindIdx);
 		} else {
-			// Fallback: try converting to string (e.g. for objects)
-			const char *str = JS_ToCString(ctx, argv[i]);
-			sqlite3_bind_text(stmt, bindIdx, str, -1, SQLITE_TRANSIENT);
-			JS_FreeCString(ctx, str);
+			size_t len;
+			uint8_t *buf = JS_GetArrayBuffer(ctx, &len, argv[i]);
+
+			if (buf) {
+				sqlite3_bind_blob(stmt, bindIdx, buf, len, SQLITE_TRANSIENT);
+			} else {
+				sqlite3_bind_null(stmt, bindIdx);
+			}
 		}
 	}
 }
 
-// ----------------------------------------------------------------------
-// Implementation: query (SELECT)
-// ----------------------------------------------------------------------
+} // anonymous namespace
+
+ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
+				     std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath)
+	: runtime_(std::move(runtime)),
+	  ctx_(std::move(ctx)),
+	  logger_(std::move(logger)),
+	  db_(openSqlite3(dbPath), sqlite3_close_v2)
+{
+	if (!runtime_) {
+		throw std::runtime_error("ScriptingRuntimeIsNullError(ScriptingDatabase::ScriptingDatabase)");
+	}
+
+	if (!ctx_) {
+		throw std::runtime_error("ContextIsNullError(ScriptingDatabase::ScriptingDatabase)");
+	}
+
+	if (!db_) {
+		throw std::runtime_error("DBIsNullError(ScriptingDatabase::ScriptingDatabase)");
+	}
+}
+
+ScriptingDatabase::~ScriptingDatabase() = default;
+
+void ScriptingDatabase::setupContext()
+{
+	JSClassID classId = runtime_->registerCustomClass<ScriptingDatabase>(&kClassDef);
+
+	JSValue dbObj = JS_NewObjectClass(ctx_.get(), classId);
+	JS_SetOpaque(dbObj, this);
+
+	JS_SetPropertyFunctionList(ctx_.get(), dbObj, kClassFuncList, std::size(kClassFuncList));
+
+	JSValue globalObj = JS_GetGlobalObject(ctx_.get());
+	JS_SetPropertyStr(ctx_.get(), globalObj, "db", dbObj);
+	JS_FreeValue(ctx_.get(), globalObj);
+}
 
 JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -152,24 +153,21 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 	if (!self)
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
-	const char *sql = JS_ToCString(ctx, argv[0]);
-	if (!sql)
+	ScopedJSString sqlStr(ctx, JS_ToCString(ctx, argv[0]));
+	if (!sqlStr.get())
 		return JS_EXCEPTION;
 
 	sqlite3_stmt *stmtRaw = nullptr;
-	int rc = sqlite3_prepare_v2(self->db_.get(), sql, -1, &stmtRaw, nullptr);
-	JS_FreeCString(ctx, sql);
+	int rc = sqlite3_prepare_v3(self->db_.get(), sqlStr.get(), -1, 0, &stmtRaw, nullptr);
 
 	if (rc != SQLITE_OK) {
 		return JS_ThrowInternalError(ctx, "SQL Error: %s", sqlite3_errmsg(self->db_.get()));
 	}
 
-	ScopedStmt stmt(stmtRaw); // Auto-finalize on scope exit
+	ScopedStmt stmt(stmtRaw);
 
-	// Bind parameters
 	bindArgs(ctx, stmt.get(), argc, argv);
 
-	// Fetch rows
 	JSValue resultArr = JS_NewArray(ctx);
 	int rowIdx = 0;
 
@@ -196,13 +194,11 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 			case SQLITE_NULL:
 				val = JS_NULL;
 				break;
-			default: // SQLITE_BLOB
-				// For simplicity treating BLOB as NULL or could verify size
+			default:
 				val = JS_NULL;
 				break;
 			}
 
-			// Error checking for property set could be added here
 			JS_SetPropertyStr(ctx, rowObj, colName, val);
 		}
 		JS_SetPropertyUint32(ctx, resultArr, rowIdx++, rowObj);
@@ -216,10 +212,6 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 	return resultArr;
 }
 
-// ----------------------------------------------------------------------
-// Implementation: execute (INSERT/UPDATE/DELETE)
-// ----------------------------------------------------------------------
-
 JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	if (argc < 1)
@@ -229,13 +221,12 @@ JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int ar
 	if (!self)
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
-	const char *sql = JS_ToCString(ctx, argv[0]);
-	if (!sql)
+	ScopedJSString sqlStr(ctx, JS_ToCString(ctx, argv[0]));
+	if (!sqlStr.get())
 		return JS_EXCEPTION;
 
 	sqlite3_stmt *stmtRaw = nullptr;
-	int rc = sqlite3_prepare_v2(self->db_.get(), sql, -1, &stmtRaw, nullptr);
-	JS_FreeCString(ctx, sql);
+	int rc = sqlite3_prepare_v3(self->db_.get(), sqlStr.get(), -1, 0, &stmtRaw, nullptr);
 
 	if (rc != SQLITE_OK) {
 		return JS_ThrowInternalError(ctx, "SQL Error: %s", sqlite3_errmsg(self->db_.get()));

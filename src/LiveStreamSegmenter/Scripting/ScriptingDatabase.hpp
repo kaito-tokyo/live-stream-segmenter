@@ -36,12 +36,10 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 class ScriptingDatabase {
 public:
 	ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
-			  const std::filesystem::path &dbPath);
+			  std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath);
 	~ScriptingDatabase();
 
-	void addIntrinsicsDb(std::shared_ptr<JSContext> ctx);
-
-	static void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv);
+	void setupContext();
 
 	static JSValue query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
@@ -50,6 +48,7 @@ public:
 private:
 	const std::shared_ptr<ScriptingRuntime> runtime_;
 	const std::shared_ptr<JSContext> ctx_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	const std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_;
 };

@@ -37,19 +37,19 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 class EventScriptingContext {
 public:
-	EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<Logger::ILogger> logger,
-			      const std::filesystem::path &dbPath);
+	EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
+			      std::shared_ptr<const Logger::ILogger> logger);
 	~EventScriptingContext();
+
+	void setupContext();
 
 	void loadEventHandler(const char *script);
 	ScopedJSValue getModuleProperty(const char *property) const;
 
 private:
-	std::shared_ptr<ScriptingRuntime> runtime_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
+	const std::shared_ptr<ScriptingRuntime> runtime_;
 	const std::shared_ptr<JSContext> ctx_;
-	std::shared_ptr<ScriptingDatabase> database_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	ScopedJSValue eventHandlerNs_;
 

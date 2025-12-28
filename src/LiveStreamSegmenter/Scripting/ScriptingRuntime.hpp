@@ -37,43 +37,40 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 class ScopedJSString {
 public:
-	ScopedJSString(std::shared_ptr<JSContext> ctx, const char *str) noexcept : ctx_(std::move(ctx)), str_(str) {}
+	ScopedJSString(JSContext *ctx, const char *str) noexcept : ctx_(ctx), str_(str) {}
 
 	~ScopedJSString()
 	{
 		if (str_) {
-			JS_FreeCString(ctx_.get(), str_);
+			JS_FreeCString(ctx_, str_);
 		}
 	}
 
 	const char *get() const noexcept { return str_ ? str_ : ""; }
 
 private:
-	std::shared_ptr<JSContext> ctx_;
+	JSContext *ctx_;
 	const char *str_;
 };
 
 class ScopedJSValue {
 public:
 	ScopedJSValue() noexcept : ctx_(nullptr), v_(JS_UNDEFINED) {}
-	ScopedJSValue(std::shared_ptr<JSContext> ctx, JSValue v) noexcept : ctx_(std::move(ctx)), v_(v) {}
+	ScopedJSValue(JSContext *ctx, JSValue v) noexcept : ctx_(ctx), v_(v) {}
 
 	~ScopedJSValue()
 	{
 		if (!JS_IsUndefined(v_)) {
-			JS_FreeValue(ctx_.get(), v_);
+			JS_FreeValue(ctx_, v_);
 		}
 	}
 
-	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(std::move(other.ctx_)), v_(other.v_)
-	{
-		other.v_ = JS_UNDEFINED;
-	}
+	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
 	ScopedJSValue &operator=(ScopedJSValue &&other) noexcept
 	{
 		if (this != &other) {
 			if (!JS_IsUndefined(v_)) {
-				JS_FreeValue(ctx_.get(), v_);
+				JS_FreeValue(ctx_, v_);
 			}
 			ctx_ = other.ctx_;
 			v_ = other.v_;
@@ -87,7 +84,7 @@ public:
 	std::optional<std::string> asString() const
 	{
 		if (JS_IsString(v_)) {
-			ScopedJSString cstr(ctx_, JS_ToCString(ctx_.get(), v_));
+			ScopedJSString cstr(ctx_, JS_ToCString(ctx_, v_));
 			return std::string(cstr.get());
 		} else {
 			return std::nullopt;
@@ -98,7 +95,7 @@ public:
 	{
 		if (JS_IsNumber(v_)) {
 			std::int64_t val;
-			if (JS_ToInt64(ctx_.get(), &val, v_) == 0) {
+			if (JS_ToInt64(ctx_, &val, v_) == 0) {
 				return val;
 			}
 		}
@@ -109,8 +106,8 @@ public:
 	std::optional<std::string> asExceptionString() const
 	{
 		if (JS_IsException(v_)) {
-			ScopedJSValue exception(ctx_, JS_GetException(ctx_.get()));
-			ScopedJSString str(ctx_, JS_ToCString(ctx_.get(), exception.get()));
+			ScopedJSValue exception(ctx_, JS_GetException(ctx_));
+			ScopedJSString str(ctx_, JS_ToCString(ctx_, exception.get()));
 			return std::string(str.get());
 		} else {
 			return std::nullopt;
@@ -121,7 +118,7 @@ public:
 	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
 
 private:
-	std::shared_ptr<JSContext> ctx_;
+	JSContext *ctx_;
 	JSValue v_;
 };
 
@@ -135,10 +132,13 @@ public:
 	ScriptingRuntime(ScriptingRuntime &&) = delete;
 	ScriptingRuntime &operator=(ScriptingRuntime &&) = delete;
 
+	std::shared_ptr<JSContext> createContextRaw() const;
+
 	template<typename T> JSClassID registerCustomClass(const JSClassDef *classDef)
 	{
-		if (registeredClasses_.find(std::type_index(typeid(T))) != registeredClasses_.end()) {
-			throw std::runtime_error("ClassAlreadyRegisteredError(ScriptingRuntime::registerCustomClass)");
+		auto it = registeredClasses_.find(std::type_index(typeid(T)));
+		if (it != registeredClasses_.end()) {
+			return it->second;
 		}
 
 		JSClassID classId = 0;
