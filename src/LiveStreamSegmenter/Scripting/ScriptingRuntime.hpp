@@ -27,23 +27,28 @@
 
 #include <quickjs.h>
 
+#include <ILogger.hpp>
+
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
-
-struct JSRuntimeDeleter {
-	void operator()(JSRuntime *rt) { JS_FreeRuntime(rt); }
-};
-using UniqueJSRuntime = std::unique_ptr<JSRuntime, JSRuntimeDeleter>;
-
-struct JSContextDeleter {
-	void operator()(JSContext *ctx) { JS_FreeContext(ctx); }
-};
-using UniqueJSContext = std::unique_ptr<JSContext, JSContextDeleter>;
 
 class ScopedJSValue {
 public:
+	ScopedJSValue() noexcept : ctx_(nullptr), v_(JS_UNDEFINED) {}
 	ScopedJSValue(JSContext *ctx, JSValue v) : ctx_(ctx), v_(v) {}
 
 	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
+	ScopedJSValue &operator=(ScopedJSValue &&other) noexcept
+	{
+		if (this != &other) {
+			if (!JS_IsUndefined(v_)) {
+				JS_FreeValue(ctx_, v_);
+			}
+			ctx_ = other.ctx_;
+			v_ = other.v_;
+			other.v_ = JS_UNDEFINED;
+		}
+		return *this;
+	}
 
 	~ScopedJSValue()
 	{
@@ -51,8 +56,6 @@ public:
 			JS_FreeValue(ctx_, v_);
 		}
 	}
-
-	operator JSValue() const { return v_; }
 
 	JSValue get() const { return v_; }
 
@@ -77,11 +80,18 @@ public:
 
 	const char *get() const { return str_ ? str_ : ""; }
 
-	operator const char *() const { return get(); }
-
 private:
 	JSContext *ctx_;
 	const char *str_;
+};
+
+class ScriptingRuntime {
+public:
+	ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger);
+	~ScriptingRuntime();
+
+	const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<JSRuntime> rt_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

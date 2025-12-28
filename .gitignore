@@ -1,6 +1,7 @@
 .astro/
 .DS_Store
 .vscode/
+*.sqlite3
 /.deps/
 /build_*/
 /bundle/*.js

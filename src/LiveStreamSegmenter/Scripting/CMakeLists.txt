@@ -5,9 +5,11 @@ target_sources(
   ${CMAKE_PROJECT_NAME}_Scripting
   PRIVATE
     dayjs_bundle.c
-    EventScriptEngine.cpp
-    EventScriptEngine.hpp
+    EventScriptingContext.cpp
+    EventScriptingContext.hpp
     ini_bundle.c
-    ScriptingDatabase.cpp
-    ScriptingDatabase.hpp
+    # ScriptingDatabase.cpp
+    # ScriptingDatabase.hpp
+    ScriptingRuntime.cpp
+    ScriptingRuntime.hpp
 )

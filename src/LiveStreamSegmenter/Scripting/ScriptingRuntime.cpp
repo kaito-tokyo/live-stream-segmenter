@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter - Scripting Module Tests
+ * Live Stream Segmenter - Scripting Module
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,43 +21,26 @@
  * SOFTWARE.
  */
 
-#include <gtest/gtest.h>
+#include "ScriptingRuntime.hpp"
 
-#include <iostream>
-#include <string_view>
+namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-#include <EventScriptEngine.hpp>
-
-using namespace KaitoTokyo;
-using namespace KaitoTokyo::LiveStreamSegmenter;
-
-class PrintLogger : public Logger::ILogger {
-public:
-	void log(LogLevel, std::string_view message) const noexcept override
-	{
-		std::cout << message << std::endl;
+ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger)
+	: logger_(logger),
+	  rt_(std::shared_ptr<JSRuntime>(JS_NewRuntime(), JS_FreeRuntime))
+{
+	if (!logger_) {
+		throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)");
 	}
 
-	const char *getPrefix() const noexcept override { return ""; }
+	if (!rt_) {
+		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
+	}
+}
+
+ScriptingRuntime::~ScriptingRuntime()
+{
+
 };
 
-TEST(EventScriptEngineTest, EvalValidScript)
-{
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::EventScriptEngine engine(logger);
-	engine.eval(R"(
-		import { dayjs } from "builtin:dayjs";
-		export const result = dayjs().format();
-	)");
-}
-
-TEST(EventScriptEngineTest, Ini)
-{
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::EventScriptEngine engine(logger);
-	engine.eval(R"(
-		import { parse } from "builtin:ini";
-		export const result = JSON.stringify(parse(`[section]
-		key=value`));
-	)");
-}
+} // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

@@ -52,11 +52,12 @@ void EventScriptEngine::eval(const char *script)
 		return;
 	}
 
-	UniqueJSContext ctx(JS_NewContextRaw(rt.get()));
-	if (!ctx) {
+	UniqueJSContext uniqueCtx(JS_NewContextRaw(rt.get()));
+	if (!uniqueCtx) {
 		logger_->error("Failed to create QuickJS context.");
 		return;
 	}
+	std::shared_ptr<JSContext> ctx(std::move(uniqueCtx));
 
 	JS_AddIntrinsicBaseObjects(ctx.get());
 	JS_AddIntrinsicJSON(ctx.get());
@@ -65,6 +66,8 @@ void EventScriptEngine::eval(const char *script)
 	JS_AddIntrinsicRegExp(ctx.get());
 	JS_AddIntrinsicEval(ctx.get());
 	JS_AddIntrinsicPromise(ctx.get());
+
+	scriptingDatabase_.addIntrinsicsDb(ctx);
 
 	{
 		ScopedJSValue dayjs_obj(ctx.get(), JS_ReadObject(ctx.get(), qjsc_dayjs_bundle, qjsc_dayjs_bundle_size,

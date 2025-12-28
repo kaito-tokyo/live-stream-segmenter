@@ -38,6 +38,9 @@ public:
 
 	void addIntrinsicsDb(std::shared_ptr<JSContext> ctx);
 
+	static ScriptingDatabase *unwrap(JSValueConst this_val);
+	static void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv);
+
 	static JSValue query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
