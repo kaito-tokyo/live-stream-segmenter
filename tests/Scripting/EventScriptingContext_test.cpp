@@ -41,37 +41,54 @@ public:
 	const char *getPrefix() const noexcept override { return ""; }
 };
 
-TEST(EventScriptingContextTest, EvalValidScript)
+TEST(EventScriptingContextTest, ReturnString)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
 	Scripting::ScriptingRuntime scriptingRuntime(logger);
 	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
-	std::shared_ptr<JSContext> ctx = context.ctx_;
 	context.loadEventHandler(R"(export default "42";)");
-	Scripting::ScopedJSValue value = context.getDefaultValue();
-	Scripting::ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), value.get()));
-	logger->info("Default value: {}", str.get());
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "42");
+}
+
+TEST(EventScriptingContextTest, ReturnInt64)
+{
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	context.loadEventHandler(R"(export default 42;)");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asInt64().has_value());
+	ASSERT_EQ(value.asInt64(), 42);
 }
 
 TEST(EventScriptingContextTest, Ini)
 {
-	// std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	// Scripting::EventScriptEngine engine("test.sqlite3", logger);
-	// engine.eval(R"(
-	// 	import { parse } from "builtin:ini";
-	// 	export const result = JSON.stringify(parse(`[section]
-	// 	key=value`));
-	// )");
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	context.loadEventHandler(R"(
+		import { parse } from "builtin:ini";
+		const iniString = "[section]\nkey=value";
+		export default JSON.stringify(parse(iniString));
+	)");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), R"({"section":{"key":"value"}})");
 }
 
-TEST(EventScriptingContextTest, Sqlite)
+TEST(EventScriptingContextTest, Dayjs)
 {
-	// std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	// Scripting::EventScriptEngine engine("test.sqlite3", logger);
-	// engine.eval(R"(
-	// 	db.execute(`CREATE TABLE IF NOT EXISTS test_table (
-	// 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-	// 		name TEXT NOT NULL
-	// 	);`);
-	// )");
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	context.loadEventHandler(R"(
+		import { dayjs } from "builtin:dayjs";
+		const date = dayjs("2025-01-01");
+		export default date.format("YYYY-MM-DD");
+	)");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "2025-01-01");
 }

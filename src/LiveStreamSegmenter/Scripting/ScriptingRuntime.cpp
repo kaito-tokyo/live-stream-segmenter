@@ -38,8 +38,7 @@ ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger
 	}
 }
 
-ScriptingRuntime::~ScriptingRuntime()
-{
+ScriptingRuntime::~ScriptingRuntime() {
 
 };
 

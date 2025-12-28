@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -39,7 +40,7 @@ public:
 	~EventScriptingContext();
 
 	void loadEventHandler(const char *script);
-	ScopedJSValue getDefaultValue() const;
+	ScopedJSValue getModuleProperty(const char *property) const;
 
 private:
 	ScriptingRuntime scriptingRuntime_;
@@ -51,6 +52,8 @@ public:
 
 private:
 	ScopedJSValue eventHandlerNs_;
+
+	void loadModule(std::uint32_t size, const std::uint8_t *buf);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

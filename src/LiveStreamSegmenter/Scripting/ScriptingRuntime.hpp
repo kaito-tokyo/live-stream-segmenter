@@ -31,17 +31,45 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
+class ScopedJSString {
+public:
+	ScopedJSString(std::shared_ptr<JSContext> ctx, const char *str) noexcept : ctx_(std::move(ctx)), str_(str) {}
+
+	~ScopedJSString()
+	{
+		if (str_) {
+			JS_FreeCString(ctx_.get(), str_);
+		}
+	}
+
+	const char *get() const noexcept { return str_ ? str_ : ""; }
+
+private:
+	std::shared_ptr<JSContext> ctx_;
+	const char *str_;
+};
+
 class ScopedJSValue {
 public:
 	ScopedJSValue() noexcept : ctx_(nullptr), v_(JS_UNDEFINED) {}
-	ScopedJSValue(JSContext *ctx, JSValue v) : ctx_(ctx), v_(v) {}
+	ScopedJSValue(std::shared_ptr<JSContext> ctx, JSValue v) noexcept : ctx_(std::move(ctx)), v_(v) {}
 
-	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
+	~ScopedJSValue()
+	{
+		if (!JS_IsUndefined(v_)) {
+			JS_FreeValue(ctx_.get(), v_);
+		}
+	}
+
+	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(std::move(other.ctx_)), v_(other.v_)
+	{
+		other.v_ = JS_UNDEFINED;
+	}
 	ScopedJSValue &operator=(ScopedJSValue &&other) noexcept
 	{
 		if (this != &other) {
 			if (!JS_IsUndefined(v_)) {
-				JS_FreeValue(ctx_, v_);
+				JS_FreeValue(ctx_.get(), v_);
 			}
 			ctx_ = other.ctx_;
 			v_ = other.v_;
@@ -50,39 +78,47 @@ public:
 		return *this;
 	}
 
-	~ScopedJSValue()
+	JSValue get() const { return v_; }
+
+	std::optional<std::string> asString() const
 	{
-		if (!JS_IsUndefined(v_)) {
-			JS_FreeValue(ctx_, v_);
+		if (JS_IsString(v_)) {
+			ScopedJSString cstr(ctx_, JS_ToCString(ctx_.get(), v_));
+			return std::string(cstr.get());
+		} else {
+			return std::nullopt;
 		}
 	}
 
-	JSValue get() const { return v_; }
+	std::optional<std::int64_t> asInt64() const
+	{
+		if (JS_IsNumber(v_)) {
+			std::int64_t val;
+			if (JS_ToInt64(ctx_.get(), &val, v_) == 0) {
+				return val;
+			}
+		}
+
+		return std::nullopt;
+	}
+
+	std::optional<std::string> asExceptionString() const
+	{
+		if (JS_IsException(v_)) {
+			ScopedJSValue exception(ctx_, JS_GetException(ctx_.get()));
+			ScopedJSString str(ctx_, JS_ToCString(ctx_.get(), exception.get()));
+			return std::string(str.get());
+		} else {
+			return std::nullopt;
+		}
+	}
 
 	ScopedJSValue(const ScopedJSValue &) = delete;
 	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
 
 private:
-	JSContext *ctx_;
+	std::shared_ptr<JSContext> ctx_;
 	JSValue v_;
-};
-
-class ScopedJSString {
-public:
-	ScopedJSString(JSContext *ctx, const char *str) : ctx_(ctx), str_(str) {}
-
-	~ScopedJSString()
-	{
-		if (str_) {
-			JS_FreeCString(ctx_, str_);
-		}
-	}
-
-	const char *get() const { return str_ ? str_ : ""; }
-
-private:
-	JSContext *ctx_;
-	const char *str_;
 };
 
 class ScriptingRuntime {
