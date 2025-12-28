@@ -1,0 +1,132 @@
+/*
+ * Live Stream Segmenter - Store Module
+ * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <mutex>
+
+#include <nlohmann/json.hpp>
+
+#include <obs-frontend-api.h>
+
+#include <GoogleOAuth2ClientCredentials.hpp>
+#include <GoogleTokenState.hpp>
+#include <ILogger.hpp>
+#include <ObsUnique.hpp>
+
+namespace KaitoTokyo::LiveStreamSegmenter::Store {
+
+class EventHandlerStore {
+public:
+	explicit EventHandlerStore(std::shared_ptr<const Logger::ILogger> logger)
+		: logger_(logger ? std::move(logger)
+				 : throw std::invalid_argument(
+					   "LoggerIsNullError(EventHandlerStore::EventHandlerStore)")) {};
+	~EventHandlerStore() noexcept = default;
+
+	EventHandlerStore(const EventHandlerStore &) = delete;
+	EventHandlerStore &operator=(const EventHandlerStore &) = delete;
+	EventHandlerStore(EventHandlerStore &&) = delete;
+	EventHandlerStore &operator=(EventHandlerStore &&) = delete;
+
+	void setEventHandlerScript(std::string eventHandlerScript)
+	{
+		std::scoped_lock lock(mutex_);
+		eventHandlerScript_ = std::move(eventHandlerScript);
+	}
+
+
+	bool save() const
+	{
+		std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+		std::filesystem::path configPath = getConfigPath();
+		if (configPath.empty()) {
+			return false;
+		}
+
+		std::scoped_lock lock(mutex_);
+
+		nlohmann::json j{
+			{"eventHandlerScript", eventHandlerScript_},
+		};
+
+		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
+		if (!ofs.is_open()) {
+			logger->error("name=FileOpenError\tlocation=EventHandlerStore::save");
+			return false;
+		}
+
+		ofs << j.dump();
+
+		return true;
+	}
+
+	void restore()
+	{
+		std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+		std::filesystem::path configPath = getConfigPath();
+		if (configPath.empty()) {
+			logger->info("name=FileMissing\tlocation=EventHandlerStore::restore");
+			return;
+		}
+
+		std::scoped_lock lock(mutex_);
+		std::ifstream ifs(configPath, std::ios::in);
+		if (!ifs.is_open()) {
+			logger->error("name=FileOpenError\tlocation=EventHandlerStore::restore");
+			return;
+		}
+
+		nlohmann::json j;
+		ifs >> j;
+
+		try {
+			eventHandlerScript_ = j.value("eventHandlerScript", std::string{});
+		} catch (...) {
+			logger->error("name=JsonParseError\tlocation=EventHandlerStore::restore");
+			eventHandlerScript_ = {};
+			throw;
+		}
+	}
+
+private:
+	std::filesystem::path getConfigPath() const
+	{
+		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
+		if (!profilePathRaw) {
+			logger_->error("ProfilePathError(EventHandlerStore::getConfigPath)");
+			return {};
+		}
+
+		std::filesystem::path profilePath(reinterpret_cast<const char8_t *>(profilePathRaw.get()));
+		return profilePath / "live-stream-segmenter_EventHandlerStore.json";
+	}
+
+	const std::shared_ptr<const Logger::ILogger> logger_;
+
+	mutable std::mutex mutex_;
+	std::string eventHandlerScript_;
+};
+
+} // namespace KaitoTokyo::LiveStreamSegmenter::Store
