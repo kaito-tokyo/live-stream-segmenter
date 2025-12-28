@@ -32,6 +32,7 @@
 #include <QThreadPool>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QPlainTextEdit>
 
 #include <ILogger.hpp>
 
@@ -122,7 +123,13 @@ private:
 	QLabel *streamKeyLabelB_;
 	QComboBox *streamKeyComboB_;
 
-	// 7. Dialog Buttons
+	// 7. Script Tab
+	QWidget *scriptTab_;
+	QVBoxLayout *scriptTabLayout_;
+	QLabel *scriptHelpLabel_;
+	QPlainTextEdit *scriptEditor_;
+
+	// 8. Dialog Buttons
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 

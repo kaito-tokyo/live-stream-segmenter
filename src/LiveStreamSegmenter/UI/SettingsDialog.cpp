@@ -114,7 +114,13 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	  streamKeyLabelB_(new QLabel(this)),
 	  streamKeyComboB_(new QComboBox(this)),
 
-	  // 7. Dialog Buttons
+	  // 7. Script Tab
+	  scriptTab_(new QWidget(this)),
+	  scriptTabLayout_(new QVBoxLayout(scriptTab_)),
+	  scriptHelpLabel_(new QLabel(this)),
+	  scriptEditor_(new QPlainTextEdit(this)),
+
+	  // 8. Dialog Buttons
 	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
 					  this)),
 	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
@@ -319,9 +325,32 @@ void SettingsDialog::setupUi()
 
 	youTubeTabLayout_->addStretch();
 
+	// --- Script Tab Config ---
+	scriptTabLayout_->setSpacing(8);
+	scriptTabLayout_->setContentsMargins(16, 16, 16, 16);
+
+	scriptHelpLabel_->setText(tr("Enter a JavaScript function to generate stream metadata.\n"
+				     "The script should return a JSON object containing 'title' and 'settings'."));
+	scriptHelpLabel_->setWordWrap(true);
+	scriptTabLayout_->addWidget(scriptHelpLabel_);
+
+	const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+	scriptEditor_->setFont(fixedFont);
+
+	scriptEditor_->setPlaceholderText(tr("// Example Script\n"
+					     "function generate(context) {\n"
+					     "    return {\n"
+					     "        title: \"My Stream \" + context.date,\n"
+					     "        settings: {}\n"
+					     "    };\n"
+					     "}"));
+
+	scriptTabLayout_->addWidget(scriptEditor_);
+
 	// --- Finalize Tabs ---
 	tabWidget_->addTab(generalTab_, tr("General"));
 	tabWidget_->addTab(youTubeTab_, tr("YouTube"));
+	tabWidget_->addTab(scriptTab_, tr("Script"));
 	mainLayout_->addWidget(tabWidget_);
 
 	tabWidget_->setCurrentWidget(youTubeTab_);
