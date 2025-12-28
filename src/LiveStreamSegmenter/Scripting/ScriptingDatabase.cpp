@@ -122,9 +122,12 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 
 ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
 				     std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath)
-	: runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeNullError(ScriptingDatabase::ScriptingDatabase)")),
-	  ctx_(ctx ? std::move(ctx) : throw std::runtime_error("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
-	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
+	: runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument("RuntimeNullError(ScriptingDatabase::ScriptingDatabase)")),
+	  ctx_(ctx ? std::move(ctx)
+		   : throw std::runtime_error("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  db_(openSqlite3(dbPath), sqlite3_close_v2)
 {
 }
