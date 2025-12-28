@@ -32,9 +32,11 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 EventScriptingContext::EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
 					     std::shared_ptr<const Logger::ILogger> logger)
-	: runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeNullError(ScriptingRuntime::ScriptingRuntime)")),
+	: runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument("RuntimeNullError(ScriptingRuntime::ScriptingRuntime)")),
 	  ctx_(ctx ? std::move(ctx) : throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)")),
-	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)"))
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)"))
 {
 }
 

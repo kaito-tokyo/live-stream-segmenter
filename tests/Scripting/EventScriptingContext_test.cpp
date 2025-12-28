@@ -44,7 +44,7 @@ struct TemporaryFile {
 	std::filesystem::path tempDir;
 	std::filesystem::path path;
 
-	TemporaryFile(std::string name)
+	TemporaryFile(const std::string &name)
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
