@@ -277,67 +277,67 @@ TEST(EventScriptingContextTest, DbTransaction)
 
 TEST(EventScriptingContextTest, LocalStorage_BasicSetGet)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        // DBとLocalStorageのセットアップ
-        TemporaryFile tempFile("test_localstorage_basic.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage(); // 実装したセットアップメソッド
+	// DBとLocalStorageのセットアップ
+	TemporaryFile tempFile("test_localstorage_basic.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage(); // 実装したセットアップメソッド
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.setItem("key1", "value1");
                 const val = localStorage.getItem("key1");
                 export default val;
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asString().has_value());
-        ASSERT_EQ(value.asString(), "value1");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "value1");
 }
 
 TEST(EventScriptingContextTest, LocalStorage_Overwrite)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_overwrite.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_overwrite.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.setItem("key1", "initial");
                 localStorage.setItem("key1", "updated");
                 export default localStorage.getItem("key1");
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asString().has_value());
-        ASSERT_EQ(value.asString(), "updated");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "updated");
 }
 
 TEST(EventScriptingContextTest, LocalStorage_RemoveItem)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_remove.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_remove.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.setItem("todelete", "val");
                 localStorage.removeItem("todelete");
                 const val = localStorage.getItem("todelete");
@@ -346,25 +346,25 @@ TEST(EventScriptingContextTest, LocalStorage_RemoveItem)
                 export default val === null ? "IS_NULL" : "NOT_NULL";
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asString().has_value());
-        ASSERT_EQ(value.asString(), "IS_NULL");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "IS_NULL");
 }
 
 TEST(EventScriptingContextTest, LocalStorage_Length)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_length.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_length.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.clear();
                 localStorage.setItem("a", "1");
                 localStorage.setItem("b", "2");
@@ -373,78 +373,78 @@ TEST(EventScriptingContextTest, LocalStorage_Length)
                 export default localStorage.length;
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asInt64().has_value());
-        ASSERT_EQ(value.asInt64(), 2); // a and c remain
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asInt64().has_value());
+	ASSERT_EQ(value.asInt64(), 2); // a and c remain
 }
 
 TEST(EventScriptingContextTest, LocalStorage_Key)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_key.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_key.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        // Note: SQLite order isn't guaranteed without ORDER BY,
-        // but for small inserted data it's usually stable enough for a simple "contains" check logic in tests.
-        // Here we just check that key(0) returns one of the keys.
-        context.loadEventHandler(R"(
+	// Note: SQLite order isn't guaranteed without ORDER BY,
+	// but for small inserted data it's usually stable enough for a simple "contains" check logic in tests.
+	// Here we just check that key(0) returns one of the keys.
+	context.loadEventHandler(R"(
                 localStorage.clear();
                 localStorage.setItem("uniqueKey", "val");
                 export default localStorage.key(0);
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asString().has_value());
-        ASSERT_EQ(value.asString(), "uniqueKey");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	ASSERT_EQ(value.asString(), "uniqueKey");
 }
 
 TEST(EventScriptingContextTest, LocalStorage_Clear)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_clear.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_clear.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.setItem("a", "1");
                 localStorage.setItem("b", "2");
                 localStorage.clear();
                 export default localStorage.length;
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asInt64().has_value());
-        ASSERT_EQ(value.asInt64(), 0);
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asInt64().has_value());
+	ASSERT_EQ(value.asInt64(), 0);
 }
 
 TEST(EventScriptingContextTest, LocalStorage_TypeCoercion)
 {
-        // Spec: keys and values should be converted to strings
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-        Scripting::EventScriptingContext context(runtime, ctx, logger);
+	// Spec: keys and values should be converted to strings
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
 
-        TemporaryFile tempFile("test_localstorage_types.sqlite3");
-        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-        context.setupContext();
-        db.setupContext();
-        context.setupLocalStorage();
+	TemporaryFile tempFile("test_localstorage_types.sqlite3");
+	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	context.setupContext();
+	db.setupContext();
+	context.setupLocalStorage();
 
-        context.loadEventHandler(R"(
+	context.loadEventHandler(R"(
                 localStorage.setItem(123, 456); // Numbers
                 const val = localStorage.getItem("123"); // Get by string key
 
@@ -455,50 +455,50 @@ TEST(EventScriptingContextTest, LocalStorage_TypeCoercion)
                 export default JSON.stringify({ isString, content });
         )");
 
-        Scripting::ScopedJSValue value = context.getModuleProperty("default");
-        ASSERT_TRUE(value.asString().has_value());
-        // JSON.stringify results in {"isString":true,"content":"456"}
-        ASSERT_EQ(value.asString(), R"({"isString":true,"content":"456"})");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	ASSERT_TRUE(value.asString().has_value());
+	// JSON.stringify results in {"isString":true,"content":"456"}
+	ASSERT_EQ(value.asString(), R"({"isString":true,"content":"456"})");
 }
 
 TEST(EventScriptingContextTest, LocalStorage_Persistence)
 {
-        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-        TemporaryFile tempFile("test_localstorage_persist.sqlite3");
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	TemporaryFile tempFile("test_localstorage_persist.sqlite3");
 
-        // First session: Write data
-        {
-                auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-                std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-                Scripting::EventScriptingContext context(runtime, ctx, logger);
-                Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	// First session: Write data
+	{
+		auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+		std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+		Scripting::EventScriptingContext context(runtime, ctx, logger);
+		Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
 
-                context.setupContext();
-                db.setupContext();
-                context.setupLocalStorage();
+		context.setupContext();
+		db.setupContext();
+		context.setupLocalStorage();
 
-                context.loadEventHandler(R"(
+		context.loadEventHandler(R"(
                         localStorage.setItem("persistentKey", "persistentValue");
                 )");
-        }
+	}
 
-        // Second session: Read data from same file
-        {
-                auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-                std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-                Scripting::EventScriptingContext context(runtime, ctx, logger);
-                Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+	// Second session: Read data from same file
+	{
+		auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+		std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+		Scripting::EventScriptingContext context(runtime, ctx, logger);
+		Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
 
-                context.setupContext();
-                db.setupContext();
-                context.setupLocalStorage();
+		context.setupContext();
+		db.setupContext();
+		context.setupLocalStorage();
 
-                context.loadEventHandler(R"(
+		context.loadEventHandler(R"(
                         export default localStorage.getItem("persistentKey");
                 )");
 
-                Scripting::ScopedJSValue value = context.getModuleProperty("default");
-                ASSERT_TRUE(value.asString().has_value());
-                ASSERT_EQ(value.asString(), "persistentValue");
-        }
+		Scripting::ScopedJSValue value = context.getModuleProperty("default");
+		ASSERT_TRUE(value.asString().has_value());
+		ASSERT_EQ(value.asString(), "persistentValue");
+	}
 }
