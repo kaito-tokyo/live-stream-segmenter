@@ -58,10 +58,38 @@ struct TemporaryFile {
 		path = tempDir / name;
 	}
 
+	TemporaryFile(const TemporaryFile &) = delete;
+	TemporaryFile &operator=(const TemporaryFile &) = delete;
+
+	TemporaryFile(TemporaryFile &&other) noexcept
+	    : tempDir(std::move(other.tempDir)),
+	      path(std::move(other.path))
+	{
+		other.tempDir.clear();
+		other.path.clear();
+	}
+
+	TemporaryFile &operator=(TemporaryFile &&other) noexcept
+	{
+		if (this != &other) {
+			std::error_code ec;
+			if (!tempDir.empty()) {
+				std::filesystem::remove_all(tempDir, ec);
+			}
+			tempDir = std::move(other.tempDir);
+			path = std::move(other.path);
+			other.tempDir.clear();
+			other.path.clear();
+		}
+		return *this;
+	}
+
 	~TemporaryFile()
 	{
-		std::error_code ec;
-		std::filesystem::remove_all(tempDir, ec);
+		if (!tempDir.empty()) {
+			std::error_code ec;
+			std::filesystem::remove_all(tempDir, ec);
+		}
 	}
 };
 
