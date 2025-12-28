@@ -19,6 +19,7 @@
     },
     "fmt",
     "nlohmann-json",
-    "quickjs-ng"
+    "quickjs-ng",
+    "sqlite3"
   ]
 }
