@@ -118,43 +118,45 @@ void EventScriptEngine::eval(const char *script)
 	JS_AddIntrinsicPromise(ctx.get());
 
 	{
-            ScopedJSValue dayjs_obj(ctx.get(), JS_ReadObject(ctx.get(), qjsc_dayjs_bundle, qjsc_dayjs_bundle_size, JS_READ_OBJ_BYTECODE));
+		ScopedJSValue dayjs_obj(ctx.get(), JS_ReadObject(ctx.get(), qjsc_dayjs_bundle, qjsc_dayjs_bundle_size,
+								 JS_READ_OBJ_BYTECODE));
 
-            if (JS_IsException(dayjs_obj.get())) {
-                ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
-                ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
-                logger_->error("Failed to read dayjs bundle: {}", str.get());
-                return;
-            }
+		if (JS_IsException(dayjs_obj.get())) {
+			ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
+			ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
+			logger_->error("Failed to read dayjs bundle: {}", str.get());
+			return;
+		}
 
-            ScopedJSValue dayjs_res(ctx.get(), JS_EvalFunction(ctx.get(), JS_DupValue(ctx.get(), dayjs_obj.get())));
+		ScopedJSValue dayjs_res(ctx.get(), JS_EvalFunction(ctx.get(), JS_DupValue(ctx.get(), dayjs_obj.get())));
 
-            if (JS_IsException(dayjs_res.get())) {
-                ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
-                ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
-                logger_->error("Failed to evaluate dayjs bundle: {}", str.get());
-                return;
-            }
-        }
+		if (JS_IsException(dayjs_res.get())) {
+			ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
+			ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
+			logger_->error("Failed to evaluate dayjs bundle: {}", str.get());
+			return;
+		}
+	}
 
 	{
-            ScopedJSValue ini_obj(ctx.get(), JS_ReadObject(ctx.get(), qjsc_ini_bundle, qjsc_ini_bundle_size, JS_READ_OBJ_BYTECODE));
+		ScopedJSValue ini_obj(ctx.get(), JS_ReadObject(ctx.get(), qjsc_ini_bundle, qjsc_ini_bundle_size,
+							       JS_READ_OBJ_BYTECODE));
 
-            if (JS_IsException(ini_obj.get())) {
-                ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
-                ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
-                logger_->error("Failed to read ini bundle: {}", str.get());
-                return;
-            }
+		if (JS_IsException(ini_obj.get())) {
+			ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
+			ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
+			logger_->error("Failed to read ini bundle: {}", str.get());
+			return;
+		}
 
-            ScopedJSValue ini_res(ctx.get(), JS_EvalFunction(ctx.get(), JS_DupValue(ctx.get(), ini_obj.get())));
-            if (JS_IsException(ini_res.get())) {
-                ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
-                ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
-                logger_->error("Failed to evaluate ini bundle: {}", str.get());
-                return;
-            }
-        }
+		ScopedJSValue ini_res(ctx.get(), JS_EvalFunction(ctx.get(), JS_DupValue(ctx.get(), ini_obj.get())));
+		if (JS_IsException(ini_res.get())) {
+			ScopedJSValue exception(ctx.get(), JS_GetException(ctx.get()));
+			ScopedJSString str(ctx.get(), JS_ToCString(ctx.get(), exception));
+			logger_->error("Failed to evaluate ini bundle: {}", str.get());
+			return;
+		}
+	}
 
 	ScopedJSValue module_obj(ctx.get(), JS_Eval(ctx.get(), script, strlen(script), "<input>",
 						    JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));

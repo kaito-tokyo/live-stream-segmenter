@@ -108,7 +108,6 @@ elseif(USE_PKGCONFIG)
   target_compile_definitions(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_CFLAGS_OTHER})
   target_link_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARY_DIRS})
 
-
   # --- qjs ---
   find_package(qjs CONFIG REQUIRED)
   add_library(qjs::qjs ALIAS qjs)
