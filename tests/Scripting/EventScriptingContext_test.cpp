@@ -44,7 +44,7 @@ public:
 TEST(EventScriptingContextTest, ReturnString)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
 	context.loadEventHandler(R"(export default "42";)");
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -55,7 +55,7 @@ TEST(EventScriptingContextTest, ReturnString)
 TEST(EventScriptingContextTest, ReturnInt64)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
 	context.loadEventHandler(R"(export default 42;)");
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -66,7 +66,7 @@ TEST(EventScriptingContextTest, ReturnInt64)
 TEST(EventScriptingContextTest, Ini)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
 	context.loadEventHandler(R"(
 		import { parse } from "builtin:ini";
@@ -81,7 +81,7 @@ TEST(EventScriptingContextTest, Ini)
 TEST(EventScriptingContextTest, Dayjs)
 {
 	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::ScriptingRuntime scriptingRuntime(logger);
+	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
 	context.loadEventHandler(R"(
 		import { dayjs } from "builtin:dayjs";
@@ -91,4 +91,18 @@ TEST(EventScriptingContextTest, Dayjs)
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
 	ASSERT_EQ(value.asString(), "2025-01-01");
+}
+
+TEST(EventScriptingContextTest, DbObject)
+{
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	auto scriptingRuntime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	Scripting::EventScriptingContext context(scriptingRuntime, "test.sqlite3");
+	context.loadEventHandler(R"(
+		export default db.toString();
+	)");
+	Scripting::ScopedJSValue value = context.getModuleProperty("default");
+	auto extractedValue = value.asString();
+	ASSERT_TRUE(extractedValue.has_value());
+	ASSERT_EQ(extractedValue.value(), "[object ScriptingDatabase]");
 }

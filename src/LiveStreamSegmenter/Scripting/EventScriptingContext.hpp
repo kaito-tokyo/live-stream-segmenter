@@ -30,27 +30,27 @@
 
 #include <ILogger.hpp>
 
+#include "ScriptingDatabase.hpp"
 #include "ScriptingRuntime.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 class EventScriptingContext {
 public:
-	EventScriptingContext(const ScriptingRuntime &scriptingRuntime, const std::filesystem::path &dbPath);
+	EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<Logger::ILogger> logger,
+			      const std::filesystem::path &dbPath);
 	~EventScriptingContext();
 
 	void loadEventHandler(const char *script);
 	ScopedJSValue getModuleProperty(const char *property) const;
 
 private:
-	ScriptingRuntime scriptingRuntime_;
+	std::shared_ptr<ScriptingRuntime> runtime_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	const std::shared_ptr<JSRuntime> rt_;
 
-public:
 	const std::shared_ptr<JSContext> ctx_;
+	std::shared_ptr<ScriptingDatabase> database_;
 
-private:
 	ScopedJSValue eventHandlerNs_;
 
 	void loadModule(std::uint32_t size, const std::uint8_t *buf);

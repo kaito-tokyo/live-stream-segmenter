@@ -30,12 +30,12 @@ extern "C" const uint8_t qjsc_ini_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRuntime,
+EventScriptingContext::EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime,
+					     std::shared_ptr<Logger::ILogger> logger,
 					     const std::filesystem::path &dbPath)
-	: scriptingRuntime_(scriptingRuntime),
-	  logger_(scriptingRuntime_.logger_),
-	  rt_(scriptingRuntime_.rt_),
-	  ctx_(std::shared_ptr<JSContext>(JS_NewContextRaw(rt_.get()), JS_FreeContext))
+	: runtime_(std::move(runtime)),
+	  logger_(std::move(logger)),
+	  ctx_(std::shared_ptr<JSContext>(JS_NewContextRaw(runtime_->rt_.get()), JS_FreeContext))
 {
 	static_cast<void>(dbPath);
 	if (!ctx_) {
@@ -52,6 +52,8 @@ EventScriptingContext::EventScriptingContext(const ScriptingRuntime &scriptingRu
 
 	loadModule(qjsc_dayjs_bundle_size, qjsc_dayjs_bundle);
 	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
+
+	database_ = std::make_shared<ScriptingDatabase>(runtime_, ctx_, dbPath);
 }
 
 EventScriptingContext::~EventScriptingContext() = default;

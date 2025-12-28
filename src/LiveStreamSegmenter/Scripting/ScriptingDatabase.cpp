@@ -59,29 +59,40 @@ const static JSClassDef kClassDef = {
 const static JSCFunctionListEntry kClassFuncList[] = {
 	JS_CFUNC_DEF("execute", 1, ScriptingDatabase::execute),
 	JS_CFUNC_DEF("query", 1, ScriptingDatabase::query),
+	JS_CFUNC_DEF("toString", 0, ScriptingDatabase::toString),
 };
+
+ScriptingDatabase *unwrap(JSContext *ctx, JSValueConst this_val)
+{
+	JSRuntime *rt = JS_GetRuntime(ctx);
+	auto runtime = static_cast<ScriptingRuntime *>(JS_GetRuntimeOpaque(rt));
+	JSClassID classId = runtime->getClassId<ScriptingDatabase>();
+	return reinterpret_cast<ScriptingDatabase *>(JS_GetOpaque(this_val, classId));
+}
 
 } // anonymous namespace
 
-ScriptingDatabase::ScriptingDatabase(const std::filesystem::path &dbPath)
+ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
+				     const std::filesystem::path &dbPath)
+	: runtime_(std::move(runtime)),
+	  ctx_(std::move(ctx)),
+	  db_(openSqlite3(dbPath), sqlite3_close_v2)
 {
-	db_.reset(openSqlite3(dbPath));
-}
-
-ScriptingDatabase::~ScriptingDatabase() = default;
-
-void ScriptingDatabase::addIntrinsicsDb(std::shared_ptr<JSContext> ctx)
-{
-	JSRuntime *rt = JS_GetRuntime(ctx.get());
-
-	if (classId_) {
-		throw std::runtime_error("DoubleAddError(ScriptingDatabase::addIntrinsicsDb)");
+	if (!runtime_) {
+		throw std::runtime_error("ScriptingRuntimeIsNullError(ScriptingDatabase::ScriptingDatabase)");
 	}
 
-	JS_NewClassID(rt, &classId_);
-	JS_NewClass(rt, classId_, &kClassDef);
+	if (!ctx_) {
+		throw std::runtime_error("ContextIsNullError(ScriptingDatabase::ScriptingDatabase)");
+	}
 
-	ScopedJSValue dbObj(ctx, JS_NewObjectClass(ctx.get(), classId_));
+	if (!db_) {
+		throw std::runtime_error("DBIsNullError(ScriptingDatabase::ScriptingDatabase)");
+	}
+
+	JSClassID classId = runtime_->registerCustomClass<ScriptingDatabase>(&kClassDef);
+
+	ScopedJSValue dbObj(ctx, JS_NewObjectClass(ctx.get(), classId));
 	JS_SetOpaque(dbObj.get(), this);
 
 	JS_SetPropertyFunctionList(ctx.get(), dbObj.get(), kClassFuncList, std::size(kClassFuncList));
@@ -89,15 +100,8 @@ void ScriptingDatabase::addIntrinsicsDb(std::shared_ptr<JSContext> ctx)
 	ScopedJSValue globalObj(ctx, JS_GetGlobalObject(ctx.get()));
 	JS_SetPropertyStr(ctx.get(), globalObj.get(), "db", dbObj.get());
 }
-// ----------------------------------------------------------------------
-// Helper Logic
-// ----------------------------------------------------------------------
 
-// Helper to retrieve the C++ instance from JS 'this'
-ScriptingDatabase *ScriptingDatabase::unwrap(JSValueConst this_val)
-{
-	return reinterpret_cast<ScriptingDatabase *>(JS_GetOpaque(this_val, classId_));
-}
+ScriptingDatabase::~ScriptingDatabase() = default;
 
 // Helper to bind arguments from JS to SQLite
 // argv[0] is SQL string, parameters start from argv[1]
@@ -144,7 +148,7 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 	if (argc < 1)
 		return JS_ThrowTypeError(ctx, "SQL string required");
 
-	ScriptingDatabase *self = unwrap(this_val);
+	ScriptingDatabase *self = unwrap(ctx, this_val);
 	if (!self)
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
@@ -221,7 +225,7 @@ JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int ar
 	if (argc < 1)
 		return JS_ThrowTypeError(ctx, "SQL string required");
 
-	ScriptingDatabase *self = unwrap(this_val);
+	ScriptingDatabase *self = unwrap(ctx, this_val);
 	if (!self)
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
@@ -253,6 +257,11 @@ JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int ar
 	JS_SetPropertyStr(ctx, resultObj, "lastInsertId", JS_NewInt64(ctx, sqlite3_last_insert_rowid(self->db_.get())));
 
 	return resultObj;
+}
+
+JSValue ScriptingDatabase::toString(JSContext *ctx, JSValueConst, int, JSValueConst *)
+{
+	return JS_NewString(ctx, "[object ScriptingDatabase]");
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

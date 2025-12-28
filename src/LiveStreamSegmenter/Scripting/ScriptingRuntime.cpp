@@ -36,7 +36,10 @@ ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger
 	if (!rt_) {
 		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
 	}
+
+	JS_SetRuntimeOpaque(rt_.get(), this);
 }
 
 ScriptingRuntime::~ScriptingRuntime() = default;
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

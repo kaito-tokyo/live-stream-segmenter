@@ -28,6 +28,7 @@
 #include <string>
 #include <typeindex>
 
+#include <absl/container/flat_hash_map.h>
 #include <quickjs.h>
 
 #include <ILogger.hpp>
@@ -134,8 +135,12 @@ public:
 	ScriptingRuntime(ScriptingRuntime &&) = delete;
 	ScriptingRuntime &operator=(ScriptingRuntime &&) = delete;
 
-	template <typename T>
-	void registerCustomClass(const JSClassDef* classDef) {
+	template<typename T> JSClassID registerCustomClass(const JSClassDef *classDef)
+	{
+		if (registeredClasses_.find(std::type_index(typeid(T))) != registeredClasses_.end()) {
+			throw std::runtime_error("ClassAlreadyRegisteredError(ScriptingRuntime::registerCustomClass)");
+		}
+
 		JSClassID classId = 0;
 		JS_NewClassID(rt_.get(), &classId);
 
@@ -144,12 +149,23 @@ public:
 		}
 
 		registeredClasses_[std::type_index(typeid(T))] = classId;
+
+		return classId;
+	}
+
+	template<typename T> JSClassID getClassId() const
+	{
+		auto it = registeredClasses_.find(std::type_index(typeid(T)));
+		if (it == registeredClasses_.end()) {
+			throw std::runtime_error("ClassNotRegisteredError(ScriptingRuntime::getClassId)");
+		}
+		return it->second;
 	}
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<JSRuntime> rt_;
 
-	std::unordered_map<std::type_index, JSClassID> registeredClasses_;
+	absl::flat_hash_map<std::type_index, JSClassID> registeredClasses_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting
