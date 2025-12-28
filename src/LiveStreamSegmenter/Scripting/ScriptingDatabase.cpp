@@ -103,7 +103,7 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 			if (val < 0)
 				throw std::runtime_error("BoolConversionError(ScriptingDatabase::bindArgs)");
 
-			sqlite3_bind_int(stmt, bindIdx, JS_ToBool(ctx, argv[i]));
+			sqlite3_bind_int(stmt, bindIdx, val);
 		} else if (JS_IsNull(argv[i]) || JS_IsUndefined(argv[i])) {
 			sqlite3_bind_null(stmt, bindIdx);
 		} else {
