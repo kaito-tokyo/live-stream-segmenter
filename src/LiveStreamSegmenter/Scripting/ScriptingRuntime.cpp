@@ -21,24 +21,22 @@
  * SOFTWARE.
  */
 
-#pragma once
-
-#include <memory>
-#include <string>
-
-#include <ILogger.hpp>
+#include "ScriptingRuntime.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-class EventScriptEngine {
-public:
-	explicit EventScriptEngine(const std::shared_ptr<const Logger::ILogger> &logger);
-	~EventScriptEngine();
+ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger)
+	: logger_(logger),
+	  rt_(std::shared_ptr<JSRuntime>(JS_NewRuntime(), JS_FreeRuntime))
+{
+	if (!logger_) {
+		throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)");
+	}
 
-	void eval(const char *script);
+	if (!rt_) {
+		throw std::runtime_error("InitRuntimeError(ScriptingRuntime::ScriptingRuntime)");
+	}
+}
 
-private:
-	std::shared_ptr<const Logger::ILogger> logger_;
-};
-
+ScriptingRuntime::~ScriptingRuntime() = default;
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

@@ -1,5 +1,5 @@
 /*
- * Live Stream Segmenter - Scripting Module Tests
+ * Live Stream Segmenter - Scripting Module
  * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,43 +21,33 @@
  * SOFTWARE.
  */
 
-#include <gtest/gtest.h>
+#pragma once
 
-#include <iostream>
-#include <string_view>
+#include <filesystem>
+#include <memory>
 
-#include <EventScriptEngine.hpp>
+#include <quickjs.h>
+#include <sqlite3.h>
 
-using namespace KaitoTokyo;
-using namespace KaitoTokyo::LiveStreamSegmenter;
+namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-class PrintLogger : public Logger::ILogger {
+class ScriptingDatabase {
 public:
-	void log(LogLevel, std::string_view message) const noexcept override
-	{
-		std::cout << message << std::endl;
-	}
+	explicit ScriptingDatabase(const std::filesystem::path &dbPath);
+	~ScriptingDatabase();
 
-	const char *getPrefix() const noexcept override { return ""; }
+	void addIntrinsicsDb(std::shared_ptr<JSContext> ctx);
+
+	static ScriptingDatabase *unwrap(JSValueConst this_val);
+	static void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv);
+
+	static JSValue query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+
+private:
+	inline static JSClassID classId_{};
+
+	std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_{nullptr, sqlite3_close_v2};
 };
 
-TEST(EventScriptEngineTest, EvalValidScript)
-{
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::EventScriptEngine engine(logger);
-	engine.eval(R"(
-		import { dayjs } from "builtin:dayjs";
-		export const result = dayjs().format();
-	)");
-}
-
-TEST(EventScriptEngineTest, Ini)
-{
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	Scripting::EventScriptEngine engine(logger);
-	engine.eval(R"(
-		import { parse } from "builtin:ini";
-		export const result = JSON.stringify(parse(`[section]
-		key=value`));
-	)");
-}
+} // namespace KaitoTokyo::LiveStreamSegmenter::Scripting
