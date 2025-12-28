@@ -1,0 +1,8 @@
+{
+  "name": "live-stream-segmenter-bundle",
+  "version": "1.0.0",
+  "dependencies": {
+    "dayjs": "^1.11.19",
+    "ini": "^6.0.0"
+  }
+}

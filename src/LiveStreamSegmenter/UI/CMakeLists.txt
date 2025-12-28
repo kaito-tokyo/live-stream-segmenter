@@ -13,6 +13,7 @@ target_link_libraries(
     GoogleAuth
     ${CMAKE_PROJECT_NAME}_YouTubeApi
     ${CMAKE_PROJECT_NAME}_Store
+    qjs::qjs
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI

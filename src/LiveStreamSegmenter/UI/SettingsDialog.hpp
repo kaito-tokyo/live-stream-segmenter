@@ -26,13 +26,13 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QPointer>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QThreadPool>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QPlainTextEdit>
 
 #include <ILogger.hpp>
 
@@ -68,6 +68,7 @@ private slots:
 	void onAuthButtonClicked();
 	void onClearAuthButtonClicked();
 	void onApply();
+	void onRunScriptClicked();
 
 private:
 	void setupUi();
@@ -128,6 +129,7 @@ private:
 	QVBoxLayout *scriptTabLayout_;
 	QLabel *scriptHelpLabel_;
 	QPlainTextEdit *scriptEditor_;
+	QPushButton *runScriptButton_;
 
 	// 8. Dialog Buttons
 	QDialogButtonBox *buttonBox_;

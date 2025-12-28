@@ -3,6 +3,7 @@
 .vscode/
 /.deps/
 /build_*/
+/bundle/*.js
 /docs/**/*.js
 /docs/dist/
 /vcpkg_installed/

@@ -119,6 +119,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 	  scriptTabLayout_(new QVBoxLayout(scriptTab_)),
 	  scriptHelpLabel_(new QLabel(this)),
 	  scriptEditor_(new QPlainTextEdit(this)),
+	  runScriptButton_(new QPushButton(this)),
 
 	  // 8. Dialog Buttons
 	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
@@ -134,6 +135,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
 
 	connect(authButton_, &QPushButton::clicked, this, &SettingsDialog::onAuthButtonClicked);
 	connect(clearAuthButton_, &QPushButton::clicked, this, &SettingsDialog::onClearAuthButtonClicked);
+
+	connect(runScriptButton_, &QPushButton::clicked, this, &SettingsDialog::onRunScriptClicked);
 
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
@@ -213,6 +216,11 @@ void SettingsDialog::onApply()
 		statusLabel_->setText(tr("Unauthorized"));
 	}
 	applyButton_->setEnabled(false);
+}
+
+void SettingsDialog::onRunScriptClicked()
+{
+	const QString scriptContent = scriptEditor_->toPlainText();
 }
 
 void SettingsDialog::setupUi()
@@ -346,6 +354,8 @@ void SettingsDialog::setupUi()
 					     "}"));
 
 	scriptTabLayout_->addWidget(scriptEditor_);
+	runScriptButton_->setText(tr("Run Script (Test)"));
+	scriptTabLayout_->addWidget(runScriptButton_);
 
 	// --- Finalize Tabs ---
 	tabWidget_->addTab(generalTab_, tr("General"));
