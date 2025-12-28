@@ -46,6 +46,7 @@ public:
 
 	void loadEventHandler(const char *script);
 	ScopedJSValue getModuleProperty(const char *property) const;
+	std::string executeFunction(const char *functionName, const char *eventObject);
 
 private:
 	const std::shared_ptr<ScriptingRuntime> runtime_;

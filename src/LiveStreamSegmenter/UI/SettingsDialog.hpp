@@ -39,6 +39,7 @@
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
+#include <ScriptingRuntime.hpp>
 #include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
 
@@ -56,7 +57,8 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
+	SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+		       std::shared_ptr<Store::AuthStore> authStore,
 		       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 		       std::shared_ptr<Store::YouTubeStore> youTubeStore, std::shared_ptr<const Logger::ILogger> logger,
 		       QWidget *parent = nullptr);
@@ -86,6 +88,7 @@ private:
 
 	Async::Task<void> fetchStreamKeys();
 
+	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;

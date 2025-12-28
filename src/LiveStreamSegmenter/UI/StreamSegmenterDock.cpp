@@ -36,9 +36,14 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					 std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QWidget(parent),
-	  logger_(std::move(logger)),
+	  runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument(
+				     "RuntimeIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
 	  mainLayout_(new QVBoxLayout(this)),
 
 	  // Top Controls
@@ -237,7 +242,7 @@ void StreamSegmenterDock::setupUi()
 
 void StreamSegmenterDock::onSettingsButtonClicked()
 {
-	SettingsDialog settingsDialog(authStore_, eventHandlerStore_, youTubeStore_, logger_, this);
+	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, this);
 	settingsDialog.exec();
 }
 

@@ -32,6 +32,7 @@
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
+#include <ScriptingRuntime.hpp>
 #include <YouTubeStore.hpp>
 
 namespace KaitoTokyo {
@@ -42,7 +43,8 @@ class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
 public:
-	StreamSegmenterDock(std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+			    std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
@@ -79,6 +81,7 @@ private slots:
 private:
 	void setupUi();
 
+	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// Data Cache

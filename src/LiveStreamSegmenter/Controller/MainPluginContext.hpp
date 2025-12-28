@@ -26,7 +26,7 @@
 #include <obs-frontend-api.h>
 
 #include <ILogger.hpp>
-
+#include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 
 #include "ProfileContext.hpp"
@@ -58,12 +58,16 @@ public:
 
 private:
 	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-		: logger_(std::move(logger)),
-		  dock_(new UI::StreamSegmenterDock(logger_, mainWindow)),
-		  profileContext_(std::make_shared<ProfileContext>(logger_, dock_))
+		: logger_(logger ? std::move(logger)
+				 : throw std::invalid_argument(
+					   "LoggerIsNullError(MainPluginContext::MainPluginContext)")),
+		  runtime_(std::make_shared<Scripting::ScriptingRuntime>(logger_)),
+		  dock_(new UI::StreamSegmenterDock(runtime_, logger_, mainWindow))
 	{
 		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
 					    dock_);
+
+		profileContext_ = std::make_shared<ProfileContext>(logger_, dock_);
 	}
 
 	void registerFrontendEventCallback()
@@ -89,6 +93,7 @@ private:
 	}
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
+	std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	UI::StreamSegmenterDock *const dock_;
 
 	std::shared_ptr<ProfileContext> profileContext_ = nullptr;

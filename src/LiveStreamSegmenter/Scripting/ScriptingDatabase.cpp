@@ -34,15 +34,34 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 namespace {
 
-sqlite3 *openSqlite3(const std::filesystem::path &dbPath)
+sqlite3 *openSqlite3(const std::filesystem::path &dbPath, bool write)
 {
 	sqlite3 *db = nullptr;
 	std::u8string dbPathU8 = dbPath.u8string();
 	const char *dbPathCStr = reinterpret_cast<const char *>(dbPathU8.c_str());
-	if (sqlite3_open_v2(dbPathCStr, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
-		throw std::runtime_error(
-			fmt::format("InitError(ScriptingDatabase::ScriptingDatabase):{}", sqlite3_errmsg(db)));
+
+	if (write) {
+		if (sqlite3_open_v2(dbPathCStr, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) !=
+		    SQLITE_OK) {
+			throw std::runtime_error(fmt::format(
+				"ReadWriteInitError(ScriptingDatabase::ScriptingDatabase):{}", sqlite3_errmsg(db)));
+		}
+	} else {
+		int result = sqlite3_open_v2(dbPathCStr, &db, SQLITE_OPEN_READONLY, nullptr);
+		if (result == SQLITE_CANTOPEN) {
+			if (db) {
+				sqlite3_close_v2(db);
+			}
+
+			result = sqlite3_open_v2(":memory:", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+		}
+
+		if (result != SQLITE_OK) {
+			throw std::runtime_error(fmt::format(
+				"ReadOnlyInitError(ScriptingDatabase::ScriptingDatabase):{}", sqlite3_errmsg(db)));
+		}
 	}
+
 	return db;
 }
 
@@ -121,14 +140,15 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 } // anonymous namespace
 
 ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
-				     std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath)
+				     std::shared_ptr<const Logger::ILogger> logger, const std::filesystem::path &dbPath,
+				     bool write)
 	: runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  ctx_(ctx ? std::move(ctx)
 		   : throw std::invalid_argument("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  logger_(logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
-	  db_(openSqlite3(dbPath), sqlite3_close_v2)
+	  db_(openSqlite3(dbPath, write), sqlite3_close_v2)
 {
 }
 

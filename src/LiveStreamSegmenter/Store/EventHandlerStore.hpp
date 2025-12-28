@@ -54,6 +54,24 @@ public:
 		eventHandlerScript_ = std::move(eventHandlerScript);
 	}
 
+	std::string getEventHandlerScript() const
+	{
+		std::scoped_lock lock(mutex_);
+		return eventHandlerScript_;
+	}
+
+	std::filesystem::path getEventHandlerDatabasePath() const
+	{
+		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
+		if (!profilePathRaw) {
+			logger_->error("ProfilePathError(EventHandlerStore::getEventHandlerDatabasePath)");
+			return {};
+		}
+
+		std::filesystem::path profilePath(reinterpret_cast<const char8_t *>(profilePathRaw.get()));
+		return profilePath / "live-stream-segmenter_EventHandlerStore_db.sqlite";
+	}
+
 	bool save() const
 	{
 		std::shared_ptr<const Logger::ILogger> logger = logger_;

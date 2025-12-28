@@ -16,4 +16,5 @@ target_sources(
     ScriptingDatabase.hpp
     ScriptingRuntime.cpp
     ScriptingRuntime.hpp
+    youtube_bundle.c
 )

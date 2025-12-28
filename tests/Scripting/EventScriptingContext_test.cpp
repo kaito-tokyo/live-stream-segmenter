@@ -104,7 +104,7 @@ protected:
 	void useDatabase(const std::string &filename = "test.sqlite3")
 	{
 		tempFile = std::make_unique<TemporaryFile>(filename);
-		db = std::make_unique<Scripting::ScriptingDatabase>(runtime, ctx, logger, tempFile->path);
+		db = std::make_unique<Scripting::ScriptingDatabase>(runtime, ctx, logger, tempFile->path, true);
 		db->setupContext();
 	}
 
@@ -343,7 +343,7 @@ TEST(EventScriptingContextTest_NoFixture, LocalStorage_Persistence)
 		auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 		std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
 		context_out = std::make_unique<Scripting::EventScriptingContext>(runtime, ctx, logger);
-		db_out = std::make_unique<Scripting::ScriptingDatabase>(runtime, ctx, logger, tempFile.path);
+		db_out = std::make_unique<Scripting::ScriptingDatabase>(runtime, ctx, logger, tempFile.path, true);
 
 		context_out->setupContext();
 		db_out->setupContext();

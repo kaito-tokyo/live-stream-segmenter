@@ -29,6 +29,8 @@ extern "C" const std::uint32_t qjsc_ini_bundle_size;
 extern "C" const std::uint8_t qjsc_ini_bundle[];
 extern "C" const std::uint32_t qjsc_localstorage_bundle_size;
 extern "C" const std::uint8_t qjsc_localstorage_bundle[];
+extern "C" const uint32_t qjsc_youtube_bundle_size;
+extern "C" const uint8_t qjsc_youtube_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
@@ -58,6 +60,7 @@ void EventScriptingContext::setupContext()
 
 	loadModule(qjsc_dayjs_bundle_size, qjsc_dayjs_bundle);
 	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
+	loadModule(qjsc_youtube_bundle_size, qjsc_youtube_bundle);
 }
 
 void EventScriptingContext::setupLocalStorage()
@@ -115,6 +118,32 @@ ScopedJSValue EventScriptingContext::getModuleProperty(const char *property) con
 {
 	ScopedJSValue val(ctx_.get(), JS_GetPropertyStr(ctx_.get(), eventHandlerNs_.get(), property));
 	return val;
+}
+
+std::string EventScriptingContext::executeFunction(const char *functionName, const char *eventObject)
+{
+	ScopedJSValue func = getModuleProperty(functionName);
+	if (!JS_IsFunction(ctx_.get(), func.get()))
+		throw std::runtime_error("FunctionNotFoundError(EventScriptingContext::executeFunction)");
+
+	ScopedJSValue eventObj(ctx_.get(), JS_ParseJSON(ctx_.get(), eventObject, strlen(eventObject), "<eventObject>"));
+	if (std::optional<std::string> exception = eventObj.asExceptionString())
+		throw std::runtime_error("EventObjectParseError(EventScriptingContext::executeFunction):" +
+					 exception.value());
+
+	JSValue args[] = {eventObj.get()};
+	ScopedJSValue resultObj(ctx_.get(), JS_Call(ctx_.get(), func.get(), JS_UNDEFINED, 1, args));
+
+	if (std::optional<std::string> exception = eventObj.asExceptionString())
+		throw std::runtime_error("FunctionCallError(EventScriptingContext::executeFunction):" +
+					 exception.value());
+
+	ScopedJSValue resultJson(ctx_.get(), JS_JSONStringify(ctx_.get(), resultObj.get(), JS_UNDEFINED, JS_UNDEFINED));
+	ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
+	if (!resultStr)
+		throw std::runtime_error("ResultConversionError(EventScriptingContext::executeFunction)");
+
+	return std::string(resultStr.get());
 }
 
 void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *buf)
