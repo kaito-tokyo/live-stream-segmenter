@@ -207,6 +207,12 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 				break;
 			}
 
+			if (!colName) {
+				JS_FreeValue(ctx, val);
+				JS_FreeValue(ctx, rowObj);
+				JS_FreeValue(ctx, resultArr);
+				return JS_ThrowInternalError(ctx, "SQL Error: failed to get column name");
+			}
 			JS_SetPropertyStr(ctx, rowObj, colName, val);
 		}
 		JS_SetPropertyUint32(ctx, resultArr, rowIdx++, rowObj);
