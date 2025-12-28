@@ -61,9 +61,7 @@ struct TemporaryFile {
 	TemporaryFile(const TemporaryFile &) = delete;
 	TemporaryFile &operator=(const TemporaryFile &) = delete;
 
-	TemporaryFile(TemporaryFile &&other) noexcept
-	    : tempDir(std::move(other.tempDir)),
-	      path(std::move(other.path))
+	TemporaryFile(TemporaryFile &&other) noexcept : tempDir(std::move(other.tempDir)), path(std::move(other.path))
 	{
 		other.tempDir.clear();
 		other.path.clear();

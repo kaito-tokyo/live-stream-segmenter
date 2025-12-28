@@ -33,7 +33,8 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 EventScriptingContext::EventScriptingContext(std::shared_ptr<ScriptingRuntime> runtime, std::shared_ptr<JSContext> ctx,
 					     std::shared_ptr<const Logger::ILogger> logger)
 	: runtime_(runtime ? std::move(runtime)
-			   : throw std::invalid_argument("RuntimeNullError(EventScriptingContext::EventScriptingContext)")),
+			   : throw std::invalid_argument(
+				     "RuntimeNullError(EventScriptingContext::EventScriptingContext)")),
 	  ctx_(ctx ? std::move(ctx)
 		   : throw std::invalid_argument("ContextNullError(EventScriptingContext::EventScriptingContext)")),
 	  logger_(logger ? std::move(logger)
@@ -66,7 +67,9 @@ void EventScriptingContext::loadEventHandler(const char *script)
 		logger_->error("Failed to compile JavaScript module.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	} else if (!JS_IsModule(moduleObj.get())) {
 		throw std::runtime_error("InvalidModuleError(EventScriptingContext::loadEventHandler)");
@@ -77,7 +80,9 @@ void EventScriptingContext::loadEventHandler(const char *script)
 		logger_->error("Failed to execute JavaScript module.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	}
 
@@ -89,7 +94,9 @@ void EventScriptingContext::loadEventHandler(const char *script)
 		logger_->error("Failed to execute JavaScript function.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
-		logger_->error("Pending job exception: {}", str.get());
+		if (str) {
+			logger_->error("Pending job exception: {}", str.get());
+		}
 		return;
 	}
 

@@ -48,6 +48,7 @@ public:
 
 	ScopedJSString(const ScopedJSString &) = delete;
 	ScopedJSString &operator=(const ScopedJSString &) = delete;
+
 	ScopedJSString(ScopedJSString &&other) noexcept : ctx_(other.ctx_), str_(other.str_) { other.str_ = nullptr; }
 	ScopedJSString &operator=(ScopedJSString &&other) noexcept
 	{
@@ -64,6 +65,8 @@ public:
 
 	const char *get() const noexcept { return str_; }
 
+	operator bool() const noexcept { return str_ != nullptr; }
+
 private:
 	JSContext *ctx_;
 	const char *str_;
@@ -79,6 +82,9 @@ public:
 			JS_FreeValue(ctx_, v_);
 		}
 	}
+
+	ScopedJSValue(const ScopedJSValue &) = delete;
+	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
 
 	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
 	ScopedJSValue &operator=(ScopedJSValue &&other) noexcept
@@ -128,9 +134,6 @@ public:
 			return std::nullopt;
 		}
 	}
-
-	ScopedJSValue(const ScopedJSValue &) = delete;
-	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
 
 private:
 	JSContext *ctx_;

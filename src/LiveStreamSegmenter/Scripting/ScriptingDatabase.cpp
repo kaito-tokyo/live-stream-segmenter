@@ -93,7 +93,7 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 		} else if (tag == JS_TAG_STRING) {
 			ScopedJSString str(ctx, JS_ToCString(ctx, argv[i]));
 
-			if (!str.get())
+			if (!str)
 				throw std::runtime_error("StringConversionError(ScriptingDatabase::bindArgs)");
 
 			sqlite3_bind_text(stmt, bindIdx, str.get(), -1, SQLITE_TRANSIENT);
@@ -158,8 +158,8 @@ JSValue ScriptingDatabase::query(JSContext *ctx, JSValueConst this_val, int argc
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
 	ScopedJSString sqlStr(ctx, JS_ToCString(ctx, argv[0]));
-	if (!sqlStr.get())
-		return JS_EXCEPTION;
+	if (!sqlStr)
+		return JS_ThrowInternalError(ctx, "SQL string conversion failed");
 
 	sqlite3_stmt *stmtRaw = nullptr;
 	int rc = sqlite3_prepare_v3(self->db_.get(), sqlStr.get(), -1, 0, &stmtRaw, nullptr);
@@ -236,8 +236,8 @@ JSValue ScriptingDatabase::execute(JSContext *ctx, JSValueConst this_val, int ar
 		return JS_ThrowInternalError(ctx, "Invalid database object");
 
 	ScopedJSString sqlStr(ctx, JS_ToCString(ctx, argv[0]));
-	if (!sqlStr.get())
-		return JS_EXCEPTION;
+	if (!sqlStr)
+		return JS_ThrowInternalError(ctx, "SQL string conversion failed");
 
 	sqlite3_stmt *stmtRaw = nullptr;
 	int rc = sqlite3_prepare_v3(self->db_.get(), sqlStr.get(), -1, 0, &stmtRaw, nullptr);
