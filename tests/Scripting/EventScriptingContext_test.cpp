@@ -126,7 +126,7 @@ TEST(EventScriptingContextTest, DbToString)
 	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
 	Scripting::EventScriptingContext context(runtime, ctx, logger);
-	TemporaryFile tempFile("test.sqlite3");
+	TemporaryFile tempFile("test_tostring.sqlite3");
 	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
 	context.setupContext();
 	db.setupContext();
@@ -137,19 +137,109 @@ TEST(EventScriptingContextTest, DbToString)
 	ASSERT_EQ(extractedValue.value(), "[object ScriptingDatabase]");
 }
 
-TEST(EventScriptingContextTest, DbQuerySimple)
+TEST(EventScriptingContextTest, DbExecuteInsert)
 {
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
-	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
-	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-	Scripting::EventScriptingContext context(runtime, ctx, logger);
-	TemporaryFile tempFile("test.sqlite3");
-	Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
-	context.setupContext();
-	db.setupContext();
-	context.loadEventHandler(R"(export default JSON.stringify(db.query("SELECT 1"));)");
-	Scripting::ScopedJSValue value = context.getModuleProperty("default");
-	auto extractedValue = value.asString();
-	ASSERT_TRUE(extractedValue.has_value());
-	ASSERT_EQ(extractedValue.value(), "[{\"1\":1}]");
+        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+        Scripting::EventScriptingContext context(runtime, ctx, logger);
+        TemporaryFile tempFile("test_insert.sqlite3");
+        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+        context.setupContext();
+        db.setupContext();
+
+        const char* script = R"(
+            db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);");
+            const res1 = db.execute("INSERT INTO users (name) VALUES ('Alice');");
+            const res2 = db.execute("INSERT INTO users (name) VALUES ('Bob');");
+            export default JSON.stringify([res1, res2]);
+	)";
+        context.loadEventHandler(script);
+        Scripting::ScopedJSValue value = context.getModuleProperty("default");
+        auto extractedValue = value.asString();
+
+        ASSERT_TRUE(extractedValue.has_value());
+        ASSERT_EQ(extractedValue.value(), "[{\"changes\":1,\"lastInsertId\":1},{\"changes\":1,\"lastInsertId\":2}]");
+}
+
+TEST(EventScriptingContextTest, DbQueryWithParams)
+{
+        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+        Scripting::EventScriptingContext context(runtime, ctx, logger);
+        TemporaryFile tempFile("test_params.sqlite3");
+        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+        context.setupContext();
+        db.setupContext();
+
+        const char* script = R"(
+            db.execute("CREATE TABLE items (name TEXT, price INTEGER);");
+            db.execute("INSERT INTO items VALUES (?, ?);", "Apple", 100);
+            db.execute("INSERT INTO items VALUES (?, ?);", "Banana", 200);
+            db.execute("INSERT INTO items VALUES (?, ?);", "Cherry", 300);
+
+            const result = db.query("SELECT name FROM items WHERE price > ?;", 150);
+            export default JSON.stringify(result);
+        )";
+
+        context.loadEventHandler(script);
+        Scripting::ScopedJSValue value = context.getModuleProperty("default");
+        auto extractedValue = value.asString();
+
+        ASSERT_TRUE(extractedValue.has_value());
+        ASSERT_EQ(extractedValue.value(), "[{\"name\":\"Banana\"},{\"name\":\"Cherry\"}]");
+}
+
+TEST(EventScriptingContextTest, DbQueryTypes)
+{
+        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+        Scripting::EventScriptingContext context(runtime, ctx, logger);
+        TemporaryFile tempFile("test_types.sqlite3");
+        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+        context.setupContext();
+        db.setupContext();
+
+        const char* script = R"(
+            db.execute("CREATE TABLE types (i INTEGER, f REAL, t TEXT, n TEXT);");
+            db.execute("INSERT INTO types VALUES (?, ?, ?, ?);", 42, 3.14, "hello", null);
+            export default JSON.stringify(db.query("SELECT * FROM types;")[0]);
+        )";
+
+        context.loadEventHandler(script);
+        Scripting::ScopedJSValue value = context.getModuleProperty("default");
+        auto extractedValue = value.asString();
+
+        ASSERT_TRUE(extractedValue.has_value());
+        ASSERT_EQ(extractedValue.value(), "{\"i\":42,\"f\":3.14,\"t\":\"hello\",\"n\":null}");
+}
+
+TEST(EventScriptingContextTest, DbTransaction)
+{
+        std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+        auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+        std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+        Scripting::EventScriptingContext context(runtime, ctx, logger);
+        TemporaryFile tempFile("test_transaction.sqlite3");
+        Scripting::ScriptingDatabase db(runtime, ctx, logger, tempFile.path);
+        context.setupContext();
+        db.setupContext();
+
+        const char* script = R"(
+            db.execute("CREATE TABLE data (val INTEGER);");
+            db.execute("BEGIN TRANSACTION;");
+            db.execute("INSERT INTO data VALUES (1);");
+            db.execute("INSERT INTO data VALUES (2);");
+            db.execute("COMMIT;");
+            export default JSON.stringify(db.query("SELECT count(*) as c FROM data;"));
+        )";
+
+        context.loadEventHandler(script);
+        Scripting::ScopedJSValue value = context.getModuleProperty("default");
+        auto extractedValue = value.asString();
+
+        ASSERT_TRUE(extractedValue.has_value());
+        ASSERT_EQ(extractedValue.value(), "[{\"c\":2}]");
 }

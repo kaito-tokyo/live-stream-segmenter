@@ -94,11 +94,11 @@ void bindArgs(JSContext *ctx, sqlite3_stmt *stmt, int argc, JSValueConst *argv)
 		} else if (JS_IsNull(argv[i]) || JS_IsUndefined(argv[i])) {
 			sqlite3_bind_null(stmt, bindIdx);
 		} else {
-			size_t len;
-			uint8_t *buf = JS_GetArrayBuffer(ctx, &len, argv[i]);
+			std::size_t len;
+			std::uint8_t *buf = JS_GetArrayBuffer(ctx, &len, argv[i]);
 
 			if (buf) {
-				sqlite3_bind_blob(stmt, bindIdx, buf, len, SQLITE_TRANSIENT);
+				sqlite3_bind_blob(stmt, bindIdx, buf, static_cast<int>(len), SQLITE_TRANSIENT);
 			} else {
 				sqlite3_bind_null(stmt, bindIdx);
 			}
