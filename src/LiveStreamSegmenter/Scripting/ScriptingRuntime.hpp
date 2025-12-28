@@ -24,6 +24,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include <quickjs.h>
 
