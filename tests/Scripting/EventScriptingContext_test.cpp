@@ -180,10 +180,10 @@ TEST(EventScriptingContextTest, DbExecuteInsert)
 	db.setupContext();
 
 	const char *script = R"(
-            db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);");
-            const res1 = db.execute("INSERT INTO users (name) VALUES ('Alice');");
-            const res2 = db.execute("INSERT INTO users (name) VALUES ('Bob');");
-            export default JSON.stringify([res1, res2]);
+	    db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);");
+	    const res1 = db.execute("INSERT INTO users (name) VALUES ('Alice');");
+	    const res2 = db.execute("INSERT INTO users (name) VALUES ('Bob');");
+	    export default JSON.stringify([res1, res2]);
 	)";
 	context.loadEventHandler(script);
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -205,14 +205,14 @@ TEST(EventScriptingContextTest, DbQueryWithParams)
 	db.setupContext();
 
 	const char *script = R"(
-            db.execute("CREATE TABLE items (name TEXT, price INTEGER);");
-            db.execute("INSERT INTO items VALUES (?, ?);", "Apple", 100);
-            db.execute("INSERT INTO items VALUES (?, ?);", "Banana", 200);
-            db.execute("INSERT INTO items VALUES (?, ?);", "Cherry", 300);
+	    db.execute("CREATE TABLE items (name TEXT, price INTEGER);");
+	    db.execute("INSERT INTO items VALUES (?, ?);", "Apple", 100);
+	    db.execute("INSERT INTO items VALUES (?, ?);", "Banana", 200);
+	    db.execute("INSERT INTO items VALUES (?, ?);", "Cherry", 300);
 
-            const result = db.query("SELECT name FROM items WHERE price > ?;", 150);
-            export default JSON.stringify(result);
-        )";
+	    const result = db.query("SELECT name FROM items WHERE price > ?;", 150);
+	    export default JSON.stringify(result);
+	)";
 
 	context.loadEventHandler(script);
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -234,10 +234,10 @@ TEST(EventScriptingContextTest, DbQueryTypes)
 	db.setupContext();
 
 	const char *script = R"(
-            db.execute("CREATE TABLE types (i INTEGER, f REAL, t TEXT, n TEXT);");
-            db.execute("INSERT INTO types VALUES (?, ?, ?, ?);", 42, 3.14, "hello", null);
-            export default JSON.stringify(db.query("SELECT * FROM types;")[0]);
-        )";
+	    db.execute("CREATE TABLE types (i INTEGER, f REAL, t TEXT, n TEXT);");
+	    db.execute("INSERT INTO types VALUES (?, ?, ?, ?);", 42, 3.14, "hello", null);
+	    export default JSON.stringify(db.query("SELECT * FROM types;")[0]);
+	)";
 
 	context.loadEventHandler(script);
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -259,13 +259,13 @@ TEST(EventScriptingContextTest, DbTransaction)
 	db.setupContext();
 
 	const char *script = R"(
-            db.execute("CREATE TABLE data (val INTEGER);");
-            db.execute("BEGIN TRANSACTION;");
-            db.execute("INSERT INTO data VALUES (1);");
-            db.execute("INSERT INTO data VALUES (2);");
-            db.execute("COMMIT;");
-            export default JSON.stringify(db.query("SELECT count(*) as c FROM data;"));
-        )";
+	    db.execute("CREATE TABLE data (val INTEGER);");
+	    db.execute("BEGIN TRANSACTION;");
+	    db.execute("INSERT INTO data VALUES (1);");
+	    db.execute("INSERT INTO data VALUES (2);");
+	    db.execute("COMMIT;");
+	    export default JSON.stringify(db.query("SELECT count(*) as c FROM data;"));
+	)";
 
 	context.loadEventHandler(script);
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
@@ -290,10 +290,10 @@ TEST(EventScriptingContextTest, LocalStorage_BasicSetGet)
 	context.setupLocalStorage(); // 実装したセットアップメソッド
 
 	context.loadEventHandler(R"(
-                localStorage.setItem("key1", "value1");
-                const val = localStorage.getItem("key1");
-                export default val;
-        )");
+		localStorage.setItem("key1", "value1");
+		const val = localStorage.getItem("key1");
+		export default val;
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -314,10 +314,10 @@ TEST(EventScriptingContextTest, LocalStorage_Overwrite)
 	context.setupLocalStorage();
 
 	context.loadEventHandler(R"(
-                localStorage.setItem("key1", "initial");
-                localStorage.setItem("key1", "updated");
-                export default localStorage.getItem("key1");
-        )");
+		localStorage.setItem("key1", "initial");
+		localStorage.setItem("key1", "updated");
+		export default localStorage.getItem("key1");
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -338,13 +338,13 @@ TEST(EventScriptingContextTest, LocalStorage_RemoveItem)
 	context.setupLocalStorage();
 
 	context.loadEventHandler(R"(
-                localStorage.setItem("todelete", "val");
-                localStorage.removeItem("todelete");
-                const val = localStorage.getItem("todelete");
-                // getItem returns null for missing keys.
-                // We export a check to verify it matches expectations.
-                export default val === null ? "IS_NULL" : "NOT_NULL";
-        )");
+		localStorage.setItem("todelete", "val");
+		localStorage.removeItem("todelete");
+		const val = localStorage.getItem("todelete");
+		// getItem returns null for missing keys.
+		// We export a check to verify it matches expectations.
+		export default val === null ? "IS_NULL" : "NOT_NULL";
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -365,13 +365,13 @@ TEST(EventScriptingContextTest, LocalStorage_Length)
 	context.setupLocalStorage();
 
 	context.loadEventHandler(R"(
-                localStorage.clear();
-                localStorage.setItem("a", "1");
-                localStorage.setItem("b", "2");
-                localStorage.setItem("c", "3");
-                localStorage.removeItem("b");
-                export default localStorage.length;
-        )");
+		localStorage.clear();
+		localStorage.setItem("a", "1");
+		localStorage.setItem("b", "2");
+		localStorage.setItem("c", "3");
+		localStorage.removeItem("b");
+		export default localStorage.length;
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asInt64().has_value());
@@ -395,10 +395,10 @@ TEST(EventScriptingContextTest, LocalStorage_Key)
 	// but for small inserted data it's usually stable enough for a simple "contains" check logic in tests.
 	// Here we just check that key(0) returns one of the keys.
 	context.loadEventHandler(R"(
-                localStorage.clear();
-                localStorage.setItem("uniqueKey", "val");
-                export default localStorage.key(0);
-        )");
+		localStorage.clear();
+		localStorage.setItem("uniqueKey", "val");
+		export default localStorage.key(0);
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -419,11 +419,11 @@ TEST(EventScriptingContextTest, LocalStorage_Clear)
 	context.setupLocalStorage();
 
 	context.loadEventHandler(R"(
-                localStorage.setItem("a", "1");
-                localStorage.setItem("b", "2");
-                localStorage.clear();
-                export default localStorage.length;
-        )");
+		localStorage.setItem("a", "1");
+		localStorage.setItem("b", "2");
+		localStorage.clear();
+		export default localStorage.length;
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asInt64().has_value());
@@ -445,15 +445,15 @@ TEST(EventScriptingContextTest, LocalStorage_TypeCoercion)
 	context.setupLocalStorage();
 
 	context.loadEventHandler(R"(
-                localStorage.setItem(123, 456); // Numbers
-                const val = localStorage.getItem("123"); // Get by string key
+		localStorage.setItem(123, 456); // Numbers
+		const val = localStorage.getItem("123"); // Get by string key
 
-                // Verify return type is string and value matches
-                const isString = (typeof val === 'string');
-                const content = val;
+		// Verify return type is string and value matches
+		const isString = (typeof val === 'string');
+		const content = val;
 
-                export default JSON.stringify({ isString, content });
-        )");
+		export default JSON.stringify({ isString, content });
+	)");
 
 	Scripting::ScopedJSValue value = context.getModuleProperty("default");
 	ASSERT_TRUE(value.asString().has_value());
@@ -478,8 +478,8 @@ TEST(EventScriptingContextTest, LocalStorage_Persistence)
 		context.setupLocalStorage();
 
 		context.loadEventHandler(R"(
-                        localStorage.setItem("persistentKey", "persistentValue");
-                )");
+			localStorage.setItem("persistentKey", "persistentValue");
+		)");
 	}
 
 	// Second session: Read data from same file
@@ -494,8 +494,8 @@ TEST(EventScriptingContextTest, LocalStorage_Persistence)
 		context.setupLocalStorage();
 
 		context.loadEventHandler(R"(
-                        export default localStorage.getItem("persistentKey");
-                )");
+			export default localStorage.getItem("persistentKey");
+		)");
 
 		Scripting::ScopedJSValue value = context.getModuleProperty("default");
 		ASSERT_TRUE(value.asString().has_value());
