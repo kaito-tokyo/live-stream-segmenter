@@ -125,7 +125,7 @@ ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, 
 	: runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  ctx_(ctx ? std::move(ctx)
-		   : throw std::runtime_error("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
+		   : throw std::invalid_argument("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  logger_(logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  db_(openSqlite3(dbPath), sqlite3_close_v2)
