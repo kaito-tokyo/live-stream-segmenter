@@ -4,7 +4,7 @@
 *.sqlite3
 /.deps/
 /build_*/
-/bundle/*.js
+/bundle/*.bundle.js
 /docs/**/*.js
 /docs/dist/
 /vcpkg_installed/

@@ -11,6 +11,7 @@ target_sources(
     EventScriptingContext.cpp
     EventScriptingContext.hpp
     ini_bundle.c
+    localstorage_bundle.c
     ScriptingDatabase.cpp
     ScriptingDatabase.hpp
     ScriptingRuntime.cpp

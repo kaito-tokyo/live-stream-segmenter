@@ -23,10 +23,12 @@
 
 #include "EventScriptingContext.hpp"
 
-extern "C" const uint32_t qjsc_dayjs_bundle_size;
-extern "C" const uint8_t qjsc_dayjs_bundle[];
-extern "C" const uint32_t qjsc_ini_bundle_size;
-extern "C" const uint8_t qjsc_ini_bundle[];
+extern "C" const std::uint32_t qjsc_dayjs_bundle_size;
+extern "C" const std::uint8_t qjsc_dayjs_bundle[];
+extern "C" const std::uint32_t qjsc_ini_bundle_size;
+extern "C" const std::uint8_t qjsc_ini_bundle[];
+extern "C" const std::uint32_t qjsc_localstorage_bundle_size;
+extern "C" const std::uint8_t qjsc_localstorage_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
@@ -54,8 +56,13 @@ void EventScriptingContext::setupContext()
 	JS_AddIntrinsicEval(ctx_.get());
 	JS_AddIntrinsicPromise(ctx_.get());
 
-	loadModule(qjsc_dayjs_bundle_size, qjsc_dayjs_bundle);
 	loadModule(qjsc_ini_bundle_size, qjsc_ini_bundle);
+	loadModule(qjsc_dayjs_bundle_size, qjsc_dayjs_bundle);
+}
+
+void EventScriptingContext::setupLocalStorage()
+{
+	loadModule(qjsc_localstorage_bundle_size, qjsc_localstorage_bundle);
 }
 
 void EventScriptingContext::loadEventHandler(const char *script)
