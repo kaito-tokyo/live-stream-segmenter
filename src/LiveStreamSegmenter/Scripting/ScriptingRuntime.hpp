@@ -62,7 +62,7 @@ public:
 		return *this;
 	};
 
-	const char *get() const noexcept { return str_; }
+	const char *get() const noexcept { return str_ ? str_ : ""; }
 
 private:
 	JSContext *ctx_;
