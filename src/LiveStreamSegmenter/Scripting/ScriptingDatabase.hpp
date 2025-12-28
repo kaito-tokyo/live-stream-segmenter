@@ -25,24 +25,26 @@
 
 #include <filesystem>
 #include <memory>
-#include <string>
 
-#include <ILogger.hpp>
-
-#include "ScriptingDatabase.hpp"
+#include <quickjs.h>
+#include <sqlite3.h>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-class EventScriptEngine {
+class ScriptingDatabase {
 public:
-	EventScriptEngine(const std::filesystem::path &dbPath, const std::shared_ptr<const Logger::ILogger> &logger);
-	~EventScriptEngine();
+	explicit ScriptingDatabase(const std::filesystem::path &dbPath);
+	~ScriptingDatabase();
 
-	void eval(const char *script);
+	void addIntrinsicsDb(std::shared_ptr<JSContext> ctx);
+
+	static JSValue query(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+	static JSValue execute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 private:
-	std::shared_ptr<const Logger::ILogger> logger_;
-	ScriptingDatabase scriptingDatabase_;
+	JSClassID classId_;
+
+	std::unique_ptr<sqlite3, decltype(&sqlite3_close_v2)> db_{nullptr, sqlite3_close_v2};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

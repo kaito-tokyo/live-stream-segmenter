@@ -23,26 +23,65 @@
 
 #pragma once
 
-#include <filesystem>
 #include <memory>
-#include <string>
 
-#include <ILogger.hpp>
-
-#include "ScriptingDatabase.hpp"
+#include <quickjs.h>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-class EventScriptEngine {
-public:
-	EventScriptEngine(const std::filesystem::path &dbPath, const std::shared_ptr<const Logger::ILogger> &logger);
-	~EventScriptEngine();
+struct JSRuntimeDeleter {
+	void operator()(JSRuntime *rt) { JS_FreeRuntime(rt); }
+};
+using UniqueJSRuntime = std::unique_ptr<JSRuntime, JSRuntimeDeleter>;
 
-	void eval(const char *script);
+struct JSContextDeleter {
+	void operator()(JSContext *ctx) { JS_FreeContext(ctx); }
+};
+using UniqueJSContext = std::unique_ptr<JSContext, JSContextDeleter>;
+
+class ScopedJSValue {
+public:
+	ScopedJSValue(JSContext *ctx, JSValue v) : ctx_(ctx), v_(v) {}
+
+	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
+
+	~ScopedJSValue()
+	{
+		if (!JS_IsUndefined(v_)) {
+			JS_FreeValue(ctx_, v_);
+		}
+	}
+
+	operator JSValue() const { return v_; }
+
+	JSValue get() const { return v_; }
+
+	ScopedJSValue(const ScopedJSValue &) = delete;
+	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
 
 private:
-	std::shared_ptr<const Logger::ILogger> logger_;
-	ScriptingDatabase scriptingDatabase_;
+	JSContext *ctx_;
+	JSValue v_;
+};
+
+class ScopedJSString {
+public:
+	ScopedJSString(JSContext *ctx, const char *str) : ctx_(ctx), str_(str) {}
+
+	~ScopedJSString()
+	{
+		if (str_) {
+			JS_FreeCString(ctx_, str_);
+		}
+	}
+
+	const char *get() const { return str_ ? str_ : ""; }
+
+	operator const char *() const { return get(); }
+
+private:
+	JSContext *ctx_;
+	const char *str_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

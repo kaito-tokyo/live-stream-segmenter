@@ -25,6 +25,9 @@
 
 #include <quickjs.h>
 
+#include "ScopedQuickJs.hpp"
+#include "ScriptingDatabase.hpp"
+
 extern "C" const uint32_t qjsc_dayjs_bundle_size;
 extern "C" const uint8_t qjsc_dayjs_bundle[];
 extern "C" const uint32_t qjsc_ini_bundle_size;
@@ -32,78 +35,24 @@ extern "C" const uint8_t qjsc_ini_bundle[];
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-EventScriptEngine::EventScriptEngine(const std::shared_ptr<const Logger::ILogger> &logger) : logger_(logger) {}
+EventScriptEngine::EventScriptEngine(const std::filesystem::path &dbPath,
+				     const std::shared_ptr<const Logger::ILogger> &logger)
+	: scriptingDatabase_(dbPath),
+	  logger_(logger)
+{
+}
 
 EventScriptEngine::~EventScriptEngine() = default;
 
-namespace {
-
-struct JSRuntimeDeleter {
-	void operator()(JSRuntime *rt) { JS_FreeRuntime(rt); }
-};
-using JSRuntimePtr = std::unique_ptr<JSRuntime, JSRuntimeDeleter>;
-
-struct JSContextDeleter {
-	void operator()(JSContext *ctx) { JS_FreeContext(ctx); }
-};
-using JSContextPtr = std::unique_ptr<JSContext, JSContextDeleter>;
-
-class ScopedJSValue {
-public:
-	ScopedJSValue(JSContext *ctx, JSValue v) : ctx_(ctx), v_(v) {}
-
-	ScopedJSValue(ScopedJSValue &&other) noexcept : ctx_(other.ctx_), v_(other.v_) { other.v_ = JS_UNDEFINED; }
-
-	~ScopedJSValue()
-	{
-		if (!JS_IsUndefined(v_)) {
-			JS_FreeValue(ctx_, v_);
-		}
-	}
-
-	operator JSValue() const { return v_; }
-
-	JSValue get() const { return v_; }
-
-	ScopedJSValue(const ScopedJSValue &) = delete;
-	ScopedJSValue &operator=(const ScopedJSValue &) = delete;
-
-private:
-	JSContext *ctx_;
-	JSValue v_;
-};
-
-class ScopedJSString {
-public:
-	ScopedJSString(JSContext *ctx, const char *str) : ctx_(ctx), str_(str) {}
-
-	~ScopedJSString()
-	{
-		if (str_) {
-			JS_FreeCString(ctx_, str_);
-		}
-	}
-
-	const char *get() const { return str_ ? str_ : ""; }
-
-	operator const char *() const { return get(); }
-
-private:
-	JSContext *ctx_;
-	const char *str_;
-};
-
-} // anonymous namespace
-
 void EventScriptEngine::eval(const char *script)
 {
-	JSRuntimePtr rt(JS_NewRuntime());
+	UniqueJSRuntime rt(JS_NewRuntime());
 	if (!rt) {
 		logger_->error("Failed to create QuickJS runtime.");
 		return;
 	}
 
-	JSContextPtr ctx(JS_NewContextRaw(rt.get()));
+	UniqueJSContext ctx(JS_NewContextRaw(rt.get()));
 	if (!ctx) {
 		logger_->error("Failed to create QuickJS context.");
 		return;
