@@ -23,6 +23,7 @@
 #include <ILogger.hpp>
 
 #include <AuthStore.hpp>
+#include <EventHandlerStore.hpp>
 #include <YouTubeStore.hpp>
 #include <StreamSegmenterDock.hpp>
 
@@ -35,14 +36,18 @@ public:
 	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
 		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
+		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>(logger_)),
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
 		  dock_(dock),
 		  youTubeStreamSegmenterMainLoop_(
 			  std::make_shared<YouTubeStreamSegmenterMainLoop>(authStore_, logger_, dock_))
 	{
 		authStore_->restoreAuthStore();
+		eventHandlerStore_->restore();
 		youTubeStore_->restoreYouTubeStore();
+
 		dock_->setAuthStore(authStore_);
+		dock_->setEventHandlerStore(eventHandlerStore_);
 		dock_->setYouTubeStore(youTubeStore_);
 
 		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked,
@@ -68,8 +73,11 @@ public:
 
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
+
 	std::shared_ptr<Store::AuthStore> authStore_;
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
+
 	UI::StreamSegmenterDock *const dock_;
 	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;
 };

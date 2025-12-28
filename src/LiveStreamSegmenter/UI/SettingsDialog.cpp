@@ -72,12 +72,21 @@ struct ResumeOnQtMainThread {
 } // anonymous namespace
 
 SettingsDialog::SettingsDialog(std::shared_ptr<Store::AuthStore> authStore,
+			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  authStore_(std::move(authStore)),
-	  youTubeStore_(std::move(youTubeStore)),
-	  logger_(std::move(logger)),
+	  authStore_(authStore ? std::move(authStore)
+			       : throw std::invalid_argument("AuthStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  eventHandlerStore_(eventHandlerStore
+				     ? std::move(eventHandlerStore)
+				     : throw std::invalid_argument(
+					       "EventHandlerStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  youTubeStore_(youTubeStore ? std::move(youTubeStore)
+				     : throw std::invalid_argument(
+					       "YouTubeStoreIsNullError(SettingsDialog::SettingsDialog)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerIsNullError(SettingsDialog::SettingsDialog)")),
 
 	  // 1. Main Structure
 	  mainLayout_(new QVBoxLayout(this)),
@@ -377,6 +386,7 @@ void SettingsDialog::setupUi()
 
 void SettingsDialog::saveSettings()
 {
+	// Save AuthStore
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	googleOAuth2ClientCredentials.client_id = clientIdDisplay_->text().toStdString();
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
@@ -384,6 +394,9 @@ void SettingsDialog::saveSettings()
 
 	authStore_->saveAuthStore();
 
+	// Save EventHandlerStore
+
+	// Save YouTubeStore
 	int streamKeyAIndex = streamKeyComboA_->currentIndex();
 	if (streamKeyAIndex >= 0) {
 		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex]);
