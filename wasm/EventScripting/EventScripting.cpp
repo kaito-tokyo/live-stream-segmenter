@@ -25,6 +25,6 @@ std::string evaluateFunction(std::string script, std::string functionName, std::
 	return context.executeFunction(functionName.c_str(), eventObject.c_str());
 }
 
-EMSCRIPTEN_BINDINGS(my_module) {
+EMSCRIPTEN_BINDINGS(event_scripting_module) {
 	emscripten::function("evaluateFunction", &evaluateFunction);
 }
