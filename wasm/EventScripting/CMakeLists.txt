@@ -61,5 +61,5 @@ add_executable(${CMAKE_PROJECT_NAME} EventScripting.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_PROJECT_NAME}_Scripting)
 target_link_options(
   ${CMAKE_PROJECT_NAME}
-  PRIVATE -sSTACK_SIZE=2097152 --bind -sMODULARIZE=1 -sEXPORT_NAME='createEventScripting' -sALLOW_MEMORY_GROWTH=1
+  PRIVATE -sSTACK_SIZE=2097152 --bind -sMODULARIZE=1 -sEXPORT_NAME='createEventScripting' -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1
 )
