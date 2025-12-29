@@ -16,10 +16,12 @@
     "@astrojs/sitemap": "^3.6.0",
     "@octokit/rest": "^22.0.1",
     "astro": "^5.16.4",
+    "monaco-editor": "^0.55.1",
     "posthtml": "^0.16.7",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "dayjs": "^1.11.19",
     "prettier": "^3.7.4",
     "prettier-plugin-astro": "^0.14.1"
   }

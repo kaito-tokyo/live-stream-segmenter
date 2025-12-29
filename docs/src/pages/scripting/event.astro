@@ -1,42 +1,137 @@
 ---
-import { joinURL, withTrailingSlash } from "ufo";
+import { joinURL } from "ufo";
 
-import Layout from "../../layouts/Layout.astro";
-import { GITHUB_URL } from "../../lib/info.js";
+import MonacoEditor from "../../components/MonacoEditor.astro";
+import { GITHUB_OWNER, GITHUB_REPO } from "../../lib/info.js";
 
-const { BASE_URL } = import.meta.env;
+const { BASE_URL, GITHUB_SHA, GITHUB_RUN_ID } = import.meta.env;
+
+const isValidSha = GITHUB_SHA && GITHUB_SHA.trim() !== "";
+const revision = isValidSha ? GITHUB_SHA : "undefined";
+const shortRevision = isValidSha ? GITHUB_SHA.substring(0, 7) : "undefined";
+const runId = GITHUB_RUN_ID ?? "undefined";
+
+const additionalCspConnectSrc = "";
+const additionalCspScriptSrc = "";
+const trustedTypes: string[] = [];
 ---
 
-<Layout lang="en" title="404 Not Found">
-  <Fragment slot="head-info">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+
+    <title>lll</title>
+    <link
+      rel="alternate"
+      type="text/markdown"
+      href={joinURL(BASE_URL, "llms.txt")}
+      title="LLM Context"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      href={joinURL(BASE_URL, "favicon-96x96.png")}
+      sizes="96x96"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href={joinURL(BASE_URL, "favicon.svg")}
+    />
+    <link rel="shortcut icon" href={joinURL(BASE_URL, "favicon.ico")} />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href={joinURL(BASE_URL, "apple-touch-icon.png")}
+    />
+
+    <meta name="revision" content={revision} />
+    <meta name="github-repo" content={`${GITHUB_OWNER}/${GITHUB_REPO}`} />
+    <meta name="github-build-id" content={runId} />
+
     <meta name="description" content="The requested page could not be found." />
-  </Fragment>
+  </head>
+  <body>
+    <MonacoEditor />
 
-  <main class="white-box">
-    <h1>IDE</h1>
-  </main>
+    <div style="margin: 1rem 0;">
+      <button id="run-code-btn" disabled>Loading Engine...</button>
+      <pre
+        id="output-log"
+        style="background: #eee; padding: 1rem; margin-top: 1rem;">
+      </pre>
+    </div>
 
-  <Fragment slot="body-bottom">
     <script type="module" id="load-wasm" data-baseurl={BASE_URL}>
       const BASE_URL = document.getElementById("load-wasm").dataset.baseurl;
+      const runBtn = document.getElementById("run-code-btn");
+      const outputLog = document.getElementById("output-log");
+      const editorContainer = document.getElementById(
+        "monaco-editor-container",
+      );
+
       console.log("Base URL:", BASE_URL);
-      const { default: createEventScripting } = await import(`${BASE_URL}/wasm/EventScripting.js`.replaceAll("//", "/"));
+
+      // 1. WASMエンジンのロード
+      const { default: createEventScripting } = await import(
+        `${BASE_URL}/wasm/EventScripting.js`.replaceAll("//", "/")
+      );
 
       const module = await createEventScripting({
         locateFile: (path) => {
-          if (path.endsWith('.wasm')) {
-              return `${BASE_URL}/wasm/${path}`.replaceAll("//", "/");
+          if (path.endsWith(".wasm")) {
+            return `${BASE_URL}/wasm/${path}`.replaceAll("//", "/");
           }
           return path;
-        }
+        },
       });
 
-      const result = module.evaluateFunction(`
-      export function onCreateYouTubeLiveBroadcast(e) {
-        return 123;
-      }
-      `, "onCreateYouTubeLiveBroadcast", "{}")
-      console.log("Loaded!", result);
+      // ロード完了したらボタンを有効化
+      runBtn.textContent = "Run Code";
+      runBtn.disabled = false;
+      console.log("WASM Engine Loaded!");
+
+      // 2. 実行ボタンのイベントハンドラ
+      runBtn.addEventListener("click", () => {
+        try {
+          // Monaco Editorからコードを取得
+          // コンポーネント側で実装した getValue() を呼び出す
+          const code = editorContainer.getValue
+            ? editorContainer.getValue()
+            : "";
+
+          if (!code) {
+            console.warn("Editor not ready or empty");
+            return;
+          }
+
+          console.log("Executing code from editor...");
+
+          // WASMで評価実行
+          const result = module.evaluateFunction(
+            code,
+            "onCreateYouTubeLiveBroadcast",
+            "{}", // 引数(event)
+          );
+
+          // 結果の表示
+          console.log("Result:", result);
+          outputLog.textContent = `Result: ${result}`;
+        } catch (e) {
+          console.error("Execution Error:", e);
+          outputLog.textContent = `Error: ${e.message}`;
+        }
+      });
     </script>
-  </Fragment>
-</Layout>
+
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "0df4a48356ba406099ae721158ab230b"}'
+    ></script><!-- End Cloudflare Web Analytics -->
+  </body>
+</html>
