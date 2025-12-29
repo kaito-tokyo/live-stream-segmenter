@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  BUILD_PATH: ${{ github.workspace }}/docs
+  BUILD_PATH: docs
 
 jobs:
   build:
@@ -55,8 +55,8 @@ jobs:
           source "$EMSDK_PATH/emsdk_env.sh"
           emcmake cmake -B build_wasm
           cmake --build build_wasm
-          mkdir -p "$BUILD_PATH/public/wasm"
-          cp build_wasm/EventScripting.{js,wasm} "$BUILD_PATH/public/wasm"
+          mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH/public/wasm"
+          cp build_wasm/EventScripting.{js,wasm} "$GITHUB_WORKSPACE/$BUILD_PATH/public/wasm"
 
       - name: Install dependencies
         shell: bash
