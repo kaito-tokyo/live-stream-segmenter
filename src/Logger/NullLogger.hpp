@@ -27,8 +27,6 @@
 #include <string_view>
 #include <string>
 
-#include <util/base.h>
-
 #include "ILogger.hpp"
 
 namespace KaitoTokyo {

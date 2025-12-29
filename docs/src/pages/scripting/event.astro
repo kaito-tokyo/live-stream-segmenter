@@ -1,0 +1,42 @@
+---
+import { joinURL, withTrailingSlash } from "ufo";
+
+import Layout from "../../layouts/Layout.astro";
+import { GITHUB_URL } from "../../lib/info.js";
+
+const { BASE_URL } = import.meta.env;
+---
+
+<Layout lang="en" title="404 Not Found">
+  <Fragment slot="head-info">
+    <meta name="description" content="The requested page could not be found." />
+  </Fragment>
+
+  <main class="white-box">
+    <h1>IDE</h1>
+  </main>
+
+  <Fragment slot="body-bottom">
+    <script type="module" id="load-wasm" data-baseurl={BASE_URL}>
+      const BASE_URL = document.getElementById("load-wasm").dataset.baseurl;
+      console.log("Base URL:", BASE_URL);
+      const { default: createEventScripting } = await import(`${BASE_URL}/wasm/EventScripting.js`.replaceAll("//", "/"));
+
+      const module = await createEventScripting({
+        locateFile: (path) => {
+          if (path.endsWith('.wasm')) {
+              return `${BASE_URL}/wasm/${path}`.replaceAll("//", "/");
+          }
+          return path;
+        }
+      });
+
+      const result = module.evaluateFunction(`
+      export function onCreateYouTubeLiveBroadcast(e) {
+        return 123;
+      }
+      `, "onCreateYouTubeLiveBroadcast", "{}")
+      console.log("Loaded!", result);
+    </script>
+  </Fragment>
+</Layout>

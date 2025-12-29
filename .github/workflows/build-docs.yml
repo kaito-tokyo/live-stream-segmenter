@@ -34,6 +34,30 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
+      - name: Checkout Emscripten SDK
+        uses: actions/checkout@v6
+        with:
+          repository: emscripten-core/emsdk
+          path: emsdk
+
+      - name: Install Emscripten
+        shell: bash
+        working-directory: ${{ github.workspace }}/emsdk
+        run: |
+          ./emsdk install latest
+          ./emsdk activate latest
+          printf 'EMSDK_PATH=%s\n' "$(pwd)" >> $GITHUB_ENV
+
+      - name: Build EventScripting WASM
+        shell: bash
+        working-directory: ${{ github.workspace }}/wasm/EventScripting
+        run: |
+          source "$EMSDK_PATH/emsdk_env.sh"
+          emcmake cmake -B build_wasm
+          cmake --build build_wasm
+          mkdir -p "$GITHUB_WORKSPACE/$BUILD_PATH/public/wasm"
+          cp build_wasm/EventScripting.{js,wasm} "$GITHUB_WORKSPACE/$BUILD_PATH/public/wasm"
+
       - name: Install dependencies
         shell: bash
         working-directory: ${{ env.BUILD_PATH }}
