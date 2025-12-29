@@ -38,12 +38,12 @@ bool obs_module_load(void)
 	if (QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window())) {
 		g_mainPluginContext = Controller::MainPluginContext::create(g_logger, mainWindow);
 	} else {
-		g_logger->error("Failed to get main window");
-		g_logger->error("plugin load failed (version {})", PLUGIN_VERSION);
+		g_logger->error("FailedToGetMainWindow");
+		g_logger->error("PluginLoadFailed", {Logger::LogField{"version", PLUGIN_VERSION}});
 		return false;
 	}
 
-	g_logger->info("plugin loaded successfully (version {})", PLUGIN_VERSION);
+	g_logger->info("PluginLoadedSuccessfully", {Logger::LogField{"version", PLUGIN_VERSION}});
 	return true;
 }
 

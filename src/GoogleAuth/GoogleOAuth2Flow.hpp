@@ -85,7 +85,7 @@ public:
 			logger_->info("GoogleOAuth2Flow exchanged token successfully.");
 			return result;
 		} catch (const std::exception &e) {
-			logger_->logException(e, "GoogleOAuth2Flow failed to exchange token.");
+			logger_->error("GoogleOAuth2FlowExchangeFailed", {Logger::LogField{"exception", e.what()}});
 			throw;
 		}
 	}

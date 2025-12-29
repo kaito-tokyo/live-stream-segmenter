@@ -36,15 +36,13 @@ class NullLogger final : public ILogger {
 public:
 	NullLogger() = default;
 	~NullLogger() noexcept override = default;
-	bool isInvalid() const noexcept override { return true; }
+	bool isInvalid() const noexcept { return true; }
 
 protected:
-	void log(LogLevel, std::string_view) const noexcept override
+	void log(LogLevel, std::string_view, std::source_location, std::span<const LogField>) const noexcept override
 	{
 		// No-op
 	}
-
-	const char *getPrefix() const noexcept override { return nullptr; }
 };
 
 } // namespace Logger

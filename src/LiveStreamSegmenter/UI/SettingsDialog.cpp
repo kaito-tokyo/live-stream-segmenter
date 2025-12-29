@@ -208,7 +208,7 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 		clientIdDisplay_->setText(credentials.client_id);
 		clientSecretDisplay_->setText(credentials.client_secret);
 	} catch (const std::exception &e) {
-		logger_->logException(e, "Error parsing dropped credentials file");
+		logger_->error("ParseDroppedCredentialsFileError", {Logger::LogField{"exception", e.what()}});
 
 		QMessageBox msgBox(this);
 		msgBox.setIcon(QMessageBox::Critical);
@@ -249,7 +249,7 @@ try {
 
 	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
 } catch (const std::exception &e) {
-	logger_->logException(e, "name=Error\tlocation=SettingsDialog::onRunScriptClicked");
+	logger_->error("RunScriptError", {Logger::LogField{"exception", e.what()}});
 
 	QMessageBox msgBox(this);
 	msgBox.setIcon(QMessageBox::Critical);
@@ -259,7 +259,7 @@ try {
 	msgBox.setDetailedText(QString::fromStdString(e.what()));
 	msgBox.exec();
 } catch (...) {
-	logger_->error("name=UnknownError\tlocation=SettingsDialog::onRunScriptClicked");
+	logger_->error("RunScriptUnknownError");
 
 	QMessageBox msgBox(this);
 	msgBox.setIcon(QMessageBox::Critical);
@@ -459,7 +459,8 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 {
 	QFile file(localFile);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		logger_->error("Failed to open dropped credentials file: {}", localFile);
+		logger_->error("FailedToOpenDroppedCredentialsFile",
+			       {Logger::LogField{"file", localFile.toStdString()}});
 		throw std::runtime_error("FileOpenError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
@@ -468,29 +469,35 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	file.close();
 
 	if (parseError.error != QJsonParseError::NoError) {
-		logger_->error("Failed to parse dropped credentials file: {}: {}", localFile, parseError.errorString());
+		logger_->error("FailedToParseDroppedCredentialsFile",
+			       {Logger::LogField{"file", localFile.toStdString()},
+				Logger::LogField{"error", parseError.errorString().toStdString()}});
 		throw std::runtime_error("JsonParseError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	if (!doc.isObject()) {
-		logger_->error("Dropped credentials file is not a valid JSON object: {}", localFile);
+		logger_->error("DroppedCredentialsFileNotJsonObject",
+			       {Logger::LogField{"file", localFile.toStdString()}});
 		throw std::runtime_error("RootIsNotObjectError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject root = doc.object();
 	if (!root.contains("installed") || !root["installed"].isObject()) {
-		logger_->error("Dropped credentials file does not contain 'installed' object: {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingInstalledObject",
+			       {Logger::LogField{"file", localFile.toStdString()}});
 		throw std::runtime_error(
 			"InstalledObjectMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject installed = root["installed"].toObject();
 	if (!installed.contains("client_id") || !installed["client_id"].isString()) {
-		logger_->error("Dropped credentials file is missing 'installed.client_id': {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingClientId",
+			       {Logger::LogField{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientIdMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 	if (!installed.contains("client_secret") || !installed["client_secret"].isString()) {
-		logger_->error("Dropped credentials file is missing 'installed.client_secret': {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingClientSecret",
+			       {Logger::LogField{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientSecretMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
