@@ -48,24 +48,24 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
 	mainLoopTask_ = mainLoop(channel_, authStore_, logger_, parent_);
 	mainLoopTask_.start();
-	logger_->info("YouTubeStreamSegmenterMainLoop started");
+	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
 
 void YouTubeStreamSegmenterMainLoop::startContinuousSession()
 {
-	logger_->info("Starting continuous YouTube live stream session");
+	logger_->info("StartContinuousYouTubeSession");
 	channel_.send(Message{MessageType::StartContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::stopContinuousSession()
 {
-	logger_->info("Stopping continuous YouTube live stream session");
+	logger_->info("StopContinuousYouTubeSession");
 	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 {
-	logger_->info("Segmenting current YouTube live stream session");
+	logger_->info("SegmentCurrentYouTubeSession");
 	channel_.send(Message{MessageType::SegmentCurrentSession});
 }
 
@@ -79,18 +79,17 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> a
 	std::string accessToken;
 	if (tokenState.isAuthorized()) {
 		if (tokenState.isAccessTokenFresh()) {
-			logger->info("A fresh access token for YouTube is available.");
+			logger->info("YouTubeAccessTokenFresh");
 			accessToken = tokenState.access_token;
 		} else {
-			logger->info(
-				"Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
+			logger->info("YouTubeAccessTokenNotFresh");
 			GoogleAuth::GoogleAuthResponse freshAuthResponse =
 				authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 			GoogleAuth::GoogleTokenState newTokenState =
 				tokenState.withUpdatedAuthResponse(freshAuthResponse);
 			authStore->setGoogleTokenState(newTokenState);
 			accessToken = freshAuthResponse.access_token;
-			logger->info("Fetched a fresh access token for YouTube.");
+			logger->info("YouTubeAccessTokenFetched");
 		}
 	}
 	YouTubeApi::YouTubeApiClient apiClient(logger);
@@ -132,7 +131,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 			QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
 			break;
 		default:
-			logger->warn("Received unknown message type in YouTubeStreamSegmenterMainLoop");
+			logger->warn("UnknownMessageType");
 		}
 	}
 }
