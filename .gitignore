@@ -6,6 +6,7 @@
 /bundle/*.bundle.js
 /docs/**/*.js
 /docs/dist/
+/docs/public/wasm/
 /vcpkg_installed/
 build_*/
 node_modules/
