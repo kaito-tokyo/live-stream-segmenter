@@ -12,7 +12,7 @@
 using namespace KaitoTokyo;
 using namespace KaitoTokyo::LiveStreamSegmenter;
 
-std::string evaluateFunction(std::string script, std::string functionName, std::string eventObject) {
+std::string evaluateFunction(const std::string& script, const std::string& functionName, const std::string& eventObject) {
 	std::shared_ptr<const Logger::ILogger> logger = std::make_shared<Logger::NullLogger>();
 	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
