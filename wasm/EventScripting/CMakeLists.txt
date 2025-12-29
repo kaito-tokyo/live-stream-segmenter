@@ -29,7 +29,20 @@ FetchContent_MakeAvailable(sqlite_amalgamation)
 
 add_library(sqlite3 STATIC "${sqlite_amalgamation_SOURCE_DIR}/sqlite3.c")
 target_include_directories(sqlite3 PUBLIC "${sqlite_amalgamation_SOURCE_DIR}")
-target_compile_options(sqlite3 PRIVATE -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DISABLE_LFS)
+target_compile_options(
+  sqlite3
+  PRIVATE
+    -DSQLITE_DEFAULT_MEMSTATUS=0
+    -DSQLITE_DISABLE_LFS
+    -DSQLITE_OMIT_COMPLETE
+    -DSQLITE_OMIT_DEPRECATED
+    -DSQLITE_OMIT_LOAD_EXTENSION
+    -DSQLITE_OMIT_PROGRESS_CALLBACK
+    -DSQLITE_OMIT_SHARED_CACHE
+    -DSQLITE_OMIT_UTF16
+    -DSQLITE_TEMP_STORE=2
+    -DSQLITE_THREADSAFE=0
+)
 add_library(unofficial::sqlite3::sqlite3 ALIAS sqlite3)
 
 # --- quickjs-ng ---
@@ -44,19 +57,9 @@ add_library(qjs::qjs ALIAS qjs)
 add_subdirectory(../../src/Logger Logger EXCLUDE_FROM_ALL)
 add_subdirectory(../../src/LiveStreamSegmenter/Scripting Scripting EXCLUDE_FROM_ALL)
 
-add_executable(${CMAKE_PROJECT_NAME} main.cpp)
+add_executable(${CMAKE_PROJECT_NAME} EventScripting.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_PROJECT_NAME}_Scripting)
 target_link_options(
   ${CMAKE_PROJECT_NAME}
-  PRIVATE -sSTACK_SIZE=2097152
-  # -sNO_INVOKE_RUN
-  # -sNO_EXIT_RUNTIME
-  # -sMODULARIZE
-  # -sEXPORT_ES6
-  # -sEXPORT_NAME=getQuickJs
-  # -sTEXTDECODER=1
-  # -sNO_DEFAULT_TO_CXX
-  # -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+  PRIVATE -sSTACK_SIZE=2097152 --bind -sMODULARIZE=1 -sEXPORT_NAME='createEventScripting' -sALLOW_MEMORY_GROWTH=1
 )
-
-set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES SUFFIX ".html")
