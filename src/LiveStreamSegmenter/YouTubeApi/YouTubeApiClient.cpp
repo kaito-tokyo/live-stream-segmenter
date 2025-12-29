@@ -207,7 +207,7 @@ void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
 		doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
 		       accessToken.c_str(), bodyStr.c_str());
 
-	logger_->info("Created live broadcast: {}", responseBody);
+	logger_->info("CreatedLiveBroadcast", {Logger::LogField{"responseBody", responseBody}});
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
