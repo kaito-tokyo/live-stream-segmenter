@@ -4,6 +4,7 @@ include_files=(
   CMakeLists.txt
   $(find cmake -name "*.cmake")
   $(find src -name "CMakeLists.txt")
+  $(find wasm -name "CMakeLists.txt")
 )
 unset IFS
 

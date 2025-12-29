@@ -27,8 +27,8 @@
 #include <optional>
 #include <string>
 #include <typeindex>
+#include <unordered_map>
 
-#include <absl/container/flat_hash_map.h>
 #include <quickjs.h>
 
 #include <ILogger.hpp>
@@ -184,7 +184,7 @@ public:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<JSRuntime> rt_;
 
-	mutable absl::flat_hash_map<std::type_index, JSClassID> registeredClasses_;
+	mutable std::unordered_map<std::type_index, JSClassID> registeredClasses_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Scripting

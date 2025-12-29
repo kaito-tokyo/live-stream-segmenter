@@ -3,9 +3,9 @@
 .vscode/
 *.sqlite3
 /.deps/
-/build_*/
 /bundle/*.bundle.js
 /docs/**/*.js
 /docs/dist/
 /vcpkg_installed/
+build_*/
 node_modules/
