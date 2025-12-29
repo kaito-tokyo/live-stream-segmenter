@@ -30,8 +30,6 @@
 #include <string_view>
 #include <utility>
 
-#include <fmt/format.h>
-
 namespace KaitoTokyo::Logger {
 
 struct LogField {
