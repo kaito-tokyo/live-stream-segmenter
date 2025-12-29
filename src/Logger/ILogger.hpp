@@ -47,25 +47,25 @@ public:
 	ILogger(ILogger &&) = delete;
 	ILogger &operator=(ILogger &&) = delete;
 
-	void debug(std::string_view name, std::initializer_list<LogField> context,
+	void debug(std::string_view name, std::initializer_list<LogField> context = {},
 		   std::source_location loc = std::source_location::current()) const noexcept
 	{
 		log(LogLevel::Debug, name, loc, context);
 	}
 
-	void info(std::string_view name, std::initializer_list<LogField> context,
+	void info(std::string_view name, std::initializer_list<LogField> context = {},
 		  std::source_location loc = std::source_location::current()) const noexcept
 	{
 		log(LogLevel::Info, name, loc, context);
 	}
 
-	void warn(std::string_view name, std::initializer_list<LogField> context,
+	void warn(std::string_view name, std::initializer_list<LogField> context = {},
 		  std::source_location loc = std::source_location::current()) const noexcept
 	{
 		log(LogLevel::Warn, name, loc, context);
 	}
 
-	void error(std::string_view name, std::initializer_list<LogField> context,
+	void error(std::string_view name, std::initializer_list<LogField> context = {},
 		   std::source_location loc = std::source_location::current()) const noexcept
 	{
 		log(LogLevel::Error, name, loc, context);
