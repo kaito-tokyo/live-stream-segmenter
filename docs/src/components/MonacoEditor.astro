@@ -1,0 +1,106 @@
+<div id="monaco-editor-container"></div>
+
+<style>
+  #monaco-editor-container {
+    width: 100%;
+    height: 60vh;
+    border: 1px solid #ccc;
+  }
+</style>
+
+<script>
+  import * as monaco from "monaco-editor";
+  import "monaco-editor/min/vs/editor/editor.main.css";
+
+  import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+  import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
+  import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
+  import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
+  import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
+
+  import dayjsTypes from "dayjs/index.d.ts?raw";
+
+  self.MonacoEnvironment = {
+    getWorker(_, label) {
+      if (label === "json") {
+        return new jsonWorker();
+      }
+      if (label === "css" || label === "scss" || label === "less") {
+        return new cssWorker();
+      }
+      if (label === "html" || label === "handlebars" || label === "razor") {
+        return new htmlWorker();
+      }
+      if (label === "typescript" || label === "javascript") {
+        return new tsWorker();
+      }
+      return new editorWorker();
+    },
+  };
+
+  const container = document.getElementById("monaco-editor-container");
+
+  if (container) {
+    const initialCode = `import { dayjs } from "builtin:dayjs";
+import { LiveBroadcastBuilder } from "builtin:youtube";
+
+export function onCreateYouTubeLiveBroadcast(event) {
+  const index = parseInt(localStorage.getItem("index"), 10) || 1;
+  localStorage.setItem("index", index + 1);
+  return new LiveBroadcastBuilder(\`題名 \${index}\`, new Date())
+    .setDescription(\`説明\`)
+    .build();
+}`;
+
+    monaco.typescript.javascriptDefaults.setCompilerOptions({
+      target: monaco.typescript.ScriptTarget.ES2020,
+      allowNonTsExtensions: true,
+      moduleResolution: monaco.typescript.ModuleResolutionKind.NodeJs,
+      allowSyntheticDefaultImports: true,
+      lib: ["es2020"],
+    });
+
+    monaco.typescript.javascriptDefaults.addExtraLib(
+      dayjsTypes,
+      "file:///node_modules/dayjs/index.d.ts",
+    );
+
+    const builtinBridge = `
+    declare module "builtin:dayjs" {
+      import dayjsMain from 'dayjs';
+      export const dayjs: typeof dayjsMain;
+    }
+  `;
+    monaco.typescript.javascriptDefaults.addExtraLib(
+      builtinBridge,
+      "file:///builtin-dayjs.d.ts",
+    );
+
+    const container = document.getElementById("monaco-editor-container");
+    if (container) {
+      const initialCode = `import { dayjs } from "builtin:dayjs";
+import { LiveBroadcastBuilder } from "builtin:youtube";
+
+export function onCreateYouTubeLiveBroadcast(event) {
+  const now = dayjs();
+
+  const index = parseInt(localStorage.getItem("index"), 10) || 1;
+  localStorage.setItem("index", index + 1);
+  return new LiveBroadcastBuilder(\`Title \${index}\`, new Date())
+    .setDescription(\`Description\`)
+    .build();
+}`;
+      const editor = monaco.editor.create(container, {
+        value: initialCode,
+        language: "javascript",
+        theme: "vs-dark",
+        automaticLayout: true,
+      });
+
+      // @ts-ignore
+      container.getValue = () => {
+        return editor.getValue();
+      };
+    }
+  }
+</script>
