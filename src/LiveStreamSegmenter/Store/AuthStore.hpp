@@ -85,8 +85,8 @@ public:
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open()) {
-			logger_->error("FileOpenError(AuthStore::saveAuthStore): Could not open file {}",
-				       configPath.string());
+			logger_->error("FileOpenError", {Logger::LogField{"context", "AuthStore::saveAuthStore"},
+							 Logger::LogField{"path", configPath.string()}});
 			return false;
 		}
 
@@ -94,10 +94,11 @@ public:
 
 		return true;
 	} catch (const std::exception &e) {
-		logger_->error("Error(AuthStore::saveAuthStore):{}", e.what());
+		logger_->error("Error", {Logger::LogField{"context", "AuthStore::saveAuthStore"},
+					 Logger::LogField{"exception", e.what()}});
 		return false;
 	} catch (...) {
-		logger_->error("UnknownError(AuthStore::saveAuthStore)");
+		logger_->error("UnknownError", {Logger::LogField{"context", "AuthStore::saveAuthStore"}});
 		return false;
 	}
 
@@ -119,11 +120,12 @@ public:
 			googleTokenState_ = j.value("googleTokenState", GoogleAuth::GoogleTokenState{});
 		}
 	} catch (const std::exception &e) {
-		logger_->error("Error(AuthStore::restoreAuthStore):{}", e.what());
+		logger_->error("Error", {Logger::LogField{"context", "AuthStore::restoreAuthStore"},
+					 Logger::LogField{"exception", e.what()}});
 		googleOAuth2ClientCredentials_ = GoogleAuth::GoogleOAuth2ClientCredentials{};
 		googleTokenState_ = GoogleAuth::GoogleTokenState{};
 	} catch (...) {
-		logger_->error("UnknownError(AuthStore::restoreAuthStore)");
+		logger_->error("UnknownError", {Logger::LogField{"context", "AuthStore::restoreAuthStore"}});
 		googleOAuth2ClientCredentials_ = GoogleAuth::GoogleOAuth2ClientCredentials{};
 		googleTokenState_ = GoogleAuth::GoogleTokenState{};
 	}
@@ -133,7 +135,7 @@ private:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError(AuthStore::getConfigPath)");
+			logger_->error("ProfilePathError", {Logger::LogField{"context", "AuthStore::getConfigPath"}});
 			return {};
 		}
 

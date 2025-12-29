@@ -552,7 +552,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
-		logger->logException(e, "OAuth flow failed");
+		logger->error("OAuthFlowFailed", {Logger::LogField{"exception", e.what()}});
 	}
 
 	co_await ResumeOnQtMainThread{self};
@@ -647,7 +647,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
-		logger->logException(e, "Failed to fetch stream keys");
+		logger->error("FetchStreamKeysFailed", {Logger::LogField{"exception", e.what()}});
 	}
 }
 
