@@ -35,8 +35,38 @@ using namespace KaitoTokyo::LiveStreamSegmenter;
 
 class PrintLogger : public Logger::ILogger {
 public:
-	void log(LogLevel, std::string_view message) const noexcept override { std::cout << message << std::endl; }
-	const char *getPrefix() const noexcept override { return ""; }
+	void log(LogLevel level, std::string_view name, std::source_location /*loc*/,
+		 std::span<const Logger::LogField> context) const noexcept override
+	{
+		std::cout << "[";
+		switch (level) {
+		case LogLevel::Debug:
+			std::cout << "DEBUG";
+			break;
+		case LogLevel::Info:
+			std::cout << "INFO";
+			break;
+		case LogLevel::Warn:
+			std::cout << "WARN";
+			break;
+		case LogLevel::Error:
+			std::cout << "ERROR";
+			break;
+		}
+		std::cout << "] " << name;
+		if (!context.empty()) {
+			std::cout << " {";
+			bool first = true;
+			for (const auto &field : context) {
+				if (!first)
+					std::cout << ", ";
+				std::cout << field.key << ": " << field.value;
+				first = false;
+			}
+			std::cout << "}";
+		}
+		std::cout << std::endl;
+	}
 };
 
 struct TemporaryFile {
