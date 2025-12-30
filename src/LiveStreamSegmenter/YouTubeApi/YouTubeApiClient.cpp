@@ -267,6 +267,7 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 		logger_->error("ThumbnailNotRegularFileError", {{"path", thumbnailPath.string()}});
 		throw std::invalid_argument("ThumbnailNotRegularFileError(YouTubeApiClient::setThumbnail)");
 	}
+	// FIXME: Path whitelist will be implemented later.
 
 	curl_easy_reset(curl_.get());
 
