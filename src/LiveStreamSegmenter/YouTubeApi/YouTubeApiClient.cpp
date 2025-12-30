@@ -185,8 +185,10 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 			 : throw std::invalid_argument("LoggerIsNullError(YouTubeApiClient::YouTubeApiClient)")),
 	  curl_([]() {
 		  auto ptr = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), &curl_easy_cleanup);
-		  if (!ptr)
+		  if (!ptr) {
+			  logger_->error("CurlInitError");
 			  throw std::runtime_error("CurlInitError(YouTubeApiClient::YouTubeApiClient)");
+		  }
 		  return std::move(ptr);
 	  }())
 {
@@ -218,8 +220,10 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view 
 YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view accessToken,
 							   const YouTubeLiveBroadcastSettings &settings)
 {
-	if (accessToken.empty())
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
 		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::createLiveBroadcast)");
+	}
 
 	curl_easy_reset(curl_.get());
 
@@ -243,12 +247,26 @@ YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view acce
 void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_view videoId,
 				    const std::filesystem::path &thumbnailPath)
 {
-	if (accessToken.empty())
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
 		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::setThumbnail)");
-	if (videoId.empty())
+	}
+	if (videoId.empty()) {
+		logger_->error("VideoIdIsEmptyError");
 		throw std::invalid_argument("VideoIdIsEmptyError(YouTubeApiClient::setThumbnail)");
-	if (thumbnailPath.empty())
+	}
+	if (thumbnailPath.empty()) {
+		logger_->error("ThumbnailPathIsEmptyError");
 		throw std::invalid_argument("ThumbnailPathIsEmptyError(YouTubeApiClient::setThumbnail)");
+	}
+	if (!std::filesystem::exists(thumbnailPath)) {
+		logger_->error("ThumbnailFileNotExistError", {{"path", thumbnailPath.string()}});
+		throw std::invalid_argument("ThumbnailFileNotExistError(YouTubeApiClient::setThumbnail)");
+	}
+	if (!std::filesystem::is_regular_file(thumbnailPath)) {
+		logger_->error("ThumbnailNotRegularFileError", {{"path", thumbnailPath.string()}});
+		throw std::invalid_argument("ThumbnailNotRegularFileError(YouTubeApiClient::setThumbnail)");
+	}
 
 	curl_easy_reset(curl_.get());
 
@@ -277,11 +295,23 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 
 	std::ifstream ifs(thumbnailPath, std::ios::binary);
 	if (!ifs.is_open()) {
+		logger_->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
 		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
 	}
 	ifs.seekg(0, std::ios::end);
 	std::streamsize size = ifs.tellg();
 	ifs.seekg(0, std::ios::beg);
+
+	constexpr std::streamsize kMaxThumbnailBytes = 2 * 1024 * 1024;
+	if (size <= 0) {
+		logger_->error("InvalidFileSizeError", {{"size", std::to_string(size)}});
+		throw std::runtime_error("InvalidFileSizeError(YouTubeApiClient::setThumbnail)");
+	}
+	if (size > kMaxThumbnailBytes) {
+		logger_->error("FileSizeExceedsLimitError",
+			       {{"size", std::to_string(size)}, {"maxSize", std::to_string(kMaxThumbnailBytes)}});
+		throw std::runtime_error("FileSizeExceedsLimitError(YouTubeApiClient::setThumbnail)");
+	}
 
 	std::string responseBody = doPost(curl_.get(), url.get(), ifs, size, logger_, headers.get());
 	logger_->info("ThumbnailSet", {{"responseBody", responseBody}});
