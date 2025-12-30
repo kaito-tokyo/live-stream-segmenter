@@ -126,7 +126,8 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 
 	if (accessToken.empty()) {
 		logger->error("YouTubeAccessTokenUnavailable");
-		throw std::runtime_error("YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		throw std::runtime_error(
+			"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
 
 	// YouTubeApi::YouTubeApiClient apiClient(logger);
@@ -140,24 +141,27 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 		std::ifstream ifs(thumbnailPath, std::ios::binary | std::ios::ate);
 		if (!ifs.is_open()) {
 			logger->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error("ThumbnailFileOpenError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			throw std::runtime_error(
+				"ThumbnailFileOpenError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 		}
 		std::streamsize size = ifs.tellg();
 		if (size < 0) {
 			logger->error("ThumbnailFileSizeError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error("ThumbnailFileSizeError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			throw std::runtime_error(
+				"ThumbnailFileSizeError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 		}
 		if (size > 5 * 1024 * 1024) {
 			logger->error("ThumbnailFileTooLarge", {{"size", std::to_string(size)}});
-			throw std::runtime_error("ThumbnailFileTooLarge(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			throw std::runtime_error(
+				"ThumbnailFileTooLarge(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 		}
 		ifs.seekg(0, std::ios::beg);
 
 		std::vector<char> thumbnailBuffer(size);
-		if (!ifs.read(thumbnailBuffer.data(), size))
-		{
+		if (!ifs.read(thumbnailBuffer.data(), size)) {
 			logger->error("ThumbnailFileReadError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error("ThumbnailFileReadError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			throw std::runtime_error(
+				"ThumbnailFileReadError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 		}
 	}
 
