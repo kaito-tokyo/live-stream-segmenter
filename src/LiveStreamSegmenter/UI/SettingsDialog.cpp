@@ -269,7 +269,6 @@ try {
 	const std::string scriptContent = scriptEditor_->toPlainText().toStdString();
 	context.loadEventHandler(scriptContent.c_str());
 
-	// コンボボックスで選択された関数名を取得
 	QString selectedFunction = scriptFunctionCombo_->currentText();
 	std::string functionName = selectedFunction.toStdString();
 	std::string result = context.executeFunction(functionName.c_str(), R"({})");
