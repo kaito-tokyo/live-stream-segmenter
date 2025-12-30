@@ -87,7 +87,7 @@ public:
 
 private:
 	CURL *const curl_;
-	std::vector<std::pair<const std::string, const std::string>> params_;
+	std::vector<std::pair<std::string, std::string>> params_;
 };
 
 } // namespace KaitoTokyo::CurlHelper
