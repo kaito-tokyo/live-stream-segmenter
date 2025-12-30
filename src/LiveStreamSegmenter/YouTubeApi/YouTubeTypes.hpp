@@ -32,7 +32,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
-struct YouTubeStreamKey {
+struct YouTubeLiveStream {
 	std::string id;
 	std::string kind;
 	std::string snippet_title;
@@ -50,8 +50,8 @@ struct YouTubeStreamKey {
 	std::string cdn_ingestionInfo_backupIngestionAddress;
 };
 
-void to_json(nlohmann::json &j, const YouTubeStreamKey &p);
-void from_json(const nlohmann::json &j, YouTubeStreamKey &p);
+void to_json(nlohmann::json &j, const YouTubeLiveStream &p);
+void from_json(const nlohmann::json &j, YouTubeLiveStream &p);
 
 struct YouTubeLiveBroadcastThumbnail {
 	std::string url;

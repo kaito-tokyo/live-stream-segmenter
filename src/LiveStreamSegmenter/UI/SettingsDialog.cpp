@@ -677,20 +677,20 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		}
 
 		YouTubeApi::YouTubeApiClient client(logger);
-		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
+		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listStreamKeys(accessToken);
 
 		co_await ResumeOnQtMainThread{this};
 
 		streamKeys_ = std::move(streamKeys);
 
-		YouTubeApi::YouTubeStreamKey currentStreamKeyA = youTubeStore_->getStreamKeyA();
-		YouTubeApi::YouTubeStreamKey currentStreamKeyB = youTubeStore_->getStreamKeyB();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
 		streamKeyComboA_->setEnabled(true);
 		streamKeyComboB_->setEnabled(true);
 
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
-			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
+			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
 
 			QString displayText = QString::fromStdString(
 				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));

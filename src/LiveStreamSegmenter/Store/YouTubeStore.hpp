@@ -44,25 +44,25 @@ public:
 	YouTubeStore(YouTubeStore &&) = delete;
 	YouTubeStore &operator=(YouTubeStore &&) = delete;
 
-	void setStreamKeyA(const YouTubeApi::YouTubeStreamKey &streamKey)
+	void setStreamKeyA(const YouTubeApi::YouTubeLiveStream &streamKey)
 	{
 		std::scoped_lock lock(mutex_);
 		streamKeyA_ = streamKey;
 	}
 
-	void setStreamKeyB(const YouTubeApi::YouTubeStreamKey &streamKey)
+	void setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey)
 	{
 		std::scoped_lock lock(mutex_);
 		streamKeyB_ = streamKey;
 	}
 
-	YouTubeApi::YouTubeStreamKey getStreamKeyA() const
+	YouTubeApi::YouTubeLiveStream getStreamKeyA() const
 	{
 		std::scoped_lock lock(mutex_);
 		return streamKeyA_;
 	}
 
-	YouTubeApi::YouTubeStreamKey getStreamKeyB() const
+	YouTubeApi::YouTubeLiveStream getStreamKeyB() const
 	{
 		std::scoped_lock lock(mutex_);
 		return streamKeyB_;
@@ -109,13 +109,13 @@ public:
 			nlohmann::json j;
 			ifs >> j;
 
-			streamKeyA_ = j.value("streamKeyA", YouTubeApi::YouTubeStreamKey{});
-			streamKeyB_ = j.value("streamKeyB", YouTubeApi::YouTubeStreamKey{});
+			streamKeyA_ = j.value("streamKeyA", YouTubeApi::YouTubeLiveStream{});
+			streamKeyB_ = j.value("streamKeyB", YouTubeApi::YouTubeLiveStream{});
 		}
 	} catch (const std::exception &e) {
 		logger_->error("Error", {{"exception", e.what()}});
-		streamKeyA_ = YouTubeApi::YouTubeStreamKey{};
-		streamKeyB_ = YouTubeApi::YouTubeStreamKey{};
+		streamKeyA_ = YouTubeApi::YouTubeLiveStream{};
+		streamKeyB_ = YouTubeApi::YouTubeLiveStream{};
 	}
 
 private:
@@ -134,8 +134,8 @@ private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	mutable std::mutex mutex_;
-	YouTubeApi::YouTubeStreamKey streamKeyA_;
-	YouTubeApi::YouTubeStreamKey streamKeyB_;
+	YouTubeApi::YouTubeLiveStream streamKeyA_;
+	YouTubeApi::YouTubeLiveStream streamKeyB_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

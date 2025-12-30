@@ -27,7 +27,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
-void to_json(nlohmann::json &j, const YouTubeStreamKey &p)
+void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
 	j = nlohmann::json{{"id", p.id},
 			   {"kind", p.kind},
@@ -49,7 +49,7 @@ void to_json(nlohmann::json &j, const YouTubeStreamKey &p)
 			   {"contentDetails", {{"isReusable", p.cdn_isReusable}}}};
 }
 
-void from_json(const nlohmann::json &j, YouTubeStreamKey &p)
+void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 {
 	j.at("id").get_to(p.id);
 	j.at("kind").get_to(p.kind);

@@ -215,7 +215,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
+std::vector<YouTubeLiveStream> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -232,9 +232,9 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view 
 
 	std::vector<nlohmann::json> items = performList(curl_.get(), url, logger_, headers.get());
 
-	std::vector<YouTubeStreamKey> streamKeys;
+	std::vector<YouTubeLiveStream> streamKeys;
 	for (const nlohmann::json &item : items) {
-		streamKeys.push_back(item.get<YouTubeStreamKey>());
+		streamKeys.push_back(item.get<YouTubeLiveStream>());
 	}
 
 	return streamKeys;
