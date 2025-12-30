@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <exception>
 #include <iterator>
 #include <source_location>
 #include <span>
