@@ -69,6 +69,7 @@ std::string doGet(CURL *curl, const char *url, std::shared_ptr<const Logger::ILo
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
 
@@ -106,6 +107,7 @@ std::string doPost(CURL *curl, const char *url, std::string_view body, std::shar
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
 
@@ -144,6 +146,7 @@ std::string doPost(CURL *curl, const char *url, std::ifstream &ifs, std::uintmax
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
 
