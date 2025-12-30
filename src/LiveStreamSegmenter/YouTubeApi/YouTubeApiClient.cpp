@@ -280,10 +280,9 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 
 	std::uintmax_t size = std::filesystem::file_size(thumbnailPath);
 	if (size > kMaxThumbnailBytes) {
-		logger_->error("ThumbnailFileSizeExceedsLimitError",
-			       {{"path", thumbnailPath.string()},
-				{"size", std::to_string(size)},
-				{"maxSize", std::to_string(kMaxThumbnailBytes)}});
+		logger_->error("ThumbnailFileSizeExceedsLimitError", {{"path", thumbnailPath.string()},
+								      {"size", std::to_string(size)},
+								      {"maxSize", std::to_string(kMaxThumbnailBytes)}});
 		throw std::invalid_argument("ThumbnailFileSizeExceedsLimitError(YouTubeApiClient::setThumbnail)");
 	}
 	// FIXME: Path whitelist will be implemented later.

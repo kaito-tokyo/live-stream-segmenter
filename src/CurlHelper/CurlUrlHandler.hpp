@@ -35,19 +35,17 @@ namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlHandle {
 public:
-	CurlUrlHandle() : handle_([]() {
-		CURLU *ptr = curl_url();
-		if (!ptr)
-			throw std::runtime_error("InitError(CurlUrlHandle::CurlUrlHandle)");
-		return ptr;
-	}())
+	CurlUrlHandle()
+		: handle_([]() {
+			  CURLU *ptr = curl_url();
+			  if (!ptr)
+				  throw std::runtime_error("InitError(CurlUrlHandle::CurlUrlHandle)");
+			  return ptr;
+		  }())
 	{
 	}
 
-	~CurlUrlHandle() noexcept
-	{
-		curl_url_cleanup(handle_);
-	}
+	~CurlUrlHandle() noexcept { curl_url_cleanup(handle_); }
 
 	CurlUrlHandle(const CurlUrlHandle &) = delete;
 	CurlUrlHandle &operator=(const CurlUrlHandle &) = delete;
