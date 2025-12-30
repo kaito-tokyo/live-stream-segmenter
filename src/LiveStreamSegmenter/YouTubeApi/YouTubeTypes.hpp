@@ -103,13 +103,13 @@ struct YouTubeLiveBroadcast {
 	std::optional<bool> contentDetails_enableAutoStop;
 
 	// statistics fields
-	std::optional<uint64_t> statistics_totalChatCount;
+	std::optional<std::uint64_t> statistics_totalChatCount;
 
 	// monetizationDetails fields
 	std::optional<bool> monetizationDetails_cuepointSchedule_enabled;
 	std::optional<std::string> monetizationDetails_cuepointSchedule_pauseAdsUntil;
 	std::optional<std::string> monetizationDetails_cuepointSchedule_scheduleStrategy;
-	std::optional<uint32_t> monetizationDetails_cuepointSchedule_repeatIntervalSecs;
+	std::optional<std::uint32_t> monetizationDetails_cuepointSchedule_repeatIntervalSecs;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
