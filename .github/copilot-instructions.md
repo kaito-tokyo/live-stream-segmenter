@@ -40,13 +40,27 @@ To initiate a new release, the user will instruct Gemini to start the process (e
       ```
       Do not change by yourself; use `jq` to avoid formatting issues.
 
-3.  **Create & Merge Pull Request (PR)**:
+3.  **Prepare & Update `buildspec.json**`:
+    - **ACTION**: Confirm the current branch is `main` and synchronized with the remote.
+    - **ACTION**: Create a new branch (`bump-X.Y.Z`).
+    - **ACTION**: Update the `version` field in `buildspec.json` using `jq`.
+    - **CONSTRAINT**: **Strip any pre-release suffix (e.g., `-alpha.1`) from the version before writing to `buildspec.json`.**
+    - _Example_: If input is `0.1.0-alpha.1`, write `0.1.0`.
+    - _Example_: If input is `1.0.0`, write `1.0.0`.
+    - **COMMAND EXAMPLE**:
+      ```bash
+      # Logic to strip suffix (implementation detail)
+      CLEAN_VERSION=$(echo "<new_version>" | cut -d'-' -f1)
+      jq --arg v "$CLEAN_VERSION" '.version = $v' buildspec.json > buildspec.json.tmp && mv buildspec.json.tmp buildspec.json
+      ```
+
+4.  **Create & Merge Pull Request (PR)**:
     - **ACTION**: Create a PR for the version update.
     - **ACTION**: Provide the URL of the created PR.
     - **ACTION**: Instruct the user to merge this PR.
     - **PAUSE**: Wait for user confirmation of PR merge.
 
-4.  **Push Git Tag**:
+5.  **Push Git Tag**:
     - **TRIGGER**: User instructs Gemini to push the Git tag after PR merge confirmation.
     - **ACTION**: Switch to the `main` branch.
     - **ACTION**: Synchronize with the remote.
@@ -55,11 +69,11 @@ To initiate a new release, the user will instruct Gemini to start the process (e
     - **CONSTRAINT**: The tag must be `X.Y.Z` (no 'v' prefix).
     - **RESULT**: Pushing the tag triggers the automated release workflow.
 
-5.  **Finalize Release**:
+6.  **Finalize Release**:
     - **ACTION**: Provide the releases URL.
     - **INSTRUCTION**: User completes the release on GitHub.
 
-6.  **Update Arch Linux and Flatpak Package Manifests**:
+7.  **Update Arch Linux and Flatpak Package Manifests**:
     - **ACTION**: Run `~/Documents/GitHub/live-plugins-hub/scripts/update-live-stream-segmenter-arch.sh` to update the Arch Linux manifest automatically.
     - **ACTION**: Run `~/Documents/GitHub/live-plugins-hub/scripts/update-live-stream-segmenter-flatpak.sh` to update the Flatpak manifest automatically.
     - **ACTION**: Review the changes made by the script.
