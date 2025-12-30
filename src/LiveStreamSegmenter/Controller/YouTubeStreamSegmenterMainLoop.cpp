@@ -97,7 +97,11 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 	context.loadEventHandler(scriptContent.c_str());
 	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
 	nlohmann::json j = nlohmann::json::parse(result);
-	auto settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+	if (!j.contains("InsertLiveBroadcast")) {
+		logger->error("MissingInsertLiveBroadcastInScriptResult", {{"json", result}});
+		co_return;
+	}
+	auto settings = j["InsertLiveBroadcast"].template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
 	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
