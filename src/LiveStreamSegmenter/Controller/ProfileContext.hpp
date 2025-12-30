@@ -71,7 +71,7 @@ public:
 		youTubeStreamSegmenterMainLoop_->startMainLoop();
 	}
 
-	~ProfileContext() = default;
+	~ProfileContext() noexcept = default;
 
 	ProfileContext(const ProfileContext &) = delete;
 	ProfileContext &operator=(const ProfileContext &) = delete;
