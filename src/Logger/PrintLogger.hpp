@@ -37,7 +37,7 @@ public:
 
 protected:
 	void log(LogLevel level, std::string_view name, std::source_location loc,
-			 std::span<const LogField> context) const noexcept override
+		 std::span<const LogField> context) const noexcept override
 	{
 		switch (level) {
 		case LogLevel::Debug:
