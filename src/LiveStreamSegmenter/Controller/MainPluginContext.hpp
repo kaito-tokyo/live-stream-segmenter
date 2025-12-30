@@ -87,7 +87,7 @@ private:
 			} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
 				std::scoped_lock lock(self->profileContextMutex_);
 				self->profileContext_ = std::make_shared<ProfileContext>(self->logger_, self->dock_);
-				self->logger_->info("Profile changed, ProfileContext re-initialized");
+				self->logger_->info("ProfileChanged");
 			}
 		}
 	}

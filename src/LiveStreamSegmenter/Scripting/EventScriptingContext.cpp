@@ -70,15 +70,18 @@ void EventScriptingContext::setupLocalStorage()
 
 void EventScriptingContext::loadEventHandler(const char *script)
 {
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
 	ScopedJSValue moduleObj(ctx_.get(), JS_Eval(ctx_.get(), script, strlen(script), "<input>",
 						    JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
 
 	if (JS_IsException(moduleObj.get())) {
-		logger_->error("Failed to compile JavaScript module.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
 		if (str) {
-			logger_->error("Pending job exception: {}", str.get());
+			logger->error("ModuleCompileError", {{"message", str.get()}});
+		} else {
+			logger->error("ModuleCompileError");
 		}
 		return;
 	} else if (!JS_IsModule(moduleObj.get())) {
@@ -87,11 +90,12 @@ void EventScriptingContext::loadEventHandler(const char *script)
 
 	ScopedJSValue ret(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 	if (JS_IsException(ret.get())) {
-		logger_->error("Failed to execute JavaScript module.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
 		if (str) {
-			logger_->error("Pending job exception: {}", str.get());
+			logger->error("ModuleEvalError", {{"message", str.get()}});
+		} else {
+			logger->error("ModuleEvalError");
 		}
 		return;
 	}
@@ -101,11 +105,12 @@ void EventScriptingContext::loadEventHandler(const char *script)
 	ScopedJSValue evalRes(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 
 	if (JS_IsException(evalRes.get())) {
-		logger_->error("Failed to execute JavaScript function.");
 		ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
 		ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
 		if (str) {
-			logger_->error("Pending job exception: {}", str.get());
+			logger->error("ModuleEvalError", {{"message", str.get()}});
+		} else {
+			logger->error("ModuleEvalError");
 		}
 		return;
 	}
@@ -148,19 +153,19 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 
 void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *buf)
 {
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
 	ScopedJSValue moduleObj(ctx_.get(), JS_ReadObject(ctx_.get(), buf, size, JS_READ_OBJ_BYTECODE));
 
 	if (std::optional<std::string> exceptionString = moduleObj.asExceptionString()) {
-		logger_->error("name=ReadObjectError\tlocation=EventScriptingContext::loadModule\tmessage={}",
-			       exceptionString.value());
+		logger->error("ReadObjectError", {{"message", exceptionString.value()}});
 		throw std::runtime_error("ReadObjectError(EventScriptingContext::loadModule)");
 	}
 
 	ScopedJSValue res(ctx_.get(), JS_EvalFunction(ctx_.get(), JS_DupValue(ctx_.get(), moduleObj.get())));
 
 	if (std::optional<std::string> exceptionString = res.asExceptionString()) {
-		logger_->error("name=EvalError\tlocation=EventScriptingContext::loadModule\tmessage={}",
-			       exceptionString.value());
+		logger->error("EvalError", {{"message", exceptionString.value()}});
 		throw std::runtime_error("EvalError(EventScriptingContext::loadModule)");
 	}
 }

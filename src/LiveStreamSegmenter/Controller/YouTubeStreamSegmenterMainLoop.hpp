@@ -62,8 +62,8 @@ public slots:
 	void segmentCurrentSession();
 
 private:
-	std::shared_ptr<Store::AuthStore> authStore_;
-	std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<Store::AuthStore> authStore_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
 
 	Async::Channel<Message> channel_;

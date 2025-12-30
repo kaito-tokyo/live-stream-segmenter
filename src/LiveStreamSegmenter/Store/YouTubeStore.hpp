@@ -84,8 +84,7 @@ public:
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open()) {
-			logger_->error("FileOpenError(YouTubeStore::saveYouTubeStore): Could not open file {}",
-				       configPath.string());
+			logger_->error("FileOpenError", {{"path", configPath.string()}});
 			return false;
 		}
 
@@ -93,10 +92,7 @@ public:
 
 		return true;
 	} catch (const std::exception &e) {
-		logger_->error("Error(YouTubeStore::saveYouTubeStore):{}", e.what());
-		return false;
-	} catch (...) {
-		logger_->error("UnknownError(YouTubeStore::saveYouTubeStore)");
+		logger_->error("Error", {{"exception", e.what()}});
 		return false;
 	}
 
@@ -117,11 +113,7 @@ public:
 			streamKeyB_ = j.value("streamKeyB", YouTubeApi::YouTubeStreamKey{});
 		}
 	} catch (const std::exception &e) {
-		logger_->error("Error(YouTubeStore::restoreYouTubeStore):{}", e.what());
-		streamKeyA_ = YouTubeApi::YouTubeStreamKey{};
-		streamKeyB_ = YouTubeApi::YouTubeStreamKey{};
-	} catch (...) {
-		logger_->error("UnknownError(YouTubeStore::restoreYouTubeStore)");
+		logger_->error("Error", {{"exception", e.what()}});
 		streamKeyA_ = YouTubeApi::YouTubeStreamKey{};
 		streamKeyB_ = YouTubeApi::YouTubeStreamKey{};
 	}
@@ -131,7 +123,7 @@ private:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError(YouTubeStore::getConfigPath)");
+			logger_->error("ProfilePathError");
 			return {};
 		}
 

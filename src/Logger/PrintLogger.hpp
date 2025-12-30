@@ -23,20 +23,45 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "ILogger.hpp"
 
 namespace KaitoTokyo {
 namespace Logger {
 
-class NullLogger : public ILogger {
+class PrintLogger : public ILogger {
 public:
-	NullLogger() = default;
-	~NullLogger() override = default;
+	PrintLogger() = default;
+	~PrintLogger() override = default;
 
 protected:
-	void log(LogLevel, std::string_view, std::source_location, std::span<const LogField>) const noexcept override
+	void log(LogLevel level, std::string_view name, std::source_location loc,
+		 std::span<const LogField> context) const noexcept override
 	{
-		// No-op
+		switch (level) {
+		case LogLevel::Debug:
+			std::cout << "level=DEBUG";
+			break;
+		case LogLevel::Info:
+			std::cout << "level=INFO";
+			break;
+		case LogLevel::Warn:
+			std::cout << "level=WARN";
+			break;
+		case LogLevel::Error:
+			std::cout << "level=ERROR";
+			break;
+		default:
+			std::cout << "level=UNKNOWN";
+			break;
+		}
+
+		std::cout << "\tname=" << name << "\tlocation=" << loc.file_name() << ":" << loc.line();
+		for (const auto &field : context) {
+			std::cout << "\t" << field.key << "=" << field.value;
+		}
+		std::cout << std::endl;
 	}
 };
 

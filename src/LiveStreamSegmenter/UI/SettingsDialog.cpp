@@ -182,7 +182,7 @@ void SettingsDialog::onAuthButtonClicked()
 	}
 
 	if (googleOAuth2Flow_) {
-		logger_->warn("OAuth2 flow is already in progress.");
+		logger_->warn("FlowAlreadyRunning");
 		return;
 	}
 
@@ -197,7 +197,7 @@ void SettingsDialog::onClearAuthButtonClicked()
 {
 	authStore_->setGoogleTokenState({});
 	statusLabel_->setText(tr("Cleared to be Unauthorized"));
-	logger_->info("Cleared stored Google OAuth2 token.");
+	logger_->info("TokenCleared");
 }
 
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
@@ -208,7 +208,7 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 		clientIdDisplay_->setText(credentials.client_id);
 		clientSecretDisplay_->setText(credentials.client_secret);
 	} catch (const std::exception &e) {
-		logger_->logException(e, "Error parsing dropped credentials file");
+		logger_->error("ParseDroppedCredentialsFileError", {{"exception", e.what()}});
 
 		QMessageBox msgBox(this);
 		msgBox.setIcon(QMessageBox::Critical);
@@ -249,7 +249,7 @@ try {
 
 	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
 } catch (const std::exception &e) {
-	logger_->logException(e, "name=Error\tlocation=SettingsDialog::onRunScriptClicked");
+	logger_->error("RunScriptError", {{"exception", e.what()}});
 
 	QMessageBox msgBox(this);
 	msgBox.setIcon(QMessageBox::Critical);
@@ -259,7 +259,7 @@ try {
 	msgBox.setDetailedText(QString::fromStdString(e.what()));
 	msgBox.exec();
 } catch (...) {
-	logger_->error("name=UnknownError\tlocation=SettingsDialog::onRunScriptClicked");
+	logger_->error("RunScriptUnknownError");
 
 	QMessageBox msgBox(this);
 	msgBox.setIcon(QMessageBox::Critical);
@@ -459,7 +459,7 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 {
 	QFile file(localFile);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		logger_->error("Failed to open dropped credentials file: {}", localFile);
+		logger_->error("FailedToOpenDroppedCredentialsFile", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("FileOpenError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
@@ -468,29 +468,30 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	file.close();
 
 	if (parseError.error != QJsonParseError::NoError) {
-		logger_->error("Failed to parse dropped credentials file: {}: {}", localFile, parseError.errorString());
+		logger_->error("FailedToParseDroppedCredentialsFile",
+			       {{"file", localFile.toStdString()}, {"error", parseError.errorString().toStdString()}});
 		throw std::runtime_error("JsonParseError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	if (!doc.isObject()) {
-		logger_->error("Dropped credentials file is not a valid JSON object: {}", localFile);
+		logger_->error("DroppedCredentialsFileNotJsonObject", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("RootIsNotObjectError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject root = doc.object();
 	if (!root.contains("installed") || !root["installed"].isObject()) {
-		logger_->error("Dropped credentials file does not contain 'installed' object: {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingInstalledObject", {{"file", localFile.toStdString()}});
 		throw std::runtime_error(
 			"InstalledObjectMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject installed = root["installed"].toObject();
 	if (!installed.contains("client_id") || !installed["client_id"].isString()) {
-		logger_->error("Dropped credentials file is missing 'installed.client_id': {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingClientId", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientIdMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 	if (!installed.contains("client_secret") || !installed["client_secret"].isString()) {
-		logger_->error("Dropped credentials file is missing 'installed.client_secret': {}", localFile);
+		logger_->error("DroppedCredentialsFileMissingClientSecret", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientSecretMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
@@ -507,7 +508,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 	auto logger = self->logger_;
 
-	logger->info("Starting OAuth2 flow...");
+	logger->info("OAuth2FlowStart");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
@@ -524,7 +525,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		uint16_t port = self->currentCallbackServer_->serverPort();
 		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		logger->info("Opening authorization URL: {}", authUrl);
+		logger->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
@@ -552,7 +553,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
-		logger->logException(e, "OAuth flow failed");
+		logger->error("OAuthFlowFailed", {{"exception", e.what()}});
 	}
 
 	co_await ResumeOnQtMainThread{self};
@@ -564,7 +565,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
-		logger->info("Authorization successful!");
+		logger->info("OAuth2AuthSuccess");
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
@@ -594,21 +595,19 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		std::string accessToken;
 		if (tokenState.isAuthorized()) {
 			if (tokenState.isAccessTokenFresh()) {
-				logger->info("A fresh access token for YouTube is available.");
+				logger->info("YouTubeAccessTokenFresh");
 				accessToken = tokenState.access_token;
 			} else {
-				logger->info(
-					"Access token for YouTube is not fresh. Fetching a fresh access token using the refresh token.");
+				logger->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 				GoogleAuth::GoogleTokenState newTokenState =
 					tokenState.withUpdatedAuthResponse(freshAuthResponse);
 				authStore_->setGoogleTokenState(newTokenState);
 				accessToken = freshAuthResponse.access_token;
-				logger->info("Fetched a fresh access token for YouTube.");
+				logger->info("YouTubeAccessTokenFetched");
 			}
 		}
-		logger->info("Access token: {}", accessToken);
 
 		YouTubeApi::YouTubeApiClient client(logger);
 		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
@@ -648,7 +647,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
-		logger->logException(e, "Failed to fetch stream keys");
+		logger->error("FetchStreamKeysFailed", {{"exception", e.what()}});
 	}
 }
 

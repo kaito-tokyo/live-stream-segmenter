@@ -80,12 +80,12 @@ public:
 	std::optional<GoogleAuthResponse> exchangeCodeForToken(const std::string &code, const std::string &redirectUri)
 	{
 		try {
-			logger_->info("Received code. Exchanging for token...");
+			logger_->info("CodeReceived");
 			auto result = exchangeCode(clientCredentials_, code, redirectUri);
-			logger_->info("GoogleOAuth2Flow exchanged token successfully.");
+			logger_->info("TokenExchanged");
 			return result;
 		} catch (const std::exception &e) {
-			logger_->logException(e, "GoogleOAuth2Flow failed to exchange token.");
+			logger_->error("GoogleOAuth2FlowExchangeFailed", {{"exception", e.what()}});
 			throw;
 		}
 	}
@@ -140,7 +140,7 @@ private:
 
 	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::string scopes_;
-	std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

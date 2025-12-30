@@ -64,7 +64,7 @@ public:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError(EventHandlerStore::getEventHandlerDatabasePath)");
+			logger_->error("ProfilePathError");
 			return {};
 		}
 
@@ -89,7 +89,7 @@ public:
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open()) {
-			logger->error("name=FileOpenError\tlocation=EventHandlerStore::save");
+			logger->error("FileOpenError");
 			return false;
 		}
 
@@ -104,14 +104,14 @@ public:
 
 		std::filesystem::path configPath = getConfigPath();
 		if (configPath.empty()) {
-			logger->info("name=FileMissing\tlocation=EventHandlerStore::restore");
+			logger->info("FileMissing");
 			return;
 		}
 
 		std::scoped_lock lock(mutex_);
 		std::ifstream ifs(configPath, std::ios::in);
 		if (!ifs.is_open()) {
-			logger->error("name=FileOpenError\tlocation=EventHandlerStore::restore");
+			logger->error("FileOpenError");
 			return;
 		}
 
@@ -121,7 +121,7 @@ public:
 		try {
 			eventHandlerScript_ = j.value("eventHandlerScript", std::string{});
 		} catch (...) {
-			logger->error("name=JsonParseError\tlocation=EventHandlerStore::restore");
+			logger->error("JsonParseError");
 			eventHandlerScript_ = {};
 			throw;
 		}
@@ -132,7 +132,7 @@ private:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError(EventHandlerStore::getConfigPath)");
+			logger_->error("ProfilePathError");
 			return {};
 		}
 

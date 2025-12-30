@@ -22,6 +22,8 @@
 #include <string_view>
 #include <string>
 
+#include <fmt/format.h>
+
 #include <util/base.h>
 
 #include <ILogger.hpp>
@@ -31,13 +33,12 @@ namespace BridgeUtils {
 
 class ObsLogger final : public Logger::ILogger {
 public:
-	ObsLogger(const char *prefix) : prefix_(prefix ? prefix : "") {}
-	~ObsLogger() noexcept override = default;
+	ObsLogger(std::string_view prefix) : prefix_(prefix) {}
+	~ObsLogger() override = default;
 
 protected:
-	static constexpr size_t MAX_LOG_CHUNK_SIZE = 4000;
-
-	void log(LogLevel level, std::string_view message) const noexcept override
+	void log(LogLevel level, std::string_view name, std::source_location loc,
+		 std::span<const Logger::LogField> context) const noexcept override
 	{
 		int blogLevel;
 		switch (level) {
@@ -54,28 +55,29 @@ protected:
 			blogLevel = LOG_ERROR;
 			break;
 		default:
-			std::scoped_lock lock(mutex_);
-			blog(LOG_ERROR, "[LOGGER FATAL] Unknown log level: %d\n", static_cast<int>(level));
+			blog(LOG_ERROR, "%s name=UnknownLogLevelError\tlocation=%s:%d\n", prefix_.c_str(),
+			     loc.file_name(), loc.line());
 			return;
 		}
 
-		std::scoped_lock lock(mutex_);
-		if (message.length() <= MAX_LOG_CHUNK_SIZE) {
-			blog(blogLevel, "%.*s", static_cast<int>(message.length()), message.data());
-		} else {
-			// Log in chunks if message is too long
-			for (size_t i = 0; i < message.length(); i += MAX_LOG_CHUNK_SIZE) {
-				const auto chunk = message.substr(i, MAX_LOG_CHUNK_SIZE);
-				blog(blogLevel, "%.*s", static_cast<int>(chunk.length()), chunk.data());
+		try {
+			fmt::basic_memory_buffer<char, 4096> buffer;
+
+			fmt::format_to(std::back_inserter(buffer), "{} name={}\tlocation={}:{}", prefix_, name,
+				       loc.file_name(), loc.line());
+			for (const Logger::LogField &field : context) {
+				fmt::format_to(std::back_inserter(buffer), "\t{}={}", field.key, field.value);
 			}
+
+			blog(blogLevel, "%.*s", static_cast<int>(buffer.size()), buffer.data());
+		} catch (...) {
+			blog(blogLevel, "%s name=LoggerPanic\tlocation=%s:%d", prefix_.c_str(), loc.file_name(),
+			     loc.line());
 		}
 	}
 
-	const char *getPrefix() const noexcept override { return prefix_.c_str(); }
-
 private:
 	const std::string prefix_;
-	mutable std::mutex mutex_;
 };
 
 } // namespace BridgeUtils
