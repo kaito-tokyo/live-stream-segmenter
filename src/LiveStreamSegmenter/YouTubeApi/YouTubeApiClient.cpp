@@ -201,7 +201,9 @@ std::string getLowercaseExtension(const std::filesystem::path &p)
 {
 	std::string ext = p.extension().string();
 
-	std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](char c) {
+		return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+	});
 
 	return ext;
 }
