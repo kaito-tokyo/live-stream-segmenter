@@ -25,30 +25,54 @@
 
 #pragma once
 
+#include <concepts>
 #include <curl/curl.h>
-
-#include <cstddef>
+#include <fstream>
+#include <iostream>
 #include <limits>
-#include <vector>
+#include <sstream>
 
 namespace KaitoTokyo::CurlHelper {
 
-using CurlVectorWriterBuffer = std::vector<char>;
+template<typename T>
+concept CurlReaderInputStreamLike = requires(T &t, char *ptr, std::streamsize n) {
+	t.read(ptr, n);
+	{ t.gcount() } -> std::convertible_to<std::streamsize>;
+};
 
-inline std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
+template<CurlReaderInputStreamLike StreamT>
+inline std::size_t CurlStreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept
 {
 	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
-		return 0; // Signal error
+		return CURL_READFUNC_ABORT;
 	}
 
 	std::size_t totalSize = size * nmemb;
-	try {
-		auto *vec = static_cast<CurlVectorWriterBuffer *>(userp);
-		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
-	} catch (...) {
-		return 0; // Signal error
+
+	if (totalSize > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) {
+		return CURL_READFUNC_ABORT;
 	}
-	return totalSize;
+
+	std::streamsize bufferSize = static_cast<std::streamsize>(totalSize);
+	if (bufferSize == 0)
+		return 0;
+
+	try {
+		auto *stream = static_cast<StreamT *>(userp);
+
+		if (!stream || !(*stream)) {
+			return 0;
+		}
+
+		stream->read(buffer, bufferSize);
+		return static_cast<std::size_t>(stream->gcount());
+	} catch (...) {
+		return CURL_READFUNC_ABORT;
+	}
 }
+
+constexpr auto CurlIfstreamReadCallback = CurlStreamReadCallback<std::ifstream>;
+constexpr auto CurlStringStreamReadCallback = CurlStreamReadCallback<std::istringstream>;
+constexpr auto CurlIstreamReadCallback = CurlStreamReadCallback<std::istream>;
 
 } // namespace KaitoTokyo::CurlHelper

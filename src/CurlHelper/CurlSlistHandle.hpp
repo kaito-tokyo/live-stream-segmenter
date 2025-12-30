@@ -27,28 +27,30 @@
 
 #include <curl/curl.h>
 
-#include <cstddef>
-#include <limits>
-#include <vector>
-
 namespace KaitoTokyo::CurlHelper {
 
-using CurlVectorWriterBuffer = std::vector<char>;
+class CurlSlistHandle {
+public:
+	CurlSlistHandle() = default;
+	~CurlSlistHandle() noexcept { curl_slist_free_all(slist_); }
 
-inline std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
-{
-	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
-		return 0; // Signal error
+	CurlSlistHandle(const CurlSlistHandle &) = delete;
+	CurlSlistHandle &operator=(const CurlSlistHandle &) = delete;
+	CurlSlistHandle(CurlSlistHandle &&) = delete;
+	CurlSlistHandle &operator=(CurlSlistHandle &&) = delete;
+
+	void append(const char *str)
+	{
+		curl_slist *newSlist = curl_slist_append(slist_, str);
+		if (!newSlist)
+			throw std::runtime_error("SlistAppendError(CurlSlistHandle::append)");
+		slist_ = newSlist;
 	}
 
-	std::size_t totalSize = size * nmemb;
-	try {
-		auto *vec = static_cast<CurlVectorWriterBuffer *>(userp);
-		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
-	} catch (...) {
-		return 0; // Signal error
-	}
-	return totalSize;
-}
+	curl_slist *get() const noexcept { return slist_; }
+
+private:
+	curl_slist *slist_ = nullptr;
+};
 
 } // namespace KaitoTokyo::CurlHelper

@@ -143,12 +143,58 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 		throw std::runtime_error("FunctionCallError(EventScriptingContext::executeFunction):" +
 					 exception.value());
 
-	ScopedJSValue resultJson(ctx_.get(), JS_JSONStringify(ctx_.get(), resultObj.get(), JS_UNDEFINED, JS_UNDEFINED));
-	ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
-	if (!resultStr)
-		throw std::runtime_error("ResultConversionError(EventScriptingContext::executeFunction)");
+	if (JS_IsPromise(resultObj.get())) {
+		JSContext *pctx;
+		int err;
 
-	return std::string(resultStr.get());
+		while ((err = JS_ExecutePendingJob(runtime_->rt_.get(), &pctx)) > 0) {
+		}
+
+		if (err < 0) {
+			ScopedJSValue exception(ctx_.get(), JS_GetException(ctx_.get()));
+			ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), exception.get()));
+			if (str) {
+				logger_->error("PromiseExecutionError", {{"message", str.get()}});
+			} else {
+				logger_->error("PromiseExecutionError");
+			}
+			throw std::runtime_error("PromiseExecutionError(EventScriptingContext::executeFunction)");
+		}
+
+		JSPromiseStateEnum promiseState = JS_PromiseState(ctx_.get(), resultObj.get());
+		if (promiseState == JS_PROMISE_FULFILLED) {
+			logger_->info("PromiseFulfilled");
+			ScopedJSValue resolvedObj(ctx_.get(), JS_PromiseResult(ctx_.get(), resultObj.get()));
+			ScopedJSValue resultJson(ctx_.get(), JS_JSONStringify(ctx_.get(), resolvedObj.get(),
+									      JS_UNDEFINED, JS_UNDEFINED));
+			ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
+			if (!resultStr)
+				throw std::runtime_error(
+					"ResultConversionError(EventScriptingContext::executeFunction)");
+
+			return std::string(resultStr.get());
+		} else if (promiseState == JS_PROMISE_REJECTED) {
+			ScopedJSValue rejectedObj(ctx_.get(), JS_PromiseResult(ctx_.get(), resultObj.get()));
+			ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), rejectedObj.get()));
+			if (str) {
+				logger_->error("PromiseRejected", {{"message", str.get()}});
+			} else {
+				logger_->error("PromiseRejected");
+			}
+			throw std::runtime_error("PromiseRejectedError(EventScriptingContext::executeFunction)");
+		} else {
+			logger_->error("PromisePending");
+			throw std::runtime_error("PromisePendingError(EventScriptingContext::executeFunction)");
+		}
+	} else {
+		ScopedJSValue resultJson(ctx_.get(),
+					 JS_JSONStringify(ctx_.get(), resultObj.get(), JS_UNDEFINED, JS_UNDEFINED));
+		ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
+		if (!resultStr)
+			throw std::runtime_error("ResultConversionError(EventScriptingContext::executeFunction)");
+
+		return std::string(resultStr.get());
+	}
 }
 
 void EventScriptingContext::loadModule(std::uint32_t size, const std::uint8_t *buf)

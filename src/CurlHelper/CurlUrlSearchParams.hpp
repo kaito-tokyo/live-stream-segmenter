@@ -1,6 +1,8 @@
 /*
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
  * KaitoTokyo CurlHelper Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,19 +39,27 @@ namespace KaitoTokyo::CurlHelper {
 class CurlUrlSearchParams {
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
-		: curl_(curl ? curl : throw std::invalid_argument("InitError(CurlUrlSearchParams)"))
+		: curl_(curl ? curl
+			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
 	{
 	}
 
-	~CurlUrlSearchParams() noexcept = default;
+	~CurlUrlSearchParams() = default;
 
 	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
 	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
+	CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
+	CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
 
-	void append(const std::string &name, const std::string &value) { params_.emplace_back(name, value); }
+	void append(std::string_view name, std::string_view value) { params_.emplace_back(name, value); }
 
 	std::string toString() const
 	{
+		auto curlEasyEscape = [curl = curl_](const std::string &str) {
+			return std::unique_ptr<char, decltype(&curl_free)>(
+				curl_easy_escape(curl, str.c_str(), static_cast<int>(str.length())), curl_free);
+		};
+
 		std::ostringstream oss;
 		for (std::size_t i = 0; i < params_.size(); i++) {
 			if (i > 0) {
@@ -59,12 +69,14 @@ public:
 			const std::string &key = params_[i].first;
 			const std::string &value = params_[i].second;
 
-			std::unique_ptr<char, decltype(&curl_free)> escapedKey(
-				curl_easy_escape(curl_, key.c_str(), static_cast<int>(key.length())), curl_free);
-			std::unique_ptr<char, decltype(&curl_free)> escapedValue(
-				curl_easy_escape(curl_, value.c_str(), static_cast<int>(value.length())), curl_free);
-			if (!escapedKey || !escapedValue) {
-				throw std::runtime_error("EncodeError(CurlUrlSearchParams)");
+			auto escapedKey = curlEasyEscape(key);
+			if (!escapedKey) {
+				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams::toString)");
+			}
+
+			auto escapedValue = curlEasyEscape(value);
+			if (!escapedValue) {
+				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams::toString)");
 			}
 
 			oss << escapedKey.get() << "=" << escapedValue.get();

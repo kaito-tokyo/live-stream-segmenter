@@ -37,7 +37,7 @@ struct LogField {
 
 class ILogger {
 public:
-	ILogger() noexcept = default;
+	ILogger() = default;
 	virtual ~ILogger() = default;
 
 	ILogger(const ILogger &) = delete;

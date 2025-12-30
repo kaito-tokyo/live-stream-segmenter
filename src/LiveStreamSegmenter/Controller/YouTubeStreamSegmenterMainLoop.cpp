@@ -18,12 +18,17 @@
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
+#include <filesystem>
+#include <fstream>
 #include <optional>
+#include <string_view>
+#include <vector>
 
 #include <QMessageBox>
 
 #include <quickjs.h>
 
+#include <CurlVectorWriter.hpp>
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
@@ -31,6 +36,7 @@
 #include <ScriptingDatabase.hpp>
 #include <YouTubeApiClient.hpp>
 #include <YouTubeTypes.hpp>
+#include <ResumeOnQThreadPool.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -95,13 +101,10 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 
 	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
 	context.loadEventHandler(scriptContent.c_str());
+
 	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
 	nlohmann::json j = nlohmann::json::parse(result);
-	if (!j.contains("InsertLiveBroadcast")) {
-		logger->error("MissingInsertLiveBroadcastInScriptResult", {{"json", result}});
-		co_return;
-	}
-	auto settings = j["InsertLiveBroadcast"].template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
 	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
@@ -124,10 +127,36 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 
 	if (accessToken.empty()) {
 		logger->error("YouTubeAccessTokenUnavailable");
-		co_return;
+		throw std::runtime_error(
+			"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
+
 	YouTubeApi::YouTubeApiClient apiClient(logger);
-	apiClient.createLiveBroadcast(accessToken, settings);
+
+	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = apiClient.createLiveBroadcast(accessToken, settings);
+
+	nlohmann::json setThumbnailEventObj{
+		{"LiveBroadcast", liveBroadcast},
+	};
+	std::string setThumbnailEventObjJson = setThumbnailEventObj.dump();
+	std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast",
+							      setThumbnailEventObjJson.c_str());
+	nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
+
+	if (jThumbnail.contains("videoId") && jThumbnail["videoId"].is_string()) {
+		auto videoId = jThumbnail.at("videoId").get<std::string>();
+
+		if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
+			auto thumbnailFile = jThumbnail.at("thumbnailFile").get<std::string>();
+			std::filesystem::path thumbnailPath(thumbnailFile);
+			apiClient.setThumbnail(accessToken, videoId, thumbnailPath);
+			logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
+		} else {
+			logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
+		}
+	} else {
+		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
+	}
 
 	co_return;
 }
@@ -139,7 +168,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 							   std::shared_ptr<Store::AuthStore> authStore,
 							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
-							   QWidget *parent)
+							   [[maybe_unused]] QWidget *parent)
 {
 	while (true) {
 		std::optional<Message> message = co_await channel.receive();
@@ -148,21 +177,27 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 			break;
 		}
 
-		switch (message->type) {
-		case MessageType::StartContinuousSession: {
-			auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
-			task.start();
-			co_await task;
-			break;
-		}
-		case MessageType::StopContinuousSession:
-			QMessageBox::information(parent, "Info", "StopContinuousSession received");
-			break;
-		case MessageType::SegmentCurrentSession:
-			QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
-			break;
-		default:
-			logger->warn("UnknownMessageType");
+		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+
+		try {
+			switch (message->type) {
+			case MessageType::StartContinuousSession: {
+				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
+				task.start();
+				co_await task;
+				break;
+			}
+			case MessageType::StopContinuousSession:
+				break;
+			case MessageType::SegmentCurrentSession:
+				break;
+			default:
+				logger->warn("UnknownMessageType");
+			}
+		} catch (const std::exception &e) {
+			logger->error("MainLoopError", {{"exception", e.what()}});
+		} catch (...) {
+			logger->error("MainLoopUnknownError");
 		}
 	}
 }
