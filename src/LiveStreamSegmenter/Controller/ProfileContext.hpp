@@ -33,6 +33,11 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
 public:
+	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
+		: ProfileContext(std::make_shared<Scripting::ScriptingRuntime>(logger), logger, dock)
+	{
+	}
+
 	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
