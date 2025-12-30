@@ -20,7 +20,10 @@
 
 #include <QDesktopServices>
 #include <QFile>
+#include <QFontDatabase>
 #include <QFormLayout>
+#include <QHeaderView>
+#include <QInputDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
@@ -134,7 +137,18 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  scriptEditor_(new QPlainTextEdit(this)),
 	  runScriptButton_(new QPushButton(this)),
 
-	  // 8. Dialog Buttons
+	  // 8. LocalStorage Tab
+	  localStorageTab_(new QWidget(this)),
+	  localStorageTabLayout_(new QVBoxLayout(localStorageTab_)),
+	  localStorageHelpLabel_(new QLabel(this)),
+	  localStorageTable_(new QTableWidget(this)),
+	  localStorageButtonsWidget_(new QWidget(this)),
+	  localStorageButtonsLayout_(new QVBoxLayout(localStorageButtonsWidget_)),
+	  addLocalStorageButton_(new QPushButton(this)),
+	  editLocalStorageButton_(new QPushButton(this)),
+	  deleteLocalStorageButton_(new QPushButton(this)),
+
+	  // 9. Dialog Buttons
 	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
 					  this)),
 	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
@@ -151,12 +165,20 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 
 	connect(runScriptButton_, &QPushButton::clicked, this, &SettingsDialog::onRunScriptClicked);
 
+	connect(addLocalStorageButton_, &QPushButton::clicked, this, &SettingsDialog::onAddLocalStorageItem);
+	connect(editLocalStorageButton_, &QPushButton::clicked, this, &SettingsDialog::onEditLocalStorageItem);
+	connect(deleteLocalStorageButton_, &QPushButton::clicked, this, &SettingsDialog::onDeleteLocalStorageItem);
+	connect(localStorageTable_, &QTableWidget::cellDoubleClicked, this,
+		&SettingsDialog::onLocalStorageTableDoubleClicked);
+
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 
 	currentFetchStreamKeysTask_ = fetchStreamKeys();
 	currentFetchStreamKeysTask_.start();
+
+	loadLocalStorageData();
 }
 
 SettingsDialog::~SettingsDialog() {}
@@ -238,7 +260,7 @@ try {
 	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
 	Scripting::EventScriptingContext context(runtime_, ctx, logger);
 	Scripting::ScriptingDatabase database(runtime_, ctx, logger, eventHandlerStore_->getEventHandlerDatabasePath(),
-					      false);
+					      true);
 	context.setupContext();
 	database.setupContext();
 	context.setupLocalStorage();
@@ -248,6 +270,8 @@ try {
 	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
 
 	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
+
+	loadLocalStorageData();
 } catch (const std::exception &e) {
 	logger_->error("RunScriptError", {{"exception", e.what()}});
 
@@ -404,10 +428,42 @@ void SettingsDialog::setupUi()
 	runScriptButton_->setText(tr("Run Script (Test)"));
 	scriptTabLayout_->addWidget(runScriptButton_);
 
+	// --- LocalStorage Tab Config ---
+	localStorageTabLayout_->setSpacing(8);
+	localStorageTabLayout_->setContentsMargins(16, 16, 16, 16);
+
+	localStorageHelpLabel_->setText(
+		tr("View and edit localStorage key-value pairs used by event handler scripts."));
+	localStorageHelpLabel_->setWordWrap(true);
+	localStorageTabLayout_->addWidget(localStorageHelpLabel_);
+
+	localStorageTable_->setColumnCount(2);
+	localStorageTable_->setHorizontalHeaderLabels({tr("Key"), tr("Value")});
+	localStorageTable_->horizontalHeader()->setStretchLastSection(true);
+	localStorageTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+	localStorageTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+	localStorageTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	localStorageTabLayout_->addWidget(localStorageTable_);
+
+	localStorageButtonsLayout_->setSpacing(8);
+	localStorageButtonsLayout_->setContentsMargins(0, 0, 0, 0);
+
+	addLocalStorageButton_->setText(tr("Add"));
+	editLocalStorageButton_->setText(tr("Edit"));
+	deleteLocalStorageButton_->setText(tr("Delete"));
+
+	localStorageButtonsLayout_->addWidget(addLocalStorageButton_);
+	localStorageButtonsLayout_->addWidget(editLocalStorageButton_);
+	localStorageButtonsLayout_->addWidget(deleteLocalStorageButton_);
+	localStorageButtonsLayout_->addStretch();
+
+	localStorageTabLayout_->addWidget(localStorageButtonsWidget_);
+
 	// --- Finalize Tabs ---
 	tabWidget_->addTab(generalTab_, tr("General"));
 	tabWidget_->addTab(youTubeTab_, tr("YouTube"));
 	tabWidget_->addTab(scriptTab_, tr("Script"));
+	tabWidget_->addTab(localStorageTab_, tr("LocalStorage"));
 	mainLayout_->addWidget(tabWidget_);
 
 	tabWidget_->setCurrentWidget(youTubeTab_);
@@ -452,6 +508,9 @@ void SettingsDialog::saveSettings()
 	}
 
 	youTubeStore_->saveYouTubeStore();
+
+	// Save LocalStorage data
+	saveLocalStorageData();
 }
 
 inline SettingsDialogGoogleOAuth2ClientCredentials
@@ -648,6 +707,280 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
 		logger->error("FetchStreamKeysFailed", {{"exception", e.what()}});
+	}
+}
+
+void SettingsDialog::loadLocalStorageData()
+try {
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
+	if (dbPath.empty()) {
+		logger->warn("DatabasePathEmpty");
+		return;
+	}
+
+	// Check if database file exists
+	if (!std::filesystem::exists(dbPath)) {
+		logger->info("DatabaseFileNotFound", {{"path", dbPath.string()}});
+		return;
+	}
+
+	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, false);
+	database.setupContext();
+
+	// Get the db object from global scope
+	JSValue globalObj = JS_GetGlobalObject(ctx.get());
+	JSValue dbObj = JS_GetPropertyStr(ctx.get(), globalObj, "db");
+
+	// Query the localStorage table
+	JSValue sqlStr = JS_NewString(ctx.get(), "SELECT key, value FROM __sys_local_storage");
+	JSValue args[] = {sqlStr};
+	JSValue queryResultRaw = Scripting::ScriptingDatabase::query(ctx.get(), dbObj, 1, args);
+	Scripting::ScopedJSValue queryResult(ctx.get(), queryResultRaw);
+
+	JS_FreeValue(ctx.get(), sqlStr);
+	Scripting::ScopedJSValue scopedDbObj(ctx.get(), dbObj);
+	Scripting::ScopedJSValue scopedGlobalObj(ctx.get(), globalObj);
+
+	if (JS_IsException(queryResult.get())) {
+		logger->warn("LocalStorageQueryFailed");
+		return;
+	}
+
+	// Clear existing table data
+	localStorageTable_->setRowCount(0);
+
+	// Parse the result array
+	if (JS_IsArray(queryResult.get())) {
+		JSValue lengthVal = JS_GetPropertyStr(ctx.get(), queryResult.get(), "length");
+		int32_t length = 0;
+		JS_ToInt32(ctx.get(), &length, lengthVal);
+		JS_FreeValue(ctx.get(), lengthVal);
+
+		for (int32_t i = 0; i < length; ++i) {
+			JSValue rowVal = JS_GetPropertyUint32(ctx.get(), queryResult.get(), i);
+
+			JSValue keyVal = JS_GetPropertyStr(ctx.get(), rowVal, "key");
+			JSValue valueVal = JS_GetPropertyStr(ctx.get(), rowVal, "value");
+
+			Scripting::ScopedJSString keyStr(ctx.get(), JS_ToCString(ctx.get(), keyVal));
+			Scripting::ScopedJSString valueStr(ctx.get(), JS_ToCString(ctx.get(), valueVal));
+
+			if (keyStr && valueStr) {
+				int row = localStorageTable_->rowCount();
+				localStorageTable_->insertRow(row);
+				localStorageTable_->setItem(row, 0,
+							    new QTableWidgetItem(QString::fromUtf8(keyStr.get())));
+				localStorageTable_->setItem(row, 1,
+							    new QTableWidgetItem(QString::fromUtf8(valueStr.get())));
+			}
+
+			JS_FreeValue(ctx.get(), keyVal);
+			JS_FreeValue(ctx.get(), valueVal);
+			JS_FreeValue(ctx.get(), rowVal);
+		}
+	}
+} catch (const std::exception &e) {
+	logger_->error("LoadLocalStorageError", {{"exception", e.what()}});
+
+	QMessageBox msgBox(this);
+	msgBox.setIcon(QMessageBox::Warning);
+	msgBox.setWindowTitle(tr("Warning"));
+	msgBox.setText(tr("Failed to load localStorage data."));
+	msgBox.setInformativeText(tr("The database might be corrupted or not yet created."));
+	msgBox.setDetailedText(QString::fromStdString(e.what()));
+	msgBox.exec();
+} catch (...) {
+	logger_->error("LoadLocalStorageUnknownError");
+}
+
+void SettingsDialog::saveLocalStorageData()
+try {
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
+	if (dbPath.empty()) {
+		logger->error("DatabasePathEmpty");
+		return;
+	}
+
+	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, true);
+	database.setupContext();
+
+	// Get the db object from global scope
+	JSValue globalObj = JS_GetGlobalObject(ctx.get());
+	JSValue dbObj = JS_GetPropertyStr(ctx.get(), globalObj, "db");
+
+	// Ensure the localStorage table exists
+	JSValue createTableSql = JS_NewString(
+		ctx.get(), "CREATE TABLE IF NOT EXISTS __sys_local_storage (key TEXT PRIMARY KEY, value TEXT)");
+	JSValue createTableArgs[] = {createTableSql};
+	JSValue createTableResultRaw = Scripting::ScriptingDatabase::execute(ctx.get(), dbObj, 1, createTableArgs);
+	Scripting::ScopedJSValue createTableResult(ctx.get(), createTableResultRaw);
+
+	JS_FreeValue(ctx.get(), createTableSql);
+
+	if (JS_IsException(createTableResult.get())) {
+		JS_FreeValue(ctx.get(), dbObj);
+		JS_FreeValue(ctx.get(), globalObj);
+		logger->error("LocalStorageCreateTableFailed");
+		throw std::runtime_error("Failed to create localStorage table");
+	}
+
+	// Clear existing localStorage table
+	JSValue deleteSql = JS_NewString(ctx.get(), "DELETE FROM __sys_local_storage");
+	JSValue deleteArgs[] = {deleteSql};
+	JSValue deleteResultRaw = Scripting::ScriptingDatabase::execute(ctx.get(), dbObj, 1, deleteArgs);
+	Scripting::ScopedJSValue deleteResult(ctx.get(), deleteResultRaw);
+
+	JS_FreeValue(ctx.get(), deleteSql);
+
+	if (JS_IsException(deleteResult.get())) {
+		JS_FreeValue(ctx.get(), dbObj);
+		JS_FreeValue(ctx.get(), globalObj);
+		logger->error("LocalStorageDeleteFailed");
+		throw std::runtime_error("Failed to clear localStorage table");
+	}
+
+	// Insert all items from the table
+	for (int row = 0; row < localStorageTable_->rowCount(); ++row) {
+		QTableWidgetItem *keyItem = localStorageTable_->item(row, 0);
+		QTableWidgetItem *valueItem = localStorageTable_->item(row, 1);
+
+		if (keyItem && valueItem) {
+			std::string key = keyItem->text().toStdString();
+			std::string value = valueItem->text().toStdString();
+
+			JSValue insertArgs[] = {
+				JS_NewString(ctx.get(), "INSERT INTO __sys_local_storage (key, value) VALUES (?, ?)"),
+				JS_NewString(ctx.get(), key.c_str()), JS_NewString(ctx.get(), value.c_str())};
+
+			JSValue insertResultRaw =
+				Scripting::ScriptingDatabase::execute(ctx.get(), dbObj, 3, insertArgs);
+			Scripting::ScopedJSValue insertResult(ctx.get(), insertResultRaw);
+
+			JS_FreeValue(ctx.get(), insertArgs[0]);
+			JS_FreeValue(ctx.get(), insertArgs[1]);
+			JS_FreeValue(ctx.get(), insertArgs[2]);
+
+			if (JS_IsException(insertResult.get())) {
+				logger->error("LocalStorageInsertFailed", {{"key", key}});
+			}
+		}
+	}
+
+	JS_FreeValue(ctx.get(), dbObj);
+	JS_FreeValue(ctx.get(), globalObj);
+
+	logger->info("LocalStorageSaved");
+} catch (const std::exception &e) {
+	logger_->error("SaveLocalStorageError", {{"exception", e.what()}});
+
+	QMessageBox msgBox(this);
+	msgBox.setIcon(QMessageBox::Critical);
+	msgBox.setWindowTitle(tr("Error"));
+	msgBox.setText(tr("Failed to save localStorage data."));
+	msgBox.setDetailedText(QString::fromStdString(e.what()));
+	msgBox.exec();
+} catch (...) {
+	logger_->error("SaveLocalStorageUnknownError");
+}
+
+void SettingsDialog::onAddLocalStorageItem()
+{
+	bool keyOk;
+	QString key =
+		QInputDialog::getText(this, tr("Add LocalStorage Item"), tr("Key:"), QLineEdit::Normal, "", &keyOk);
+
+	if (!keyOk || key.isEmpty()) {
+		return;
+	}
+
+	// Check if key already exists
+	for (int row = 0; row < localStorageTable_->rowCount(); ++row) {
+		QTableWidgetItem *keyItem = localStorageTable_->item(row, 0);
+		if (keyItem && keyItem->text() == key) {
+			QMessageBox::warning(this, tr("Duplicate Key"),
+					     tr("A key with this name already exists. Please use a different key."));
+			return;
+		}
+	}
+
+	bool valueOk;
+	QString value =
+		QInputDialog::getText(this, tr("Add LocalStorage Item"), tr("Value:"), QLineEdit::Normal, "", &valueOk);
+
+	if (!valueOk) {
+		return;
+	}
+
+	int row = localStorageTable_->rowCount();
+	localStorageTable_->insertRow(row);
+	localStorageTable_->setItem(row, 0, new QTableWidgetItem(key));
+	localStorageTable_->setItem(row, 1, new QTableWidgetItem(value));
+
+	markDirty();
+}
+
+void SettingsDialog::onEditLocalStorageItem()
+{
+	int currentRow = localStorageTable_->currentRow();
+	if (currentRow < 0) {
+		QMessageBox::information(this, tr("No Selection"), tr("Please select an item to edit."));
+		return;
+	}
+
+	QTableWidgetItem *keyItem = localStorageTable_->item(currentRow, 0);
+	QTableWidgetItem *valueItem = localStorageTable_->item(currentRow, 1);
+
+	if (!keyItem || !valueItem) {
+		return;
+	}
+
+	bool valueOk;
+	QString newValue = QInputDialog::getText(this, tr("Edit LocalStorage Item"),
+						 tr("Value for '%1':").arg(keyItem->text()), QLineEdit::Normal,
+						 valueItem->text(), &valueOk);
+
+	if (!valueOk) {
+		return;
+	}
+
+	valueItem->setText(newValue);
+	markDirty();
+}
+
+void SettingsDialog::onDeleteLocalStorageItem()
+{
+	int currentRow = localStorageTable_->currentRow();
+	if (currentRow < 0) {
+		QMessageBox::information(this, tr("No Selection"), tr("Please select an item to delete."));
+		return;
+	}
+
+	QTableWidgetItem *keyItem = localStorageTable_->item(currentRow, 0);
+	if (!keyItem) {
+		return;
+	}
+
+	QMessageBox::StandardButton reply = QMessageBox::question(
+		this, tr("Delete Item"),
+		tr("Are you sure you want to delete the item with key '%1'?").arg(keyItem->text()),
+		QMessageBox::Yes | QMessageBox::No);
+
+	if (reply == QMessageBox::Yes) {
+		localStorageTable_->removeRow(currentRow);
+		markDirty();
+	}
+}
+
+void SettingsDialog::onLocalStorageTableDoubleClicked(int row, int)
+{
+	if (row >= 0) {
+		onEditLocalStorageItem();
 	}
 }
 
