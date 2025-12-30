@@ -46,26 +46,34 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
 	mainLoopTask_ = mainLoop(channel_, authStore_, logger_, parent_);
 	mainLoopTask_.start();
-	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
+	logger->info("YouTubeStreamSegmenterMainLoopStarted");
 }
 
 void YouTubeStreamSegmenterMainLoop::startContinuousSession()
 {
-	logger_->info("StartContinuousYouTubeSession");
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	logger->info("StartContinuousYouTubeSession");
 	channel_.send(Message{MessageType::StartContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::stopContinuousSession()
 {
-	logger_->info("StopContinuousYouTubeSession");
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	logger->info("StopContinuousYouTubeSession");
 	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 {
-	logger_->info("SegmentCurrentYouTubeSession");
+	std::shared_ptr<const Logger::ILogger> logger = logger_;
+
+	logger->info("SegmentCurrentYouTubeSession");
 	channel_.send(Message{MessageType::SegmentCurrentSession});
 }
 

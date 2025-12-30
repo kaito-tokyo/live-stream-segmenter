@@ -182,7 +182,7 @@ void SettingsDialog::onAuthButtonClicked()
 	}
 
 	if (googleOAuth2Flow_) {
-		logger_->warn("OAuth2 flow is already in progress.");
+		logger_->warn("FlowAlreadyRunning");
 		return;
 	}
 
@@ -197,7 +197,7 @@ void SettingsDialog::onClearAuthButtonClicked()
 {
 	authStore_->setGoogleTokenState({});
 	statusLabel_->setText(tr("Cleared to be Unauthorized"));
-	logger_->info("Cleared stored Google OAuth2 token.");
+	logger_->info("TokenCleared");
 }
 
 void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
@@ -208,7 +208,7 @@ void SettingsDialog::onCredentialsFileDropped(const QString &localFile)
 		clientIdDisplay_->setText(credentials.client_id);
 		clientSecretDisplay_->setText(credentials.client_secret);
 	} catch (const std::exception &e) {
-		logger_->error("ParseDroppedCredentialsFileError", {Logger::LogField{"exception", e.what()}});
+		logger_->error("ParseDroppedCredentialsFileError", {{"exception", e.what()}});
 
 		QMessageBox msgBox(this);
 		msgBox.setIcon(QMessageBox::Critical);
@@ -249,7 +249,7 @@ try {
 
 	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
 } catch (const std::exception &e) {
-	logger_->error("RunScriptError", {Logger::LogField{"exception", e.what()}});
+	logger_->error("RunScriptError", {{"exception", e.what()}});
 
 	QMessageBox msgBox(this);
 	msgBox.setIcon(QMessageBox::Critical);
@@ -459,8 +459,7 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 {
 	QFile file(localFile);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		logger_->error("FailedToOpenDroppedCredentialsFile",
-			       {Logger::LogField{"file", localFile.toStdString()}});
+		logger_->error("FailedToOpenDroppedCredentialsFile", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("FileOpenError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
@@ -470,34 +469,29 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 
 	if (parseError.error != QJsonParseError::NoError) {
 		logger_->error("FailedToParseDroppedCredentialsFile",
-			       {Logger::LogField{"file", localFile.toStdString()},
-				Logger::LogField{"error", parseError.errorString().toStdString()}});
+			       {{"file", localFile.toStdString()}, {"error", parseError.errorString().toStdString()}});
 		throw std::runtime_error("JsonParseError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	if (!doc.isObject()) {
-		logger_->error("DroppedCredentialsFileNotJsonObject",
-			       {Logger::LogField{"file", localFile.toStdString()}});
+		logger_->error("DroppedCredentialsFileNotJsonObject", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("RootIsNotObjectError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject root = doc.object();
 	if (!root.contains("installed") || !root["installed"].isObject()) {
-		logger_->error("DroppedCredentialsFileMissingInstalledObject",
-			       {Logger::LogField{"file", localFile.toStdString()}});
+		logger_->error("DroppedCredentialsFileMissingInstalledObject", {{"file", localFile.toStdString()}});
 		throw std::runtime_error(
 			"InstalledObjectMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 
 	QJsonObject installed = root["installed"].toObject();
 	if (!installed.contains("client_id") || !installed["client_id"].isString()) {
-		logger_->error("DroppedCredentialsFileMissingClientId",
-			       {Logger::LogField{"file", localFile.toStdString()}});
+		logger_->error("DroppedCredentialsFileMissingClientId", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientIdMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 	if (!installed.contains("client_secret") || !installed["client_secret"].isString()) {
-		logger_->error("DroppedCredentialsFileMissingClientSecret",
-			       {Logger::LogField{"file", localFile.toStdString()}});
+		logger_->error("DroppedCredentialsFileMissingClientSecret", {{"file", localFile.toStdString()}});
 		throw std::runtime_error("ClientSecretMissingError(parseGoogleOAuth2ClientCredentialsFromLocalFile)");
 	}
 

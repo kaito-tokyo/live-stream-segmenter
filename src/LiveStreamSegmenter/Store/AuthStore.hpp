@@ -85,8 +85,7 @@ public:
 
 		std::ofstream ofs(configPath, std::ios::out | std::ios::trunc);
 		if (!ofs.is_open()) {
-			logger_->error("FileOpenError", {Logger::LogField{"context", "AuthStore::saveAuthStore"},
-							 Logger::LogField{"path", configPath.string()}});
+			logger_->error("FileOpenError", {{"path", configPath.string()}});
 			return false;
 		}
 
@@ -94,11 +93,7 @@ public:
 
 		return true;
 	} catch (const std::exception &e) {
-		logger_->error("Error", {Logger::LogField{"context", "AuthStore::saveAuthStore"},
-					 Logger::LogField{"exception", e.what()}});
-		return false;
-	} catch (...) {
-		logger_->error("UnknownError", {Logger::LogField{"context", "AuthStore::saveAuthStore"}});
+		logger_->error("Error", {{"exception", e.what()}});
 		return false;
 	}
 
@@ -120,12 +115,7 @@ public:
 			googleTokenState_ = j.value("googleTokenState", GoogleAuth::GoogleTokenState{});
 		}
 	} catch (const std::exception &e) {
-		logger_->error("Error", {Logger::LogField{"context", "AuthStore::restoreAuthStore"},
-					 Logger::LogField{"exception", e.what()}});
-		googleOAuth2ClientCredentials_ = GoogleAuth::GoogleOAuth2ClientCredentials{};
-		googleTokenState_ = GoogleAuth::GoogleTokenState{};
-	} catch (...) {
-		logger_->error("UnknownError", {Logger::LogField{"context", "AuthStore::restoreAuthStore"}});
+		logger_->error("Error", {{"exception", e.what()}});
 		googleOAuth2ClientCredentials_ = GoogleAuth::GoogleOAuth2ClientCredentials{};
 		googleTokenState_ = GoogleAuth::GoogleTokenState{};
 	}
@@ -135,7 +125,7 @@ private:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError", {Logger::LogField{"context", "AuthStore::getConfigPath"}});
+			logger_->error("ProfilePathError");
 			return {};
 		}
 
