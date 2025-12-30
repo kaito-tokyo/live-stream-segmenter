@@ -22,10 +22,10 @@
  */
 
 #pragma once
-#include <stdexcept>
 
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
