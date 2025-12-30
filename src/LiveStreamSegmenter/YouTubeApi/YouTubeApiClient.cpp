@@ -186,10 +186,9 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 	  curl_([]() {
 		  auto ptr = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), &curl_easy_cleanup);
 		  if (!ptr) {
-			  logger_->error("CurlInitError");
 			  throw std::runtime_error("CurlInitError(YouTubeApiClient::YouTubeApiClient)");
 		  }
-		  return std::move(ptr);
+		  return ptr;
 	  }())
 {
 }
