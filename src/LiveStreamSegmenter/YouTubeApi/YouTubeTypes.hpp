@@ -150,7 +150,6 @@ struct YouTubeLiveBroadcast {
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p);
 
-
 struct YouTubeLiveBroadcastSettings {
 	struct Snippet {
 		std::string title;

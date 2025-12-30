@@ -693,7 +693,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
 
 			QString displayText = QString::fromStdString(
-				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));
+				fmt::format("{} ({} - {})", key.snippet.title, key.cdn.resolution, key.cdn.frameRate));
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 

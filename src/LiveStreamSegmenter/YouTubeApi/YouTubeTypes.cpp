@@ -124,71 +124,63 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p)
 {
-	j["snippet"] = {{"title", p.snippet_title}, {"scheduledStartTime", p.snippet_scheduledStartTime}};
-	if (!p.snippet_description.empty()) {
-		j["snippet"]["description"] = p.snippet_description;
+	j["snippet"] = {{"title", p.snippet.title}, {"scheduledStartTime", p.snippet.scheduledStartTime}};
+	if (!p.snippet.description.empty()) {
+		j["snippet"]["description"] = p.snippet.description;
 	}
 
-	j["status"] = {{"privacyStatus", p.status_privacyStatus},
-		       {"selfDeclaredMadeForKids", p.status_selfDeclaredMadeForKids}};
+	j["status"] = {{"privacyStatus", p.status.privacyStatus},
+		       {"selfDeclaredMadeForKids", p.status.selfDeclaredMadeForKids}};
 
-	j["contentDetails"] = {{"enableAutoStart", p.contentDetails_enableAutoStart},
-			       {"enableAutoStop", p.contentDetails_enableAutoStop},
-			       {"enableDvr", p.contentDetails_enableDvr},
-			       {"enableEmbed", p.contentDetails_enableEmbed},
-			       {"recordFromStart", p.contentDetails_recordFromStart},
-			       {"latencyPreference", p.contentDetails_latencyPreference},
+	j["contentDetails"] = {{"enableAutoStart", p.contentDetails.enableAutoStart},
+			       {"enableAutoStop", p.contentDetails.enableAutoStop},
+			       {"enableDvr", p.contentDetails.enableDvr},
+			       {"enableEmbed", p.contentDetails.enableEmbed},
+			       {"recordFromStart", p.contentDetails.recordFromStart},
+			       {"latencyPreference", p.contentDetails.latencyPreference},
 			       {"monitorStream",
-				{{"enableMonitorStream", p.contentDetails_monitorStream_enableMonitorStream}}}};
+				{{"enableMonitorStream", p.contentDetails.monitorStream.enableMonitorStream}}}};
 }
 
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p)
 {
 	const auto &snippet = j.at("snippet");
-	snippet.at("title").get_to(p.snippet_title);
+	snippet.at("title").get_to(p.snippet.title);
 	if (snippet.contains("description")) {
-		snippet.at("description").get_to(p.snippet_description);
+		snippet.at("description").get_to(p.snippet.description);
 	} else {
-		p.snippet_description.clear();
+		p.snippet.description.clear();
 	}
-	snippet.at("scheduledStartTime").get_to(p.snippet_scheduledStartTime);
+	snippet.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
 
 	const auto &status = j.at("status");
-	status.at("privacyStatus").get_to(p.status_privacyStatus);
-	status.at("selfDeclaredMadeForKids").get_to(p.status_selfDeclaredMadeForKids);
+	status.at("privacyStatus").get_to(p.status.privacyStatus);
+	status.at("selfDeclaredMadeForKids").get_to(p.status.selfDeclaredMadeForKids);
 
 	const auto &contentDetails = j.at("contentDetails");
-	contentDetails.at("enableAutoStart").get_to(p.contentDetails_enableAutoStart);
-	contentDetails.at("enableAutoStop").get_to(p.contentDetails_enableAutoStop);
-	contentDetails.at("enableDvr").get_to(p.contentDetails_enableDvr);
-	contentDetails.at("enableEmbed").get_to(p.contentDetails_enableEmbed);
-	contentDetails.at("recordFromStart").get_to(p.contentDetails_recordFromStart);
-	contentDetails.at("latencyPreference").get_to(p.contentDetails_latencyPreference);
+	contentDetails.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart);
+	contentDetails.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop);
+	contentDetails.at("enableDvr").get_to(p.contentDetails.enableDvr);
+	contentDetails.at("enableEmbed").get_to(p.contentDetails.enableEmbed);
+	contentDetails.at("recordFromStart").get_to(p.contentDetails.recordFromStart);
+	contentDetails.at("latencyPreference").get_to(p.contentDetails.latencyPreference);
 	if (contentDetails.contains("monitorStream")) {
 		const auto &monitorStream = contentDetails.at("monitorStream");
-		monitorStream.at("enableMonitorStream").get_to(p.contentDetails_monitorStream_enableMonitorStream);
+		monitorStream.at("enableMonitorStream").get_to(p.contentDetails.monitorStream.enableMonitorStream);
 	} else {
-		p.contentDetails_monitorStream_enableMonitorStream = false;
+		p.contentDetails.monitorStream.enableMonitorStream = false;
 	}
 }
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
-
-// --- YouTubeLiveBroadcast JSON conversion ---
-namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
-
-using nlohmann::json;
-
-// Thumbnail (flat)
-void to_json(json &j, const YouTubeLiveBroadcastThumbnail &p)
+void to_json(nlohmann::json &j, const YouTubeLiveBroadcastThumbnail &p)
 {
-	j = json{{"url", p.url}};
+	j = nlohmann::json{{"url", p.url}};
 	if (p.width)
 		j["width"] = *p.width;
 	if (p.height)
 		j["height"] = *p.height;
 }
-void from_json(const json &j, YouTubeLiveBroadcastThumbnail &p)
+void from_json(const nlohmann::json &j, YouTubeLiveBroadcastThumbnail &p)
 {
 	j.at("url").get_to(p.url);
 	if (j.contains("width"))
@@ -197,25 +189,25 @@ void from_json(const json &j, YouTubeLiveBroadcastThumbnail &p)
 		j.at("height").get_to(p.height.emplace());
 }
 
-void to_json(json &j, const YouTubeLiveBroadcast &p)
+void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p)
 {
-	j = json{{"kind", p.kind},
-		 {"etag", p.etag},
-		 {"id", p.id},
-		 {"snippet",
-		  {{"publishedAt", p.snippet.publishedAt},
-		   {"channelId", p.snippet.channelId},
-		   {"title", p.snippet.title},
-		   {"description", p.snippet.description},
-		   {"thumbnails", p.snippet.thumbnails},
-		   {"scheduledStartTime", p.snippet.scheduledStartTime}}},
-		 {"status",
-		  {{"lifeCycleStatus", p.status.lifeCycleStatus},
-		   {"privacyStatus", p.status.privacyStatus},
-		   {"recordingStatus", p.status.recordingStatus}}},
-		 {"contentDetails", json::object()},
-		 {"statistics", json::object()},
-		 {"monetizationDetails", json::object()}};
+	j = nlohmann::json{{"kind", p.kind},
+			   {"etag", p.etag},
+			   {"id", p.id},
+			   {"snippet",
+			    {{"publishedAt", p.snippet.publishedAt},
+			     {"channelId", p.snippet.channelId},
+			     {"title", p.snippet.title},
+			     {"description", p.snippet.description},
+			     {"thumbnails", p.snippet.thumbnails},
+			     {"scheduledStartTime", p.snippet.scheduledStartTime}}},
+			   {"status",
+			    {{"lifeCycleStatus", p.status.lifeCycleStatus},
+			     {"privacyStatus", p.status.privacyStatus},
+			     {"recordingStatus", p.status.recordingStatus}}},
+			   {"contentDetails", nlohmann::json::object()},
+			   {"statistics", nlohmann::json::object()},
+			   {"monetizationDetails", nlohmann::json::object()}};
 	// snippet optionals
 	if (p.snippet.scheduledEndTime)
 		j["snippet"]["scheduledEndTime"] = *p.snippet.scheduledEndTime;
@@ -283,7 +275,7 @@ void to_json(json &j, const YouTubeLiveBroadcast &p)
 			*p.monetizationDetails.cuepointSchedule.repeatIntervalSecs;
 }
 
-void from_json(const json &j, YouTubeLiveBroadcast &p)
+void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 {
 	j.at("kind").get_to(p.kind);
 	j.at("etag").get_to(p.etag);
