@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -69,7 +70,7 @@ struct YouTubeLiveBroadcast {
 	std::string snippet_channelId;
 	std::string snippet_title;
 	std::string snippet_description;
-	std::map<std::string, YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
+	std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
 	std::string snippet_scheduledStartTime;
 	std::optional<std::string> snippet_scheduledEndTime;
 	std::optional<std::string> snippet_actualStartTime;
