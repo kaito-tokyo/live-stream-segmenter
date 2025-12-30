@@ -168,7 +168,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 							   std::shared_ptr<Store::AuthStore> authStore,
 							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
-							   QWidget *parent)
+							   [[maybe_unused]] QWidget *parent)
 {
 	while (true) {
 		std::optional<Message> message = co_await channel.receive();
