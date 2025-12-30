@@ -188,10 +188,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 				break;
 			}
 			case MessageType::StopContinuousSession:
-				QMessageBox::information(parent, "Info", "StopContinuousSession received");
 				break;
 			case MessageType::SegmentCurrentSession:
-				QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
 				break;
 			default:
 				logger->warn("UnknownMessageType");
