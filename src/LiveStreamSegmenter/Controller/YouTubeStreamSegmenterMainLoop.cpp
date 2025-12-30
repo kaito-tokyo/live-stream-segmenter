@@ -22,17 +22,26 @@
 
 #include <QMessageBox>
 
-#include <Join.hpp>
-#include <YouTubeApiClient.hpp>
+#include <quickjs.h>
+
+#include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
+#include <Join.hpp>
+#include <nlohmann/json.hpp>
+#include <ScriptingDatabase.hpp>
+#include <YouTubeApiClient.hpp>
+#include <YouTubeTypes.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(std::shared_ptr<Store::AuthStore> authStore,
-							       std::shared_ptr<const Logger::ILogger> logger,
-							       QWidget *parent)
+YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
+	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<const Logger::ILogger> logger,
+	QWidget *parent)
 	: QObject(nullptr),
+	  runtime_(std::move(runtime)),
 	  authStore_(std::move(authStore)),
+	  eventHandlerStore_(std::move(eventHandlerStore)),
 	  logger_(std::move(logger)),
 	  parent_(parent)
 {
@@ -46,7 +55,7 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(channel_, authStore_, logger_, parent_);
+	mainLoopTask_ = mainLoop(channel_, runtime_, authStore_, eventHandlerStore_, logger_, parent_);
 	mainLoopTask_.start();
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
@@ -71,12 +80,32 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 
 namespace {
 
-Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> authStore,
+Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					     std::shared_ptr<Store::AuthStore> authStore,
+					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 					     std::shared_ptr<const Logger::ILogger> logger)
 {
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
+					      true);
+	context.setupContext();
+	database.setupContext();
+	context.setupLocalStorage();
+
+	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
+	context.loadEventHandler(scriptContent.c_str());
+	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
+	nlohmann::json j = nlohmann::json::parse(result);
+	if (!j.contains("InsertLiveBroadcast")) {
+		logger->error("MissingInsertLiveBroadcastInScriptResult", {{"json", result}});
+		co_return;
+	}
+	auto settings = j["InsertLiveBroadcast"].template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+
+	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
-	std::string accessToken;
 	if (tokenState.isAuthorized()) {
 		if (tokenState.isAccessTokenFresh()) {
 			logger->info("YouTubeAccessTokenFresh");
@@ -92,21 +121,23 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Store::AuthStore> a
 			logger->info("YouTubeAccessTokenFetched");
 		}
 	}
-	YouTubeApi::YouTubeApiClient apiClient(logger);
 
-	YouTubeApi::YouTubeLiveBroadcastSettings settings;
-	settings.snippet_title = "TEST";
-	settings.snippet_scheduledStartTime = "2025-12-30T00:00:00Z";
-	settings.snippet_description = "Test Stream from Live Stream Segmenter";
-	settings.status_privacyStatus = "private";
+	if (accessToken.empty()) {
+		logger->error("YouTubeAccessTokenUnavailable");
+		co_return;
+	}
+	YouTubeApi::YouTubeApiClient apiClient(logger);
 	apiClient.createLiveBroadcast(accessToken, settings);
+
 	co_return;
 }
 
 } // anonymous namespace
 
 Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Message> &channel,
+							   std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 							   std::shared_ptr<Store::AuthStore> authStore,
+							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
 							   QWidget *parent)
 {
@@ -119,7 +150,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 
 		switch (message->type) {
 		case MessageType::StartContinuousSession: {
-			auto task = startContinuousSessionTask(authStore, logger);
+			auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
 			task.start();
 			co_await task;
 			break;

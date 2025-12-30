@@ -34,13 +34,20 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 class ProfileContext {
 public:
 	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
+		: ProfileContext(std::make_shared<Scripting::ScriptingRuntime>(logger), logger, dock)
+	{
+	}
+
+	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
+		  runtime_(std::move(runtime)),
 		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
 		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>(logger_)),
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
 		  dock_(dock),
-		  youTubeStreamSegmenterMainLoop_(
-			  std::make_shared<YouTubeStreamSegmenterMainLoop>(authStore_, logger_, dock_))
+		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
+			  runtime_, authStore_, eventHandlerStore_, logger_, dock_))
 	{
 		authStore_->restoreAuthStore();
 		eventHandlerStore_->restore();
@@ -73,10 +80,10 @@ public:
 
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
-
-	std::shared_ptr<Store::AuthStore> authStore_;
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
-	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
+	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
+	const std::shared_ptr<Store::AuthStore> authStore_;
+	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
+	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
 	UI::StreamSegmenterDock *const dock_;
 	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;

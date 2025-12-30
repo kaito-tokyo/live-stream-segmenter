@@ -92,4 +92,34 @@ void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p)
 				{{"enableMonitorStream", p.contentDetails_monitorStream_enableMonitorStream}}}};
 }
 
+void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p)
+{
+	const auto &snippet = j.at("snippet");
+	snippet.at("title").get_to(p.snippet_title);
+	if (snippet.contains("description")) {
+		snippet.at("description").get_to(p.snippet_description);
+	} else {
+		p.snippet_description.clear();
+	}
+	snippet.at("scheduledStartTime").get_to(p.snippet_scheduledStartTime);
+
+	const auto &status = j.at("status");
+	status.at("privacyStatus").get_to(p.status_privacyStatus);
+	status.at("selfDeclaredMadeForKids").get_to(p.status_selfDeclaredMadeForKids);
+
+	const auto &contentDetails = j.at("contentDetails");
+	contentDetails.at("enableAutoStart").get_to(p.contentDetails_enableAutoStart);
+	contentDetails.at("enableAutoStop").get_to(p.contentDetails_enableAutoStop);
+	contentDetails.at("enableDvr").get_to(p.contentDetails_enableDvr);
+	contentDetails.at("enableEmbed").get_to(p.contentDetails_enableEmbed);
+	contentDetails.at("recordFromStart").get_to(p.contentDetails_recordFromStart);
+	contentDetails.at("latencyPreference").get_to(p.contentDetails_latencyPreference);
+	if (contentDetails.contains("monitorStream")) {
+		const auto &monitorStream = contentDetails.at("monitorStream");
+		monitorStream.at("enableMonitorStream").get_to(p.contentDetails_monitorStream_enableMonitorStream);
+	} else {
+		p.contentDetails_monitorStream_enableMonitorStream = false;
+	}
+}
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
