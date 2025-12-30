@@ -39,7 +39,8 @@ public:
 	CurlSlistHandle(CurlSlistHandle &&) = delete;
 	CurlSlistHandle &operator=(CurlSlistHandle &&) = delete;
 
-	void append(const char *str) {
+	void append(const char *str)
+	{
 		curl_slist *newSlist = curl_slist_append(slist_, str);
 		if (!newSlist)
 			throw std::runtime_error("SlistAppendError(CurlSlistHandle::append)");
