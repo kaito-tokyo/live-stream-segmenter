@@ -194,16 +194,13 @@ std::vector<nlohmann::json> performList(CURL *curl, const char *url, std::shared
 	return items;
 }
 
-std::string getLowercaseExtension(const std::filesystem::path& p) {
-    std::string ext = p.extension().string();
+std::string getLowercaseExtension(const std::filesystem::path &p)
+{
+	std::string ext = p.extension().string();
 
-    std::transform(ext.begin(), ext.end(), ext.begin(),
-        [](unsigned char c) {
-            return std::tolower(c);
-        }
-    );
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
-    return ext;
+	return ext;
 }
 
 } // anonymous namespace
