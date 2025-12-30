@@ -349,6 +349,7 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 	}
 
 	std::string responseBody = doPost(curl_.get(), url.get(), ifs, size, logger_, headers.get());
+	ifs.close();
 	logger_->info("ThumbnailSet", {{"responseBody", responseBody}});
 }
 
