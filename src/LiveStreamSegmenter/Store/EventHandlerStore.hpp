@@ -41,7 +41,7 @@ public:
 		: logger_(logger ? std::move(logger)
 				 : throw std::invalid_argument(
 					   "LoggerIsNullError(EventHandlerStore::EventHandlerStore)")) {};
-	~EventHandlerStore() = default;
+	~EventHandlerStore() noexcept = default;
 
 	EventHandlerStore(const EventHandlerStore &) = delete;
 	EventHandlerStore &operator=(const EventHandlerStore &) = delete;

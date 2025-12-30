@@ -209,7 +209,7 @@ public:
 	 * Automatically cleans up the GPU staging surfaces (via unique_ptr)
 	 * and the CPU-side pixel buffers (via std::vector).
 	 */
-	~AsyncTextureReader() = default;
+	~AsyncTextureReader() noexcept = default;
 
 	/**
 	 * @brief Schedules a GPU texture copy. Call from the render/GPU thread.

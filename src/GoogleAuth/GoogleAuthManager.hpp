@@ -53,7 +53,7 @@ public:
 			throw std::runtime_error("CredentialsMissingError(GoogleAuthManager::GoogleAuthManager)");
 		}
 	}
-	~GoogleAuthManager() = default;
+	~GoogleAuthManager() noexcept = default;
 
 	GoogleAuthManager(const GoogleAuthManager &) = delete;
 	GoogleAuthManager &operator=(const GoogleAuthManager &) = delete;
