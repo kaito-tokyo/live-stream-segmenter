@@ -122,6 +122,10 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 		}
 	}
 
+	if (accessToken.empty()) {
+		logger->error("YouTubeAccessTokenUnavailable");
+		co_return;
+	}
 	YouTubeApi::YouTubeApiClient apiClient(logger);
 	apiClient.createLiveBroadcast(accessToken, settings);
 
