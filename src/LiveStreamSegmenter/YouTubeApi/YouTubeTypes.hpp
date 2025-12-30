@@ -61,7 +61,7 @@ struct YouTubeLiveBroadcast {
 	std::string snippet_channelId;
 	std::string snippet_title;
 	std::string snippet_description;
-	std::map<std::string, struct YouTubeLiveBroadcast_Thumbnail> snippet_thumbnails;
+	std::map<std::string, struct YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
 	std::string snippet_scheduledStartTime;
 	std::optional<std::string> snippet_scheduledEndTime;
 	std::optional<std::string> snippet_actualStartTime;
@@ -103,7 +103,7 @@ struct YouTubeLiveBroadcast {
 	std::optional<uint32_t> monetizationDetails_cuepointSchedule_repeatIntervalSecs;
 };
 
-struct YouTubeLiveBroadcast_Thumbnail {
+struct YouTubeLiveBroadcastThumbnail {
 	std::string url;
 	std::optional<uint32_t> width;
 	std::optional<uint32_t> height;

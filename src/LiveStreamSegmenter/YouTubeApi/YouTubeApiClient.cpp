@@ -190,8 +190,8 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 	return streamKeys;
 }
 
-void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
-					   const YouTubeLiveBroadcastSettings &settings) const
+YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
+							   const YouTubeLiveBroadcastSettings &settings) const
 {
 	nlohmann::json requestBody = settings;
 	std::string bodyStr = requestBody.dump();
@@ -200,7 +200,10 @@ void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
 		doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
 		       accessToken.c_str(), bodyStr.c_str());
 
-	logger_->info("LiveBroadcastCreated", {{"responseBody", responseBody}});
+	logger_->info("LiveBroadcastCreated");
+
+	nlohmann::json j = nlohmann::json::parse(responseBody);
+	return j.get<YouTubeLiveBroadcast>();
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

@@ -130,7 +130,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 using nlohmann::json;
 
 // Thumbnail (flat)
-void to_json(json &j, const YouTubeLiveBroadcast_Thumbnail &p)
+void to_json(json &j, const YouTubeLiveBroadcastThumbnail &p)
 {
 	j = json{{"url", p.url}};
 	if (p.width)
@@ -138,7 +138,7 @@ void to_json(json &j, const YouTubeLiveBroadcast_Thumbnail &p)
 	if (p.height)
 		j["height"] = *p.height;
 }
-void from_json(const json &j, YouTubeLiveBroadcast_Thumbnail &p)
+void from_json(const json &j, YouTubeLiveBroadcastThumbnail &p)
 {
 	j.at("url").get_to(p.url);
 	if (j.contains("width"))

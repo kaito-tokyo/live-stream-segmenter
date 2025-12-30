@@ -165,11 +165,12 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 		if (promiseState == JS_PROMISE_FULFILLED) {
 			logger_->info("PromiseFulfilled");
 			ScopedJSValue resolvedObj(ctx_.get(), JS_PromiseResult(ctx_.get(), resultObj.get()));
-			ScopedJSValue resultJson(ctx_.get(),
-						 JS_JSONStringify(ctx_.get(), resolvedObj.get(), JS_UNDEFINED, JS_UNDEFINED));
+			ScopedJSValue resultJson(ctx_.get(), JS_JSONStringify(ctx_.get(), resolvedObj.get(),
+									      JS_UNDEFINED, JS_UNDEFINED));
 			ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
 			if (!resultStr)
-				throw std::runtime_error("ResultConversionError(EventScriptingContext::executeFunction)");
+				throw std::runtime_error(
+					"ResultConversionError(EventScriptingContext::executeFunction)");
 
 			return std::string(resultStr.get());
 		} else if (promiseState == JS_PROMISE_REJECTED) {
@@ -187,7 +188,8 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 			throw std::runtime_error("PromisePendingError(EventScriptingContext::executeFunction)");
 		}
 	} else {
-		ScopedJSValue resultJson(ctx_.get(), JS_JSONStringify(ctx_.get(), resultObj.get(), JS_UNDEFINED, JS_UNDEFINED));
+		ScopedJSValue resultJson(ctx_.get(),
+					 JS_JSONStringify(ctx_.get(), resultObj.get(), JS_UNDEFINED, JS_UNDEFINED));
 		ScopedJSString resultStr(ctx_.get(), JS_ToCString(ctx_.get(), resultJson.get()));
 		if (!resultStr)
 			throw std::runtime_error("ResultConversionError(EventScriptingContext::executeFunction)");
