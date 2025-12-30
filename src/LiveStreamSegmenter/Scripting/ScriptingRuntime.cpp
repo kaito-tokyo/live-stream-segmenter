@@ -22,6 +22,7 @@
  */
 
 #include "ScriptingRuntime.hpp"
+#include <stdexcept>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
