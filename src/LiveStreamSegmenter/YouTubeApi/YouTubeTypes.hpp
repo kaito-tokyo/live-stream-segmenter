@@ -33,21 +33,48 @@
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 struct YouTubeLiveStream {
-	std::string id;
 	std::string kind;
-	std::string snippet_title;
-	std::string snippet_description;
-	std::string snippet_channelId;
-	std::string snippet_publishedAt;
-	std::string snippet_privacyStatus;
-	std::string cdn_ingestionType;
-	std::string cdn_resolution;
-	std::string cdn_frameRate;
-	std::string cdn_isReusable;
-	std::string cdn_region;
-	std::string cdn_ingestionInfo_streamName;
-	std::string cdn_ingestionInfo_ingestionAddress;
-	std::string cdn_ingestionInfo_backupIngestionAddress;
+	std::string etag;
+	std::string id;
+
+	struct Snippet {
+		std::string publishedAt;
+		std::string channelId;
+		std::string title;
+		std::string description;
+		std::optional<bool> isDefaultStream;
+	} snippet;
+
+	struct Cdn {
+		std::string ingestionType;
+		struct IngestionInfo {
+			std::string streamName;
+			std::string ingestionAddress;
+			std::string backupIngestionAddress;
+		} ingestionInfo;
+		std::string resolution;
+		std::string frameRate;
+	} cdn;
+
+	struct Status {
+		std::string streamStatus;
+		struct HealthStatus {
+			std::string status;
+			std::optional<std::uint64_t> lastUpdateTimeSeconds;
+			struct ConfigurationIssue {
+				std::string type;
+				std::string severity;
+				std::string reason;
+				std::string description;
+			};
+			std::vector<ConfigurationIssue> configurationIssues;
+		} healthStatus;
+	} status;
+
+	struct ContentDetails {
+		std::string closedCaptionsIngestionUrl;
+		std::optional<bool> isReusable;
+	} contentDetails;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p);
@@ -60,77 +87,93 @@ struct YouTubeLiveBroadcastThumbnail {
 };
 
 struct YouTubeLiveBroadcast {
-	// Top-level fields
 	std::string kind;
 	std::string etag;
 	std::string id;
 
-	// snippet fields
-	std::string snippet_publishedAt;
-	std::string snippet_channelId;
-	std::string snippet_title;
-	std::string snippet_description;
-	std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
-	std::string snippet_scheduledStartTime;
-	std::optional<std::string> snippet_scheduledEndTime;
-	std::optional<std::string> snippet_actualStartTime;
-	std::optional<std::string> snippet_actualEndTime;
-	std::optional<bool> snippet_isDefaultBroadcast;
-	std::optional<std::string> snippet_liveChatId;
+	struct Snippet {
+		std::string publishedAt;
+		std::string channelId;
+		std::string title;
+		std::string description;
+		std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail> thumbnails;
+		std::string scheduledStartTime;
+		std::optional<std::string> scheduledEndTime;
+		std::optional<std::string> actualStartTime;
+		std::optional<std::string> actualEndTime;
+		std::optional<bool> isDefaultBroadcast;
+		std::optional<std::string> liveChatId;
+	} snippet;
 
-	// status fields
-	std::string status_lifeCycleStatus;
-	std::string status_privacyStatus;
-	std::string status_recordingStatus;
-	std::optional<bool> status_madeForKids;
-	std::optional<bool> status_selfDeclaredMadeForKids;
+	struct Status {
+		std::string lifeCycleStatus;
+		std::string privacyStatus;
+		std::string recordingStatus;
+		std::optional<bool> madeForKids;
+		std::optional<bool> selfDeclaredMadeForKids;
+	} status;
 
-	// contentDetails fields
-	std::optional<std::string> contentDetails_boundStreamId;
-	std::optional<std::string> contentDetails_boundStreamLastUpdateTimeMs;
-	std::optional<bool> contentDetails_monitorStream_enableMonitorStream;
-	std::optional<std::uint32_t> contentDetails_monitorStream_broadcastStreamDelayMs;
-	std::optional<std::string> contentDetails_monitorStream_embedHtml;
-	std::optional<bool> contentDetails_enableEmbed;
-	std::optional<bool> contentDetails_enableDvr;
-	std::optional<bool> contentDetails_recordFromStart;
-	std::optional<bool> contentDetails_enableClosedCaptions;
-	std::optional<std::string> contentDetails_closedCaptionsType;
-	std::optional<std::string> contentDetails_projection;
-	std::optional<bool> contentDetails_enableLowLatency;
-	std::optional<std::string> contentDetails_latencyPreference;
-	std::optional<bool> contentDetails_enableAutoStart;
-	std::optional<bool> contentDetails_enableAutoStop;
+	struct ContentDetails {
+		std::optional<std::string> boundStreamId;
+		std::optional<std::string> boundStreamLastUpdateTimeMs;
+		struct MonitorStream {
+			std::optional<bool> enableMonitorStream;
+			std::optional<std::uint32_t> broadcastStreamDelayMs;
+			std::optional<std::string> embedHtml;
+		} monitorStream;
+		std::optional<bool> enableEmbed;
+		std::optional<bool> enableDvr;
+		std::optional<bool> recordFromStart;
+		std::optional<bool> enableClosedCaptions;
+		std::optional<std::string> closedCaptionsType;
+		std::optional<std::string> projection;
+		std::optional<bool> enableLowLatency;
+		std::optional<std::string> latencyPreference;
+		std::optional<bool> enableAutoStart;
+		std::optional<bool> enableAutoStop;
+	} contentDetails;
 
-	// statistics fields
-	std::optional<std::uint64_t> statistics_totalChatCount;
+	struct Statistics {
+		std::optional<std::uint64_t> totalChatCount;
+	} statistics;
 
-	// monetizationDetails fields
-	std::optional<bool> monetizationDetails_cuepointSchedule_enabled;
-	std::optional<std::string> monetizationDetails_cuepointSchedule_pauseAdsUntil;
-	std::optional<std::string> monetizationDetails_cuepointSchedule_scheduleStrategy;
-	std::optional<std::uint32_t> monetizationDetails_cuepointSchedule_repeatIntervalSecs;
+	struct MonetizationDetails {
+		struct CuepointSchedule {
+			std::optional<bool> enabled;
+			std::optional<std::string> pauseAdsUntil;
+			std::optional<std::string> scheduleStrategy;
+			std::optional<std::uint32_t> repeatIntervalSecs;
+		} cuepointSchedule;
+	} monetizationDetails;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p);
 
+
 struct YouTubeLiveBroadcastSettings {
-	std::string snippet_title;
-	std::string snippet_scheduledStartTime;
-	std::string snippet_description;
+	struct Snippet {
+		std::string title;
+		std::string scheduledStartTime;
+		std::string description;
+	} snippet;
 
-	std::string status_privacyStatus = "private";
-	bool status_selfDeclaredMadeForKids = false;
+	struct Status {
+		std::string privacyStatus = "private";
+		bool selfDeclaredMadeForKids = false;
+	} status;
 
-	bool contentDetails_enableAutoStart = false;
-	bool contentDetails_enableAutoStop = false;
-	bool contentDetails_enableDvr = true;
-	bool contentDetails_enableEmbed = true;
-	bool contentDetails_recordFromStart = true;
-	std::string contentDetails_latencyPreference = "normal"; // "normal", "low", "ultraLow"
-
-	bool contentDetails_monitorStream_enableMonitorStream = false;
+	struct ContentDetails {
+		bool enableAutoStart = false;
+		bool enableAutoStop = false;
+		bool enableDvr = true;
+		bool enableEmbed = true;
+		bool recordFromStart = true;
+		std::string latencyPreference = "normal"; // "normal", "low", "ultraLow"
+		struct MonitorStream {
+			bool enableMonitorStream = false;
+		} monitorStream;
+	} contentDetails;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);

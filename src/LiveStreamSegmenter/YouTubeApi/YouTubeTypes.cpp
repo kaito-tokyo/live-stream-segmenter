@@ -29,47 +29,97 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
-	j = nlohmann::json{{"id", p.id},
-			   {"kind", p.kind},
+	j = nlohmann::json{{"kind", p.kind},
+			   {"etag", p.etag},
+			   {"id", p.id},
 			   {"snippet",
-			    {{"title", p.snippet_title},
-			     {"description", p.snippet_description},
-			     {"channelId", p.snippet_channelId},
-			     {"publishedAt", p.snippet_publishedAt},
-			     {"privacyStatus", p.snippet_privacyStatus}}},
+			    {{"publishedAt", p.snippet.publishedAt},
+			     {"channelId", p.snippet.channelId},
+			     {"title", p.snippet.title},
+			     {"description", p.snippet.description}}},
 			   {"cdn",
-			    {{"ingestionType", p.cdn_ingestionType},
-			     {"resolution", p.cdn_resolution},
-			     {"frameRate", p.cdn_frameRate},
-			     {"region", p.cdn_region},
+			    {{"ingestionType", p.cdn.ingestionType},
 			     {"ingestionInfo",
-			      {{"streamName", p.cdn_ingestionInfo_streamName},
-			       {"ingestionAddress", p.cdn_ingestionInfo_ingestionAddress},
-			       {"backupIngestionAddress", p.cdn_ingestionInfo_backupIngestionAddress}}}}},
-			   {"contentDetails", {{"isReusable", p.cdn_isReusable}}}};
+			      {{"streamName", p.cdn.ingestionInfo.streamName},
+			       {"ingestionAddress", p.cdn.ingestionInfo.ingestionAddress},
+			       {"backupIngestionAddress", p.cdn.ingestionInfo.backupIngestionAddress}}},
+			     {"resolution", p.cdn.resolution},
+			     {"frameRate", p.cdn.frameRate}}},
+			   {"status",
+			    {{"streamStatus", p.status.streamStatus},
+			     {"healthStatus",
+			      {{"status", p.status.healthStatus.status},
+			       {"lastUpdateTimeSeconds", p.status.healthStatus.lastUpdateTimeSeconds},
+			       {"configurationIssues", nlohmann::json::array()}}}}},
+			   {"contentDetails",
+			    {{"closedCaptionsIngestionUrl", p.contentDetails.closedCaptionsIngestionUrl},
+			     {"isReusable", p.contentDetails.isReusable}}}};
+	// configurationIssues (vector)
+	if (!p.status.healthStatus.configurationIssues.empty()) {
+		auto &arr = j["status"]["healthStatus"]["configurationIssues"];
+		for (const auto &issue : p.status.healthStatus.configurationIssues) {
+			arr.push_back({{"type", issue.type},
+				       {"severity", issue.severity},
+				       {"reason", issue.reason},
+				       {"description", issue.description}});
+		}
+	}
+	if (p.snippet.isDefaultStream.has_value()) {
+		j["snippet"]["isDefaultStream"] = p.snippet.isDefaultStream.value();
+	}
 }
 
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 {
-	j.at("id").get_to(p.id);
 	j.at("kind").get_to(p.kind);
+	j.at("etag").get_to(p.etag);
+	j.at("id").get_to(p.id);
 	const auto &snippet = j.at("snippet");
-	snippet.at("title").get_to(p.snippet_title);
-	snippet.at("description").get_to(p.snippet_description);
-	snippet.at("channelId").get_to(p.snippet_channelId);
-	snippet.at("publishedAt").get_to(p.snippet_publishedAt);
-	snippet.at("privacyStatus").get_to(p.snippet_privacyStatus);
+	snippet.at("publishedAt").get_to(p.snippet.publishedAt);
+	snippet.at("channelId").get_to(p.snippet.channelId);
+	snippet.at("title").get_to(p.snippet.title);
+	snippet.at("description").get_to(p.snippet.description);
+	if (snippet.contains("isDefaultStream")) {
+		p.snippet.isDefaultStream = snippet.at("isDefaultStream").get<bool>();
+	} else {
+		p.snippet.isDefaultStream = std::nullopt;
+	}
 	const auto &cdn = j.at("cdn");
-	cdn.at("ingestionType").get_to(p.cdn_ingestionType);
-	cdn.at("resolution").get_to(p.cdn_resolution);
-	cdn.at("frameRate").get_to(p.cdn_frameRate);
-	cdn.at("region").get_to(p.cdn_region);
+	cdn.at("ingestionType").get_to(p.cdn.ingestionType);
 	const auto &ingestionInfo = cdn.at("ingestionInfo");
-	ingestionInfo.at("streamName").get_to(p.cdn_ingestionInfo_streamName);
-	ingestionInfo.at("ingestionAddress").get_to(p.cdn_ingestionInfo_ingestionAddress);
-	ingestionInfo.at("backupIngestionAddress").get_to(p.cdn_ingestionInfo_backupIngestionAddress);
+	ingestionInfo.at("streamName").get_to(p.cdn.ingestionInfo.streamName);
+	ingestionInfo.at("ingestionAddress").get_to(p.cdn.ingestionInfo.ingestionAddress);
+	ingestionInfo.at("backupIngestionAddress").get_to(p.cdn.ingestionInfo.backupIngestionAddress);
+	cdn.at("resolution").get_to(p.cdn.resolution);
+	cdn.at("frameRate").get_to(p.cdn.frameRate);
+	const auto &status = j.at("status");
+	status.at("streamStatus").get_to(p.status.streamStatus);
+	const auto &healthStatus = status.at("healthStatus");
+	healthStatus.at("status").get_to(p.status.healthStatus.status);
+	if (healthStatus.contains("lastUpdateTimeSeconds")) {
+		p.status.healthStatus.lastUpdateTimeSeconds =
+			healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
+	} else {
+		p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
+	}
+	p.status.healthStatus.configurationIssues.clear();
+	if (healthStatus.contains("configurationIssues")) {
+		for (const auto &issue : healthStatus.at("configurationIssues")) {
+			YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
+			issue.at("type").get_to(ci.type);
+			issue.at("severity").get_to(ci.severity);
+			issue.at("reason").get_to(ci.reason);
+			issue.at("description").get_to(ci.description);
+			p.status.healthStatus.configurationIssues.push_back(std::move(ci));
+		}
+	}
 	const auto &contentDetails = j.at("contentDetails");
-	contentDetails.at("isReusable").get_to(p.cdn_isReusable);
+	contentDetails.at("closedCaptionsIngestionUrl").get_to(p.contentDetails.closedCaptionsIngestionUrl);
+	if (contentDetails.contains("isReusable")) {
+		p.contentDetails.isReusable = contentDetails.at("isReusable").get<bool>();
+	} else {
+		p.contentDetails.isReusable = std::nullopt;
+	}
 }
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p)
@@ -153,84 +203,84 @@ void to_json(json &j, const YouTubeLiveBroadcast &p)
 		 {"etag", p.etag},
 		 {"id", p.id},
 		 {"snippet",
-		  {{"publishedAt", p.snippet_publishedAt},
-		   {"channelId", p.snippet_channelId},
-		   {"title", p.snippet_title},
-		   {"description", p.snippet_description},
-		   {"thumbnails", p.snippet_thumbnails},
-		   {"scheduledStartTime", p.snippet_scheduledStartTime}}},
+		  {{"publishedAt", p.snippet.publishedAt},
+		   {"channelId", p.snippet.channelId},
+		   {"title", p.snippet.title},
+		   {"description", p.snippet.description},
+		   {"thumbnails", p.snippet.thumbnails},
+		   {"scheduledStartTime", p.snippet.scheduledStartTime}}},
 		 {"status",
-		  {{"lifeCycleStatus", p.status_lifeCycleStatus},
-		   {"privacyStatus", p.status_privacyStatus},
-		   {"recordingStatus", p.status_recordingStatus}}},
+		  {{"lifeCycleStatus", p.status.lifeCycleStatus},
+		   {"privacyStatus", p.status.privacyStatus},
+		   {"recordingStatus", p.status.recordingStatus}}},
 		 {"contentDetails", json::object()},
 		 {"statistics", json::object()},
 		 {"monetizationDetails", json::object()}};
 	// snippet optionals
-	if (p.snippet_scheduledEndTime)
-		j["snippet"]["scheduledEndTime"] = *p.snippet_scheduledEndTime;
-	if (p.snippet_actualStartTime)
-		j["snippet"]["actualStartTime"] = *p.snippet_actualStartTime;
-	if (p.snippet_actualEndTime)
-		j["snippet"]["actualEndTime"] = *p.snippet_actualEndTime;
-	if (p.snippet_isDefaultBroadcast)
-		j["snippet"]["isDefaultBroadcast"] = *p.snippet_isDefaultBroadcast;
-	if (p.snippet_liveChatId)
-		j["snippet"]["liveChatId"] = *p.snippet_liveChatId;
+	if (p.snippet.scheduledEndTime)
+		j["snippet"]["scheduledEndTime"] = *p.snippet.scheduledEndTime;
+	if (p.snippet.actualStartTime)
+		j["snippet"]["actualStartTime"] = *p.snippet.actualStartTime;
+	if (p.snippet.actualEndTime)
+		j["snippet"]["actualEndTime"] = *p.snippet.actualEndTime;
+	if (p.snippet.isDefaultBroadcast)
+		j["snippet"]["isDefaultBroadcast"] = *p.snippet.isDefaultBroadcast;
+	if (p.snippet.liveChatId)
+		j["snippet"]["liveChatId"] = *p.snippet.liveChatId;
 	// status optionals
-	if (p.status_madeForKids)
-		j["status"]["madeForKids"] = *p.status_madeForKids;
-	if (p.status_selfDeclaredMadeForKids)
-		j["status"]["selfDeclaredMadeForKids"] = *p.status_selfDeclaredMadeForKids;
+	if (p.status.madeForKids)
+		j["status"]["madeForKids"] = *p.status.madeForKids;
+	if (p.status.selfDeclaredMadeForKids)
+		j["status"]["selfDeclaredMadeForKids"] = *p.status.selfDeclaredMadeForKids;
 	// contentDetails
-	if (p.contentDetails_boundStreamId)
-		j["contentDetails"]["boundStreamId"] = *p.contentDetails_boundStreamId;
-	if (p.contentDetails_boundStreamLastUpdateTimeMs)
-		j["contentDetails"]["boundStreamLastUpdateTimeMs"] = *p.contentDetails_boundStreamLastUpdateTimeMs;
-	if (p.contentDetails_monitorStream_enableMonitorStream)
+	if (p.contentDetails.boundStreamId)
+		j["contentDetails"]["boundStreamId"] = *p.contentDetails.boundStreamId;
+	if (p.contentDetails.boundStreamLastUpdateTimeMs)
+		j["contentDetails"]["boundStreamLastUpdateTimeMs"] = *p.contentDetails.boundStreamLastUpdateTimeMs;
+	if (p.contentDetails.monitorStream.enableMonitorStream)
 		j["contentDetails"]["monitorStream"]["enableMonitorStream"] =
-			*p.contentDetails_monitorStream_enableMonitorStream;
-	if (p.contentDetails_monitorStream_broadcastStreamDelayMs)
+			*p.contentDetails.monitorStream.enableMonitorStream;
+	if (p.contentDetails.monitorStream.broadcastStreamDelayMs)
 		j["contentDetails"]["monitorStream"]["broadcastStreamDelayMs"] =
-			*p.contentDetails_monitorStream_broadcastStreamDelayMs;
-	if (p.contentDetails_monitorStream_embedHtml)
-		j["contentDetails"]["monitorStream"]["embedHtml"] = *p.contentDetails_monitorStream_embedHtml;
-	if (p.contentDetails_enableEmbed)
-		j["contentDetails"]["enableEmbed"] = *p.contentDetails_enableEmbed;
-	if (p.contentDetails_enableDvr)
-		j["contentDetails"]["enableDvr"] = *p.contentDetails_enableDvr;
-	if (p.contentDetails_recordFromStart)
-		j["contentDetails"]["recordFromStart"] = *p.contentDetails_recordFromStart;
-	if (p.contentDetails_enableClosedCaptions)
-		j["contentDetails"]["enableClosedCaptions"] = *p.contentDetails_enableClosedCaptions;
-	if (p.contentDetails_closedCaptionsType)
-		j["contentDetails"]["closedCaptionsType"] = *p.contentDetails_closedCaptionsType;
-	if (p.contentDetails_projection)
-		j["contentDetails"]["projection"] = *p.contentDetails_projection;
-	if (p.contentDetails_enableLowLatency)
-		j["contentDetails"]["enableLowLatency"] = *p.contentDetails_enableLowLatency;
-	if (p.contentDetails_latencyPreference)
-		j["contentDetails"]["latencyPreference"] = *p.contentDetails_latencyPreference;
-	if (p.contentDetails_enableAutoStart)
-		j["contentDetails"]["enableAutoStart"] = *p.contentDetails_enableAutoStart;
-	if (p.contentDetails_enableAutoStop)
-		j["contentDetails"]["enableAutoStop"] = *p.contentDetails_enableAutoStop;
+			*p.contentDetails.monitorStream.broadcastStreamDelayMs;
+	if (p.contentDetails.monitorStream.embedHtml)
+		j["contentDetails"]["monitorStream"]["embedHtml"] = *p.contentDetails.monitorStream.embedHtml;
+	if (p.contentDetails.enableEmbed)
+		j["contentDetails"]["enableEmbed"] = *p.contentDetails.enableEmbed;
+	if (p.contentDetails.enableDvr)
+		j["contentDetails"]["enableDvr"] = *p.contentDetails.enableDvr;
+	if (p.contentDetails.recordFromStart)
+		j["contentDetails"]["recordFromStart"] = *p.contentDetails.recordFromStart;
+	if (p.contentDetails.enableClosedCaptions)
+		j["contentDetails"]["enableClosedCaptions"] = *p.contentDetails.enableClosedCaptions;
+	if (p.contentDetails.closedCaptionsType)
+		j["contentDetails"]["closedCaptionsType"] = *p.contentDetails.closedCaptionsType;
+	if (p.contentDetails.projection)
+		j["contentDetails"]["projection"] = *p.contentDetails.projection;
+	if (p.contentDetails.enableLowLatency)
+		j["contentDetails"]["enableLowLatency"] = *p.contentDetails.enableLowLatency;
+	if (p.contentDetails.latencyPreference)
+		j["contentDetails"]["latencyPreference"] = *p.contentDetails.latencyPreference;
+	if (p.contentDetails.enableAutoStart)
+		j["contentDetails"]["enableAutoStart"] = *p.contentDetails.enableAutoStart;
+	if (p.contentDetails.enableAutoStop)
+		j["contentDetails"]["enableAutoStop"] = *p.contentDetails.enableAutoStop;
 	// statistics
-	if (p.statistics_totalChatCount)
-		j["statistics"]["totalChatCount"] = *p.statistics_totalChatCount;
+	if (p.statistics.totalChatCount)
+		j["statistics"]["totalChatCount"] = *p.statistics.totalChatCount;
 	// monetizationDetails
-	if (p.monetizationDetails_cuepointSchedule_enabled)
+	if (p.monetizationDetails.cuepointSchedule.enabled)
 		j["monetizationDetails"]["cuepointSchedule"]["enabled"] =
-			*p.monetizationDetails_cuepointSchedule_enabled;
-	if (p.monetizationDetails_cuepointSchedule_pauseAdsUntil)
+			*p.monetizationDetails.cuepointSchedule.enabled;
+	if (p.monetizationDetails.cuepointSchedule.pauseAdsUntil)
 		j["monetizationDetails"]["cuepointSchedule"]["pauseAdsUntil"] =
-			*p.monetizationDetails_cuepointSchedule_pauseAdsUntil;
-	if (p.monetizationDetails_cuepointSchedule_scheduleStrategy)
+			*p.monetizationDetails.cuepointSchedule.pauseAdsUntil;
+	if (p.monetizationDetails.cuepointSchedule.scheduleStrategy)
 		j["monetizationDetails"]["cuepointSchedule"]["scheduleStrategy"] =
-			*p.monetizationDetails_cuepointSchedule_scheduleStrategy;
-	if (p.monetizationDetails_cuepointSchedule_repeatIntervalSecs)
+			*p.monetizationDetails.cuepointSchedule.scheduleStrategy;
+	if (p.monetizationDetails.cuepointSchedule.repeatIntervalSecs)
 		j["monetizationDetails"]["cuepointSchedule"]["repeatIntervalSecs"] =
-			*p.monetizationDetails_cuepointSchedule_repeatIntervalSecs;
+			*p.monetizationDetails.cuepointSchedule.repeatIntervalSecs;
 }
 
 void from_json(const json &j, YouTubeLiveBroadcast &p)
@@ -241,79 +291,79 @@ void from_json(const json &j, YouTubeLiveBroadcast &p)
 	// snippet
 	if (j.contains("snippet")) {
 		const auto &s = j.at("snippet");
-		s.at("publishedAt").get_to(p.snippet_publishedAt);
-		s.at("channelId").get_to(p.snippet_channelId);
-		s.at("title").get_to(p.snippet_title);
-		s.at("description").get_to(p.snippet_description);
-		s.at("thumbnails").get_to(p.snippet_thumbnails);
-		s.at("scheduledStartTime").get_to(p.snippet_scheduledStartTime);
+		s.at("publishedAt").get_to(p.snippet.publishedAt);
+		s.at("channelId").get_to(p.snippet.channelId);
+		s.at("title").get_to(p.snippet.title);
+		s.at("description").get_to(p.snippet.description);
+		s.at("thumbnails").get_to(p.snippet.thumbnails);
+		s.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
 		if (s.contains("scheduledEndTime"))
-			s.at("scheduledEndTime").get_to(p.snippet_scheduledEndTime.emplace());
+			s.at("scheduledEndTime").get_to(p.snippet.scheduledEndTime.emplace());
 		if (s.contains("actualStartTime"))
-			s.at("actualStartTime").get_to(p.snippet_actualStartTime.emplace());
+			s.at("actualStartTime").get_to(p.snippet.actualStartTime.emplace());
 		if (s.contains("actualEndTime"))
-			s.at("actualEndTime").get_to(p.snippet_actualEndTime.emplace());
+			s.at("actualEndTime").get_to(p.snippet.actualEndTime.emplace());
 		if (s.contains("isDefaultBroadcast"))
-			s.at("isDefaultBroadcast").get_to(p.snippet_isDefaultBroadcast.emplace());
+			s.at("isDefaultBroadcast").get_to(p.snippet.isDefaultBroadcast.emplace());
 		if (s.contains("liveChatId"))
-			s.at("liveChatId").get_to(p.snippet_liveChatId.emplace());
+			s.at("liveChatId").get_to(p.snippet.liveChatId.emplace());
 	}
 	// status
 	if (j.contains("status")) {
 		const auto &s = j.at("status");
-		s.at("lifeCycleStatus").get_to(p.status_lifeCycleStatus);
-		s.at("privacyStatus").get_to(p.status_privacyStatus);
-		s.at("recordingStatus").get_to(p.status_recordingStatus);
+		s.at("lifeCycleStatus").get_to(p.status.lifeCycleStatus);
+		s.at("privacyStatus").get_to(p.status.privacyStatus);
+		s.at("recordingStatus").get_to(p.status.recordingStatus);
 		if (s.contains("madeForKids"))
-			s.at("madeForKids").get_to(p.status_madeForKids.emplace());
+			s.at("madeForKids").get_to(p.status.madeForKids.emplace());
 		if (s.contains("selfDeclaredMadeForKids"))
-			s.at("selfDeclaredMadeForKids").get_to(p.status_selfDeclaredMadeForKids.emplace());
+			s.at("selfDeclaredMadeForKids").get_to(p.status.selfDeclaredMadeForKids.emplace());
 	}
 	// contentDetails
 	if (j.contains("contentDetails")) {
 		const auto &c = j.at("contentDetails");
 		if (c.contains("boundStreamId"))
-			c.at("boundStreamId").get_to(p.contentDetails_boundStreamId.emplace());
+			c.at("boundStreamId").get_to(p.contentDetails.boundStreamId.emplace());
 		if (c.contains("boundStreamLastUpdateTimeMs"))
 			c.at("boundStreamLastUpdateTimeMs")
-				.get_to(p.contentDetails_boundStreamLastUpdateTimeMs.emplace());
+				.get_to(p.contentDetails.boundStreamLastUpdateTimeMs.emplace());
 		if (c.contains("monitorStream")) {
 			const auto &m = c.at("monitorStream");
 			if (m.contains("enableMonitorStream"))
 				m.at("enableMonitorStream")
-					.get_to(p.contentDetails_monitorStream_enableMonitorStream.emplace());
+					.get_to(p.contentDetails.monitorStream.enableMonitorStream.emplace());
 			if (m.contains("broadcastStreamDelayMs"))
 				m.at("broadcastStreamDelayMs")
-					.get_to(p.contentDetails_monitorStream_broadcastStreamDelayMs.emplace());
+					.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
 			if (m.contains("embedHtml"))
-				m.at("embedHtml").get_to(p.contentDetails_monitorStream_embedHtml.emplace());
+				m.at("embedHtml").get_to(p.contentDetails.monitorStream.embedHtml.emplace());
 		}
 		if (c.contains("enableEmbed"))
-			c.at("enableEmbed").get_to(p.contentDetails_enableEmbed.emplace());
+			c.at("enableEmbed").get_to(p.contentDetails.enableEmbed.emplace());
 		if (c.contains("enableDvr"))
-			c.at("enableDvr").get_to(p.contentDetails_enableDvr.emplace());
+			c.at("enableDvr").get_to(p.contentDetails.enableDvr.emplace());
 		if (c.contains("recordFromStart"))
-			c.at("recordFromStart").get_to(p.contentDetails_recordFromStart.emplace());
+			c.at("recordFromStart").get_to(p.contentDetails.recordFromStart.emplace());
 		if (c.contains("enableClosedCaptions"))
-			c.at("enableClosedCaptions").get_to(p.contentDetails_enableClosedCaptions.emplace());
+			c.at("enableClosedCaptions").get_to(p.contentDetails.enableClosedCaptions.emplace());
 		if (c.contains("closedCaptionsType"))
-			c.at("closedCaptionsType").get_to(p.contentDetails_closedCaptionsType.emplace());
+			c.at("closedCaptionsType").get_to(p.contentDetails.closedCaptionsType.emplace());
 		if (c.contains("projection"))
-			c.at("projection").get_to(p.contentDetails_projection.emplace());
+			c.at("projection").get_to(p.contentDetails.projection.emplace());
 		if (c.contains("enableLowLatency"))
-			c.at("enableLowLatency").get_to(p.contentDetails_enableLowLatency.emplace());
+			c.at("enableLowLatency").get_to(p.contentDetails.enableLowLatency.emplace());
 		if (c.contains("latencyPreference"))
-			c.at("latencyPreference").get_to(p.contentDetails_latencyPreference.emplace());
+			c.at("latencyPreference").get_to(p.contentDetails.latencyPreference.emplace());
 		if (c.contains("enableAutoStart"))
-			c.at("enableAutoStart").get_to(p.contentDetails_enableAutoStart.emplace());
+			c.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart.emplace());
 		if (c.contains("enableAutoStop"))
-			c.at("enableAutoStop").get_to(p.contentDetails_enableAutoStop.emplace());
+			c.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop.emplace());
 	}
 	// statistics
 	if (j.contains("statistics")) {
 		const auto &s = j.at("statistics");
 		if (s.contains("totalChatCount"))
-			s.at("totalChatCount").get_to(p.statistics_totalChatCount.emplace());
+			s.at("totalChatCount").get_to(p.statistics.totalChatCount.emplace());
 	}
 	// monetizationDetails
 	if (j.contains("monetizationDetails")) {
@@ -321,16 +371,16 @@ void from_json(const json &j, YouTubeLiveBroadcast &p)
 		if (m.contains("cuepointSchedule")) {
 			const auto &c = m.at("cuepointSchedule");
 			if (c.contains("enabled"))
-				c.at("enabled").get_to(p.monetizationDetails_cuepointSchedule_enabled.emplace());
+				c.at("enabled").get_to(p.monetizationDetails.cuepointSchedule.enabled.emplace());
 			if (c.contains("pauseAdsUntil"))
 				c.at("pauseAdsUntil")
-					.get_to(p.monetizationDetails_cuepointSchedule_pauseAdsUntil.emplace());
+					.get_to(p.monetizationDetails.cuepointSchedule.pauseAdsUntil.emplace());
 			if (c.contains("scheduleStrategy"))
 				c.at("scheduleStrategy")
-					.get_to(p.monetizationDetails_cuepointSchedule_scheduleStrategy.emplace());
+					.get_to(p.monetizationDetails.cuepointSchedule.scheduleStrategy.emplace());
 			if (c.contains("repeatIntervalSecs"))
 				c.at("repeatIntervalSecs")
-					.get_to(p.monetizationDetails_cuepointSchedule_repeatIntervalSecs.emplace());
+					.get_to(p.monetizationDetails.cuepointSchedule.repeatIntervalSecs.emplace());
 		}
 	}
 }
