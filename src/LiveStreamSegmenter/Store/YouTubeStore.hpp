@@ -109,8 +109,8 @@ public:
 			nlohmann::json j;
 			ifs >> j;
 
-			streamKeyA_ = j.value("streamKeyA", YouTubeApi::YouTubeLiveStream{});
-			streamKeyB_ = j.value("streamKeyB", YouTubeApi::YouTubeLiveStream{});
+			j["streamKeyA"].get_to(streamKeyA_);
+			j["streamKeyB"].get_to(streamKeyB_);
 		}
 	} catch (const std::exception &e) {
 		logger_->error("Error", {{"exception", e.what()}});

@@ -681,14 +681,17 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 
 		co_await ResumeOnQtMainThread{this};
 
+		streamKeyComboA_->clear();
+		streamKeyComboB_->clear();
+
 		streamKeys_ = std::move(streamKeys);
 
 		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
 		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
-		streamKeyComboA_->setEnabled(true);
-		streamKeyComboB_->setEnabled(true);
 
+		logger_->info("CurrentStreamKeys",
+			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
 			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
 
@@ -697,6 +700,9 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 
+			logger->info("StreamKeyListed",
+				     {{"id", key.id}, {"title", key.snippet.title}, {"resolution", key.cdn.resolution},
+				      {"frameRate", key.cdn.frameRate}});
 			if (currentStreamKeyA.id == key.id) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
@@ -705,6 +711,9 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 				streamKeyComboB_->setCurrentIndex(i);
 			}
 		}
+
+		streamKeyComboA_->setEnabled(true);
+		streamKeyComboB_->setEnabled(true);
 
 		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);

@@ -69,12 +69,14 @@ struct YouTubeLiveStream {
 			};
 			std::vector<ConfigurationIssue> configurationIssues;
 		} healthStatus;
-	} status;
+	};
+	std::optional<Status> status;
 
 	struct ContentDetails {
 		std::string closedCaptionsIngestionUrl;
 		std::optional<bool> isReusable;
-	} contentDetails;
+	};
+	std::optional<ContentDetails> contentDetails;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p);

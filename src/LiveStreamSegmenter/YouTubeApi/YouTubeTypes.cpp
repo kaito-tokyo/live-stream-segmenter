@@ -29,43 +29,65 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
-	j = nlohmann::json{{"kind", p.kind},
-			   {"etag", p.etag},
-			   {"id", p.id},
-			   {"snippet",
-			    {{"publishedAt", p.snippet.publishedAt},
-			     {"channelId", p.snippet.channelId},
-			     {"title", p.snippet.title},
-			     {"description", p.snippet.description}}},
-			   {"cdn",
-			    {{"ingestionType", p.cdn.ingestionType},
-			     {"ingestionInfo",
-			      {{"streamName", p.cdn.ingestionInfo.streamName},
-			       {"ingestionAddress", p.cdn.ingestionInfo.ingestionAddress},
-			       {"backupIngestionAddress", p.cdn.ingestionInfo.backupIngestionAddress}}},
-			     {"resolution", p.cdn.resolution},
-			     {"frameRate", p.cdn.frameRate}}},
-			   {"status",
-			    {{"streamStatus", p.status.streamStatus},
-			     {"healthStatus",
-			      {{"status", p.status.healthStatus.status},
-			       {"lastUpdateTimeSeconds", p.status.healthStatus.lastUpdateTimeSeconds},
-			       {"configurationIssues", nlohmann::json::array()}}}}},
-			   {"contentDetails",
-			    {{"closedCaptionsIngestionUrl", p.contentDetails.closedCaptionsIngestionUrl},
-			     {"isReusable", p.contentDetails.isReusable}}}};
-	// configurationIssues (vector)
-	if (!p.status.healthStatus.configurationIssues.empty()) {
-		auto &arr = j["status"]["healthStatus"]["configurationIssues"];
-		for (const auto &issue : p.status.healthStatus.configurationIssues) {
-			arr.push_back({{"type", issue.type},
-				       {"severity", issue.severity},
-				       {"reason", issue.reason},
-				       {"description", issue.description}});
-		}
-	}
+	j = nlohmann::json{{"kind", p.kind}, {"etag", p.etag}, {"id", p.id}};
+
+	// snippet
+	nlohmann::json snippetJson = {{"publishedAt", p.snippet.publishedAt},
+				      {"channelId", p.snippet.channelId},
+				      {"title", p.snippet.title},
+				      {"description", p.snippet.description}};
 	if (p.snippet.isDefaultStream.has_value()) {
-		j["snippet"]["isDefaultStream"] = p.snippet.isDefaultStream.value();
+		snippetJson["isDefaultStream"] = p.snippet.isDefaultStream.value();
+	}
+	j["snippet"] = std::move(snippetJson);
+
+	// cdn
+	nlohmann::json cdnJson = {{"ingestionType", p.cdn.ingestionType},
+				  {"ingestionInfo",
+				   {{"streamName", p.cdn.ingestionInfo.streamName},
+				    {"ingestionAddress", p.cdn.ingestionInfo.ingestionAddress},
+				    {"backupIngestionAddress", p.cdn.ingestionInfo.backupIngestionAddress}}},
+				  {"resolution", p.cdn.resolution},
+				  {"frameRate", p.cdn.frameRate}};
+	j["cdn"] = std::move(cdnJson);
+
+	// status (optional)
+	bool hasStatus = p.status.has_value() &&
+			 (!p.status->streamStatus.empty() || !p.status->healthStatus.status.empty() ||
+			  p.status->healthStatus.lastUpdateTimeSeconds.has_value() ||
+			  !p.status->healthStatus.configurationIssues.empty());
+	if (hasStatus) {
+		nlohmann::json healthStatusJson = {{"status", p.status->healthStatus.status},
+						   {"configurationIssues", nlohmann::json::array()}};
+		if (p.status->healthStatus.lastUpdateTimeSeconds.has_value()) {
+			healthStatusJson["lastUpdateTimeSeconds"] =
+				p.status->healthStatus.lastUpdateTimeSeconds.value();
+		}
+		if (!p.status->healthStatus.configurationIssues.empty()) {
+			auto &arr = healthStatusJson["configurationIssues"];
+			for (const auto &issue : p.status->healthStatus.configurationIssues) {
+				arr.push_back({{"type", issue.type},
+					       {"severity", issue.severity},
+					       {"reason", issue.reason},
+					       {"description", issue.description}});
+			}
+		}
+		nlohmann::json statusJson = {{"streamStatus", p.status->streamStatus},
+					     {"healthStatus", std::move(healthStatusJson)}};
+		j["status"] = std::move(statusJson);
+	}
+
+	// contentDetails (optional)
+	bool hasContentDetails =
+		p.contentDetails.has_value() &&
+		(!p.contentDetails->closedCaptionsIngestionUrl.empty() || p.contentDetails->isReusable.has_value());
+	if (hasContentDetails) {
+		nlohmann::json contentDetailsJson = {
+			{"closedCaptionsIngestionUrl", p.contentDetails->closedCaptionsIngestionUrl}};
+		if (p.contentDetails->isReusable.has_value()) {
+			contentDetailsJson["isReusable"] = p.contentDetails->isReusable.value();
+		}
+		j["contentDetails"] = std::move(contentDetailsJson);
 	}
 }
 
@@ -117,17 +139,18 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 
 	// status (optional)
 	if (j.contains("status")) {
+		YouTubeLiveStream::Status statusObj;
 		const auto &status = j.at("status");
-		status.at("streamStatus").get_to(p.status.streamStatus);
+		status.at("streamStatus").get_to(statusObj.streamStatus);
 		const auto &healthStatus = status.at("healthStatus");
-		healthStatus.at("status").get_to(p.status.healthStatus.status);
+		healthStatus.at("status").get_to(statusObj.healthStatus.status);
 		if (healthStatus.contains("lastUpdateTimeSeconds")) {
-			p.status.healthStatus.lastUpdateTimeSeconds =
+			statusObj.healthStatus.lastUpdateTimeSeconds =
 				healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
 		} else {
-			p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
+			statusObj.healthStatus.lastUpdateTimeSeconds = std::nullopt;
 		}
-		p.status.healthStatus.configurationIssues.clear();
+		statusObj.healthStatus.configurationIssues.clear();
 		if (healthStatus.contains("configurationIssues")) {
 			for (const auto &issue : healthStatus.at("configurationIssues")) {
 				YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
@@ -135,28 +158,27 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 				issue.at("severity").get_to(ci.severity);
 				issue.at("reason").get_to(ci.reason);
 				issue.at("description").get_to(ci.description);
-				p.status.healthStatus.configurationIssues.push_back(std::move(ci));
+				statusObj.healthStatus.configurationIssues.push_back(std::move(ci));
 			}
 		}
+		p.status = std::move(statusObj);
 	} else {
-		p.status.streamStatus.clear();
-		p.status.healthStatus.status.clear();
-		p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
-		p.status.healthStatus.configurationIssues.clear();
+		p.status = std::nullopt;
 	}
 
 	// contentDetails (optional)
 	if (j.contains("contentDetails")) {
+		YouTubeLiveStream::ContentDetails contentDetailsObj;
 		const auto &contentDetails = j.at("contentDetails");
-		contentDetails.at("closedCaptionsIngestionUrl").get_to(p.contentDetails.closedCaptionsIngestionUrl);
+		contentDetails.at("closedCaptionsIngestionUrl").get_to(contentDetailsObj.closedCaptionsIngestionUrl);
 		if (contentDetails.contains("isReusable")) {
-			p.contentDetails.isReusable = contentDetails.at("isReusable").get<bool>();
+			contentDetailsObj.isReusable = contentDetails.at("isReusable").get<bool>();
 		} else {
-			p.contentDetails.isReusable = std::nullopt;
+			contentDetailsObj.isReusable = std::nullopt;
 		}
+		p.contentDetails = std::move(contentDetailsObj);
 	} else {
-		p.contentDetails.closedCaptionsIngestionUrl.clear();
-		p.contentDetails.isReusable = std::nullopt;
+		p.contentDetails = std::nullopt;
 	}
 }
 
