@@ -651,8 +651,6 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 Async::Task<void> SettingsDialog::fetchStreamKeys()
 {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	co_await ResumeOnGlobalQThreadPool{};
 	try {
 		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(),
@@ -662,21 +660,21 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		std::string accessToken;
 		if (tokenState.isAuthorized()) {
 			if (tokenState.isAccessTokenFresh()) {
-				logger->info("YouTubeAccessTokenFresh");
+				logger_->info("YouTubeAccessTokenFresh");
 				accessToken = tokenState.access_token;
 			} else {
-				logger->info("YouTubeAccessTokenNotFresh");
+				logger_->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 				GoogleAuth::GoogleTokenState newTokenState =
 					tokenState.withUpdatedAuthResponse(freshAuthResponse);
 				authStore_->setGoogleTokenState(newTokenState);
 				accessToken = freshAuthResponse.access_token;
-				logger->info("YouTubeAccessTokenFetched");
+				logger_->info("YouTubeAccessTokenFetched");
 			}
 		}
 
-		YouTubeApi::YouTubeApiClient client(logger);
+		YouTubeApi::YouTubeApiClient client(logger_);
 		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listStreamKeys(accessToken);
 
 		co_await ResumeOnQtMainThread{this};
@@ -689,7 +687,6 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
 		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
-
 		logger_->info("CurrentStreamKeys",
 			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
@@ -700,9 +697,10 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 
-			logger->info("StreamKeyListed",
-				     {{"id", key.id}, {"title", key.snippet.title}, {"resolution", key.cdn.resolution},
-				      {"frameRate", key.cdn.frameRate}});
+			logger_->info("StreamKeyListed", {{"id", key.id},
+							  {"title", key.snippet.title},
+							  {"resolution", key.cdn.resolution},
+							  {"frameRate", key.cdn.frameRate}});
 			if (currentStreamKeyA.id == key.id) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
@@ -723,28 +721,26 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
-		logger->error("FetchStreamKeysFailed", {{"exception", e.what()}});
+		logger_->error("FetchStreamKeysFailed", {{"exception", e.what()}});
 	}
 }
 
 void SettingsDialog::loadLocalStorageData()
 try {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
 	if (dbPath.empty()) {
-		logger->warn("DatabasePathEmpty");
+		logger_->warn("DatabasePathEmpty");
 		return;
 	}
 
 	// Check if database file exists
 	if (!std::filesystem::exists(dbPath)) {
-		logger->info("DatabaseFileNotFound", {{"path", dbPath.string()}});
+		logger_->info("DatabaseFileNotFound", {{"path", dbPath.string()}});
 		return;
 	}
 
 	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
-	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, false);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, dbPath, false);
 	database.setupContext();
 
 	// Get the db object from global scope
