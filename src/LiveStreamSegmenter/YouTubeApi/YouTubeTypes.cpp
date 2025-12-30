@@ -71,53 +71,91 @@ void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 {
+	// Required fields
 	j.at("kind").get_to(p.kind);
 	j.at("etag").get_to(p.etag);
 	j.at("id").get_to(p.id);
-	const auto &snippet = j.at("snippet");
-	snippet.at("publishedAt").get_to(p.snippet.publishedAt);
-	snippet.at("channelId").get_to(p.snippet.channelId);
-	snippet.at("title").get_to(p.snippet.title);
-	snippet.at("description").get_to(p.snippet.description);
-	if (snippet.contains("isDefaultStream")) {
-		p.snippet.isDefaultStream = snippet.at("isDefaultStream").get<bool>();
+
+	// snippet (optional)
+	if (j.contains("snippet")) {
+		const auto &snippet = j.at("snippet");
+		snippet.at("publishedAt").get_to(p.snippet.publishedAt);
+		snippet.at("channelId").get_to(p.snippet.channelId);
+		snippet.at("title").get_to(p.snippet.title);
+		snippet.at("description").get_to(p.snippet.description);
+		if (snippet.contains("isDefaultStream")) {
+			p.snippet.isDefaultStream = snippet.at("isDefaultStream").get<bool>();
+		} else {
+			p.snippet.isDefaultStream = std::nullopt;
+		}
 	} else {
+		p.snippet.publishedAt.clear();
+		p.snippet.channelId.clear();
+		p.snippet.title.clear();
+		p.snippet.description.clear();
 		p.snippet.isDefaultStream = std::nullopt;
 	}
-	const auto &cdn = j.at("cdn");
-	cdn.at("ingestionType").get_to(p.cdn.ingestionType);
-	const auto &ingestionInfo = cdn.at("ingestionInfo");
-	ingestionInfo.at("streamName").get_to(p.cdn.ingestionInfo.streamName);
-	ingestionInfo.at("ingestionAddress").get_to(p.cdn.ingestionInfo.ingestionAddress);
-	ingestionInfo.at("backupIngestionAddress").get_to(p.cdn.ingestionInfo.backupIngestionAddress);
-	cdn.at("resolution").get_to(p.cdn.resolution);
-	cdn.at("frameRate").get_to(p.cdn.frameRate);
-	const auto &status = j.at("status");
-	status.at("streamStatus").get_to(p.status.streamStatus);
-	const auto &healthStatus = status.at("healthStatus");
-	healthStatus.at("status").get_to(p.status.healthStatus.status);
-	if (healthStatus.contains("lastUpdateTimeSeconds")) {
-		p.status.healthStatus.lastUpdateTimeSeconds =
-			healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
+
+	// cdn (optional)
+	if (j.contains("cdn")) {
+		const auto &cdn = j.at("cdn");
+		cdn.at("ingestionType").get_to(p.cdn.ingestionType);
+		const auto &ingestionInfo = cdn.at("ingestionInfo");
+		ingestionInfo.at("streamName").get_to(p.cdn.ingestionInfo.streamName);
+		ingestionInfo.at("ingestionAddress").get_to(p.cdn.ingestionInfo.ingestionAddress);
+		ingestionInfo.at("backupIngestionAddress").get_to(p.cdn.ingestionInfo.backupIngestionAddress);
+		cdn.at("resolution").get_to(p.cdn.resolution);
+		cdn.at("frameRate").get_to(p.cdn.frameRate);
 	} else {
-		p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
+		p.cdn.ingestionType.clear();
+		p.cdn.ingestionInfo.streamName.clear();
+		p.cdn.ingestionInfo.ingestionAddress.clear();
+		p.cdn.ingestionInfo.backupIngestionAddress.clear();
+		p.cdn.resolution.clear();
+		p.cdn.frameRate.clear();
 	}
-	p.status.healthStatus.configurationIssues.clear();
-	if (healthStatus.contains("configurationIssues")) {
-		for (const auto &issue : healthStatus.at("configurationIssues")) {
-			YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
-			issue.at("type").get_to(ci.type);
-			issue.at("severity").get_to(ci.severity);
-			issue.at("reason").get_to(ci.reason);
-			issue.at("description").get_to(ci.description);
-			p.status.healthStatus.configurationIssues.push_back(std::move(ci));
+
+	// status (optional)
+	if (j.contains("status")) {
+		const auto &status = j.at("status");
+		status.at("streamStatus").get_to(p.status.streamStatus);
+		const auto &healthStatus = status.at("healthStatus");
+		healthStatus.at("status").get_to(p.status.healthStatus.status);
+		if (healthStatus.contains("lastUpdateTimeSeconds")) {
+			p.status.healthStatus.lastUpdateTimeSeconds =
+				healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
+		} else {
+			p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
 		}
-	}
-	const auto &contentDetails = j.at("contentDetails");
-	contentDetails.at("closedCaptionsIngestionUrl").get_to(p.contentDetails.closedCaptionsIngestionUrl);
-	if (contentDetails.contains("isReusable")) {
-		p.contentDetails.isReusable = contentDetails.at("isReusable").get<bool>();
+		p.status.healthStatus.configurationIssues.clear();
+		if (healthStatus.contains("configurationIssues")) {
+			for (const auto &issue : healthStatus.at("configurationIssues")) {
+				YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
+				issue.at("type").get_to(ci.type);
+				issue.at("severity").get_to(ci.severity);
+				issue.at("reason").get_to(ci.reason);
+				issue.at("description").get_to(ci.description);
+				p.status.healthStatus.configurationIssues.push_back(std::move(ci));
+			}
+		}
 	} else {
+		p.status.streamStatus.clear();
+		p.status.healthStatus.status.clear();
+		p.status.healthStatus.lastUpdateTimeSeconds = std::nullopt;
+		p.status.healthStatus.configurationIssues.clear();
+	}
+
+	// contentDetails (optional)
+	if (j.contains("contentDetails")) {
+		const auto &contentDetails = j.at("contentDetails");
+		contentDetails.at("closedCaptionsIngestionUrl").get_to(p.contentDetails.closedCaptionsIngestionUrl);
+		if (contentDetails.contains("isReusable")) {
+			p.contentDetails.isReusable = contentDetails.at("isReusable").get<bool>();
+		} else {
+			p.contentDetails.isReusable = std::nullopt;
+		}
+	} else {
+		p.contentDetails.closedCaptionsIngestionUrl.clear();
 		p.contentDetails.isReusable = std::nullopt;
 	}
 }
