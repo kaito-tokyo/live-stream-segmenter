@@ -193,16 +193,9 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(const std::string
 void YouTubeApiClient::createLiveBroadcast(const std::string &accessToken,
 					   const YouTubeLiveBroadcastSettings &settings) const
 {
-	// バリデーション
-	if (settings.snippet_title.empty() || settings.snippet_scheduledStartTime.empty()) {
-		throw std::invalid_argument("Title and ScheduledStartTime are required.");
-	}
-
-	// JSON変換 (ここで上記の to_json が呼ばれ、ネスト構造が作られます)
 	nlohmann::json requestBody = settings;
 	std::string bodyStr = requestBody.dump();
 
-	// POST実行
 	std::string responseBody =
 		doPost("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
 		       accessToken.c_str(), bodyStr.c_str());
