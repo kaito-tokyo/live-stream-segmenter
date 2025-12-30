@@ -39,18 +39,18 @@ namespace KaitoTokyo::CurlHelper {
 class CurlUrlSearchParams {
 
 public:
-    explicit CurlUrlSearchParams(CURL *curl)
-        : curl_(curl ? curl
-             : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
-    {
-    }
+	explicit CurlUrlSearchParams(CURL *curl)
+		: curl_(curl ? curl
+			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
+	{
+	}
 
-    ~CurlUrlSearchParams() noexcept = default;
+	~CurlUrlSearchParams() = default;
 
-    CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
-    CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
-    CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
-    CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
+	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
+	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
+	CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
+	CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
 
 	void append(std::string_view name, std::string_view value) { params_.emplace_back(name, value); }
 
