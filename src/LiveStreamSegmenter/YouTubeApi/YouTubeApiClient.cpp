@@ -299,8 +299,20 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
 	}
 	ifs.seekg(0, std::ios::end);
+	if (!ifs.good()) {
+		logger_->error("ThumbnailFileSeekError", {{"path", thumbnailPath.string()}, {"position", "end"}});
+		throw std::runtime_error("ThumbnailFileSeekError(YouTubeApiClient::setThumbnail)");
+	}
 	std::streamsize size = ifs.tellg();
+	if (size < 0) {
+		logger_->error("ThumbnailFileTellError", {{"path", thumbnailPath.string()}});
+		throw std::runtime_error("ThumbnailFileTellError(YouTubeApiClient::setThumbnail)");
+	}
 	ifs.seekg(0, std::ios::beg);
+	if (!ifs.good()) {
+		logger_->error("ThumbnailFileSeekError", {{"path", thumbnailPath.string()}, {"position", "beg"}});
+		throw std::runtime_error("ThumbnailFileSeekError(YouTubeApiClient::setThumbnail)");
+	}
 
 	constexpr std::streamsize kMaxThumbnailBytes = 2 * 1024 * 1024;
 	if (size <= 0) {
