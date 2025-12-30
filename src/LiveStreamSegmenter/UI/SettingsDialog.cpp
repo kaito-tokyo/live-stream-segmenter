@@ -573,15 +573,13 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	if (!self)
 		co_return;
 
-	auto logger = self->logger_;
-
-	logger->info("OAuth2FlowStart");
+	self->logger_->info("OAuth2FlowStart");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", logger);
+		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
@@ -592,7 +590,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		uint16_t port = self->currentCallbackServer_->serverPort();
 		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		logger->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
+		self->logger_->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
@@ -620,7 +618,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
-		logger->error("OAuthFlowFailed", {{"exception", e.what()}});
+		self->logger_->error("OAuthFlowFailed", {{"exception", e.what()}});
 	}
 
 	co_await ResumeOnQtMainThread{self};
@@ -758,7 +756,7 @@ try {
 	Scripting::ScopedJSValue scopedGlobalObj(ctx.get(), globalObj);
 
 	if (JS_IsException(queryResult.get())) {
-		logger->warn("LocalStorageQueryFailed");
+		logger_->warn("LocalStorageQueryFailed");
 		return;
 	}
 
@@ -811,16 +809,14 @@ try {
 
 void SettingsDialog::saveLocalStorageData()
 try {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
 	if (dbPath.empty()) {
-		logger->error("DatabasePathEmpty");
+		logger_->error("DatabasePathEmpty");
 		return;
 	}
 
 	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
-	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, true);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, dbPath, true);
 	database.setupContext();
 
 	// Get the db object from global scope
@@ -839,7 +835,7 @@ try {
 	if (JS_IsException(createTableResult.get())) {
 		JS_FreeValue(ctx.get(), dbObj);
 		JS_FreeValue(ctx.get(), globalObj);
-		logger->error("LocalStorageCreateTableFailed");
+		logger_->error("LocalStorageCreateTableFailed");
 		throw std::runtime_error("Failed to create localStorage table");
 	}
 
@@ -854,7 +850,7 @@ try {
 	if (JS_IsException(deleteResult.get())) {
 		JS_FreeValue(ctx.get(), dbObj);
 		JS_FreeValue(ctx.get(), globalObj);
-		logger->error("LocalStorageDeleteFailed");
+		logger_->error("LocalStorageDeleteFailed");
 		throw std::runtime_error("Failed to clear localStorage table");
 	}
 
@@ -880,7 +876,7 @@ try {
 			JS_FreeValue(ctx.get(), insertArgs[2]);
 
 			if (JS_IsException(insertResult.get())) {
-				logger->error("LocalStorageInsertFailed", {{"key", key}});
+				logger_->error("LocalStorageInsertFailed", {{"key", key}});
 			}
 		}
 	}
@@ -888,7 +884,7 @@ try {
 	JS_FreeValue(ctx.get(), dbObj);
 	JS_FreeValue(ctx.get(), globalObj);
 
-	logger->info("LocalStorageSaved");
+	logger_->info("LocalStorageSaved");
 } catch (const std::exception &e) {
 	logger_->error("SaveLocalStorageError", {{"exception", e.what()}});
 
