@@ -630,7 +630,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
-		logger->info("OAuth2AuthSuccess");
+		self->logger_->info("OAuth2AuthSuccess");
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
