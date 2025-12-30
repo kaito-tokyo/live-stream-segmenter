@@ -214,7 +214,7 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view 
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<nlohmann::json> items = performList(curl_.get(), url, headers.get());
+	std::vector<nlohmann::json> items = performList(curl_.get(), url, logger_, headers.get());
 
 	std::vector<YouTubeStreamKey> streamKeys;
 	for (const nlohmann::json &item : items) {
