@@ -24,6 +24,7 @@
 #include "YouTubeApiClient.hpp"
 
 #include <cassert>
+#include <cctype>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -182,6 +183,18 @@ std::vector<nlohmann::json> performList(CURL *curl, const char *url, std::shared
 	return items;
 }
 
+std::string getLowercaseExtension(const std::filesystem::path& p) {
+    std::string ext = p.extension().string();
+
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+        [](unsigned char c) {
+            return std::tolower(c);
+        }
+    );
+
+    return ext;
+}
+
 } // anonymous namespace
 
 YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger)
@@ -303,10 +316,10 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 	const std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	const std::filesystem::path extension = thumbnailPath.extension();
-	if (extension == ".png") {
+	const std::string ext = getLowercaseExtension(thumbnailPath);
+	if (ext == ".png") {
 		headers.append("Content-Type: image/png");
-	} else if (extension == ".jpg" || extension == ".jpeg") {
+	} else if (ext == ".jpg" || ext == ".jpeg") {
 		headers.append("Content-Type: image/jpeg");
 	} else {
 		headers.append("Content-Type: application/octet-stream");
