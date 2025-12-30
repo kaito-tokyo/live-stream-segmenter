@@ -69,5 +69,6 @@ struct YouTubeLiveBroadcastSettings {
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
+void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p);
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

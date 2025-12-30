@@ -26,8 +26,10 @@
 
 #include <AuthStore.hpp>
 #include <Channel.hpp>
+#include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
 #include <Task.hpp>
+#include <ScriptingRuntime.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -45,7 +47,9 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Store::AuthStore> authStore,
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+				       std::shared_ptr<Store::AuthStore> authStore,
+				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 				       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 	~YouTubeStreamSegmenterMainLoop() override;
 
@@ -62,14 +66,19 @@ public slots:
 	void segmentCurrentSession();
 
 private:
+	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
+	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
 
 	Async::Channel<Message> channel_;
 	Async::Task<void> mainLoopTask_;
 
-	static Async::Task<void> mainLoop(Async::Channel<Message> &channel, std::shared_ptr<Store::AuthStore> authStore,
+	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					  std::shared_ptr<Store::AuthStore> authStore,
+					  std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 };
 
