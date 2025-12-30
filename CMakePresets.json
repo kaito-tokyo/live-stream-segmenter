@@ -27,6 +27,17 @@
       }
     },
     {
+      "name": "macos-dev",
+      "inherits": ["macos"],
+      "displayName": "macOS (Development)",
+      "description": "Build universal binary for macOS 12.0+ (Development)",
+      "binaryDir": "${sourceDir}/build_macos_dev",
+      "cacheVariables": {
+        "BUILD_TESTING": true,
+        "ENABLE_UBSAN": true
+      }
+    },
+    {
       "name": "macos-ci",
       "inherits": ["macos"],
       "displayName": "macOS (Production)",
@@ -103,6 +114,13 @@
       "configurePreset": "macos",
       "displayName": "macOS universal",
       "description": "Build universal binary for macOS 12.0+",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "macos-dev",
+      "configurePreset": "macos-dev",
+      "displayName": "macOS universal (Development)",
+      "description": "Build universal binary for macOS 12.0+ (Development)",
       "configuration": "RelWithDebInfo"
     },
     {

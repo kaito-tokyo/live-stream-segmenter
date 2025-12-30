@@ -55,20 +55,13 @@ std::string doGet(CURL *curl, const char *url, std::shared_ptr<const Logger::ILo
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_POST, 0L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, nullptr);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 2L);
 
-	curl_easy_setopt(curl, CURLOPT_READFUNCTION, nullptr);
-	curl_easy_setopt(curl, CURLOPT_READDATA, nullptr);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
@@ -95,18 +88,13 @@ std::string doPost(CURL *curl, const char *url, std::string_view body, std::shar
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 	curl_easy_setopt(curl, CURLOPT_POST, 1L);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<curl_off_t>(body.size()));
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
 
-	curl_easy_setopt(curl, CURLOPT_READFUNCTION, nullptr);
-	curl_easy_setopt(curl, CURLOPT_READDATA, nullptr);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
@@ -133,9 +121,7 @@ std::string doPost(CURL *curl, const char *url, std::ifstream &ifs, std::uintmax
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, nullptr);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<curl_off_t>(ifsSize));
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(ifsSize));
 
 	curl_easy_setopt(curl, CURLOPT_READFUNCTION, CurlHelper::CurlIfstreamReadCallback);
 	curl_easy_setopt(curl, CURLOPT_READDATA, &ifs);
@@ -144,8 +130,6 @@ std::string doPost(CURL *curl, const char *url, std::ifstream &ifs, std::uintmax
 
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl);
@@ -227,10 +211,6 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 		  return ptr;
 	  }())
 {
-	curl_easy_setopt(curl_.get(), CURLOPT_READFUNCTION, nullptr);
-	curl_easy_setopt(curl_.get(), CURLOPT_READDATA, nullptr);
-	curl_easy_setopt(curl_.get(), CURLOPT_WRITEFUNCTION, nullptr);
-	curl_easy_setopt(curl_.get(), CURLOPT_WRITEDATA, nullptr);
 }
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
@@ -241,6 +221,8 @@ std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view 
 		logger_->error("AccessTokenIsEmptyError");
 		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listStreamKeys)");
 	}
+
+	curl_easy_reset(curl_.get());
 
 	const char *url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
 
@@ -265,6 +247,8 @@ YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view acce
 		logger_->error("AccessTokenIsEmptyError");
 		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::createLiveBroadcast)");
 	}
+
+	curl_easy_reset(curl_.get());
 
 	const char *url = "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails";
 
@@ -318,6 +302,8 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 		throw std::invalid_argument("ThumbnailFileSizeExceedsLimitError(YouTubeApiClient::setThumbnail)");
 	}
 	// FIXME: Path whitelist will be implemented later.
+
+	curl_easy_reset(curl_.get());
 
 	CurlHelper::CurlUrlSearchParams params(curl_.get());
 	params.append("videoId", videoId);

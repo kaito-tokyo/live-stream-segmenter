@@ -35,6 +35,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+  add_compile_options("/pathmap:${CMAKE_SOURCE_DIR}=.")
+else()
+  add_compile_options(-fno-omit-frame-pointer -fstack-protector-strong "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}=.")
 endif()
 
 if(MSVC)
@@ -63,7 +66,7 @@ if(ENABLE_UBSAN)
       "ENABLE_UBSAN is enabled, but UBSan flags are not applied for MSVC due to limited support and incompatible flag syntax."
     )
   else()
-    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
+    add_compile_options(-fsanitize=undefined -fno-sanitize-recover=undefined)
     add_link_options(-fsanitize=undefined)
   endif()
 endif()
