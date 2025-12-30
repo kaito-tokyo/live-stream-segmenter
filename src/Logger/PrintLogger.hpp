@@ -44,16 +44,16 @@ protected:
 			std::cout << "level=DEBUG";
 			break;
 		case LogLevel::Info:
-			std::cout << "level=INFO ";
+			std::cout << "level=INFO";
 			break;
 		case LogLevel::Warn:
-			std::cout << "level=WARN ";
+			std::cout << "level=WARN";
 			break;
 		case LogLevel::Error:
-			std::cout << "level=ERROR ";
+			std::cout << "level=ERROR";
 			break;
 		default:
-			std::cout << "level=UNKNOWN ";
+			std::cout << "level=UNKNOWN";
 			break;
 		}
 
