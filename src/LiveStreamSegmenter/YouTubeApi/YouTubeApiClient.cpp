@@ -182,7 +182,12 @@ std::vector<nlohmann::json> performList(CURL *curl, const char *url, curl_slist 
 YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger)
 	: logger_(logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerIsNullError(YouTubeApiClient::YouTubeApiClient)")),
-	  curl_(std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), &curl_easy_cleanup))
+	  curl_([]() {
+		  auto ptr = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), &curl_easy_cleanup);
+		  if (!ptr)
+			  throw std::runtime_error("CurlInitError(YouTubeApiClient::YouTubeApiClient)");
+		  return std::move(ptr);
+	  }())
 {
 }
 
