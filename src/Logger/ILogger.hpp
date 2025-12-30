@@ -28,7 +28,6 @@
 #include <source_location>
 #include <span>
 #include <string_view>
-#include <utility>
 
 namespace KaitoTokyo::Logger {
 
