@@ -233,8 +233,15 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listStreamKeys(std::string_view
 	std::vector<nlohmann::json> items = performList(curl_.get(), url, logger_, headers.get());
 
 	std::vector<YouTubeLiveStream> streamKeys;
-	for (const nlohmann::json &item : items) {
-		streamKeys.push_back(item.get<YouTubeLiveStream>());
+	try {
+		for (const nlohmann::json &item : items) {
+			streamKeys.push_back(item.get<YouTubeLiveStream>());
+		}
+	} catch (const std::exception &e) {
+		nlohmann::json jItems{items};
+		std::string jItemsJson = jItems.dump();
+		logger_->error("ParseLiveStreamError", {{"exception", e.what()}, {"responseJson", jItemsJson}});
+		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listStreamKeys)");
 	}
 
 	return streamKeys;
