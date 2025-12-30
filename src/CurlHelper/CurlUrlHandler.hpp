@@ -1,6 +1,8 @@
 /*
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
  * KaitoTokyo CurlHelper Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +25,11 @@
 
 #pragma once
 
-#include <curl/curl.h>
-
 #include <memory>
 #include <stdexcept>
 #include <string>
+
+#include <curl/curl.h>
 
 namespace KaitoTokyo::CurlHelper {
 

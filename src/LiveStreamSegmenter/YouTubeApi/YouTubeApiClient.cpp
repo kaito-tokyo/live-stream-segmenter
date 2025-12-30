@@ -30,9 +30,12 @@
 #include <memory>
 
 #include <nlohmann/json.hpp>
-
+#include <CurlReader.hpp>
 #include <CurlUrlHandler.hpp>
 #include <CurlVectorWriter.hpp>
+#include <ILogger.hpp>
+#include <cstdio>
+#include <unistd.h>
 
 namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
@@ -114,6 +117,48 @@ std::string doPost(const char *url, const char *accessToken, const char *body)
 	if (res != CURLE_OK) {
 		throw std::runtime_error(std::string("NetworkError(YouTubeApiClient::doPost):") +
 					 curl_easy_strerror(res));
+	}
+
+	return std::string(readBuffer.begin(), readBuffer.end());
+}
+
+std::string doPost(std::string_view url, std::ifstream &ifs, std::streamsize size,
+		   std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
+{
+	if (url.empty()) {
+		logger->error("URLEmptyError");
+		throw std::invalid_argument("URLEmptyError(YouTubeApiClient::doPost)");
+	}
+
+	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
+	if (!curl) {
+		logger->error("CurlInitError");
+		throw std::runtime_error("CurlInitError(YouTubeApiClient::doPost)");
+	}
+
+	CurlHelper::CurlVectorWriterBuffer readBuffer;
+
+	curl_easy_setopt(curl.get(), CURLOPT_URL, url);
+	if (headers) {
+		curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
+	}
+	curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_READFUNCTION, CurlHelper::CurlIfstreamReadCallback);
+	curl_easy_setopt(curl.get(), CURLOPT_READDATA, &ifs);
+	curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDSIZE, static_cast<curl_off_t>(size));
+
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
+
+	CURLcode res = curl_easy_perform(curl.get());
+
+	if (res != CURLE_OK) {
+		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost):");
 	}
 
 	return std::string(readBuffer.begin(), readBuffer.end());
@@ -206,50 +251,25 @@ YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(const std::string &ac
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-void YouTubeApiClient::setThumbnail(const std::string &accessToken, const std::string &videoId,
-				    const std::vector<std::uint8_t> &thumbnailData) const
+void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_view videoId,
+				    const std::filesystem::path &thumbnailPath) const
 {
-	const std::string url = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=" + videoId;
+	std::string url = std::string("https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=") + std::string(videoId);
+	std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)> headers(nullptr, curl_slist_free_all);
 
-	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
-	if (!curl) {
-		throw std::runtime_error("InitError(YouTubeApiClient::setThumbnail)");
+	std::string authHeader = std::string("Authorization: Bearer ") + std::string(accessToken);
+	headers.reset(curl_slist_append(headers.release(), authHeader.c_str()));
+	headers.reset(curl_slist_append(headers.release(), "Content-Type: image/jpeg"));
+
+	std::ifstream ifs(thumbnailPath, std::ios::binary);
+	if (!ifs) {
+		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
 	}
+	ifs.seekg(0, std::ios::end);
+	std::streamsize size = ifs.tellg();
+	ifs.seekg(0, std::ios::beg);
 
-	CurlHelper::CurlVectorWriterBuffer readBuffer;
-	struct curl_slist *headers = NULL;
-
-	std::string authHeader = std::string("Authorization: Bearer ") + accessToken;
-	headers = curl_slist_append(headers, authHeader.c_str());
-	headers = curl_slist_append(headers, "Content-Type: multipart/form-data");
-
-	curl_mime *mime = curl_mime_init(curl.get());
-	curl_mimepart *part = curl_mime_addpart(mime);
-	curl_mime_name(part, "media");
-	curl_mime_filename(part, "thumbnail.jpg");
-	curl_mime_type(part, "image/jpeg");
-	curl_mime_data(part, reinterpret_cast<const char *>(thumbnailData.data()), thumbnailData.size());
-
-	curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
-	curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl.get(), CURLOPT_MIMEPOST, mime);
-	curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
-	curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
-	curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
-	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
-
-	CURLcode res = curl_easy_perform(curl.get());
-
-	curl_slist_free_all(headers);
-	curl_mime_free(mime);
-
-	if (res != CURLE_OK) {
-		throw std::runtime_error(std::string("NetworkError(YouTubeApiClient::setThumbnail):") +
-					 curl_easy_strerror(res));
-	}
-
-	// Optionally, parse response or log success
+	doPost(url, ifs, size, logger_, headers.get());
 	logger_->info("ThumbnailSet");
 }
 
