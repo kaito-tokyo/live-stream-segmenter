@@ -225,7 +225,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 	curl_easy_setopt(curl_.get(), CURLOPT_WRITEDATA, nullptr);
 }
 
-YouTubeApiClient::~YouTubeApiClient() noexcept = default;
+YouTubeApiClient::~YouTubeApiClient() = default;
 
 std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
 {

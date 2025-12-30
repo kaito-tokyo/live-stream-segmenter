@@ -37,7 +37,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Store {
 class YouTubeStore {
 public:
 	explicit YouTubeStore(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {};
-	~YouTubeStore() noexcept = default;
+	~YouTubeStore() = default;
 
 	YouTubeStore(const YouTubeStore &) = delete;
 	YouTubeStore &operator=(const YouTubeStore &) = delete;
