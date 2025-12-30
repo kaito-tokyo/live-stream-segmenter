@@ -37,7 +37,6 @@
 namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlSearchParams {
-
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
 		: curl_(curl ? curl

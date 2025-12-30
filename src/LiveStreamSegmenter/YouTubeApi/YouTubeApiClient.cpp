@@ -44,7 +44,8 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 namespace {
 
-std::string doGet(CURL *curl, const char *url, curl_slist *headers = nullptr)
+std::string doGet(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
+		  curl_slist *headers = nullptr)
 {
 	assert(curl);
 	assert(url);
@@ -67,7 +68,8 @@ std::string doGet(CURL *curl, const char *url, curl_slist *headers = nullptr)
 	CURLcode res = curl_easy_perform(curl);
 
 	if (res != CURLE_OK) {
-		throw std::runtime_error(std::string("NetworkError(doGet):") + curl_easy_strerror(res));
+		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doGet)");
 	}
 
 	return std::string(readBuffer.begin(), readBuffer.end());
@@ -100,7 +102,7 @@ std::string doPost(CURL *curl, const char *url, std::string_view body, std::shar
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
-		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost):");
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost)");
 	}
 
 	return std::string(readBuffer.begin(), readBuffer.end());
@@ -135,13 +137,14 @@ std::string doPost(CURL *curl, const char *url, std::ifstream &ifs, std::streams
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
-		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost):");
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost)");
 	}
 
 	return std::string(readBuffer.begin(), readBuffer.end());
 }
 
-std::vector<nlohmann::json> performList(CURL *curl, const char *url, curl_slist *headers, int maxIterations = 20)
+std::vector<nlohmann::json> performList(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
+					curl_slist *headers = nullptr, int maxIterations = 20)
 {
 	std::vector<nlohmann::json> items;
 	std::string nextPageToken;
@@ -157,11 +160,12 @@ std::vector<nlohmann::json> performList(CURL *curl, const char *url, curl_slist 
 		}
 
 		auto url = urlHandle.c_str();
-		std::string responseBody = doGet(curl, url.get(), headers);
+		std::string responseBody = doGet(curl, url.get(), logger, headers);
 		nlohmann::json j = nlohmann::json::parse(responseBody);
 
 		if (j.contains("error")) {
-			throw std::runtime_error(std::string("APIError(performList):") + j["error"].dump());
+			logger->error("YouTubeApiError", {{"error", j["error"].dump()}});
+			throw std::runtime_error("APIError(YouTubeApiClient::performList)");
 		}
 
 		nlohmann::json jItems = std::move(j["items"]);
@@ -195,8 +199,10 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 
 std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
 {
-	if (accessToken.empty())
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
 		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listStreamKeys)");
+	}
 
 	curl_easy_reset(curl_.get());
 
