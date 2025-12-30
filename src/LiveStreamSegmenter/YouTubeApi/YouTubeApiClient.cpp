@@ -197,14 +197,21 @@ std::vector<nlohmann::json> performList(CURL *curl, const char *url, std::shared
 	return items;
 }
 
+char toLowerAscii(char c)
+{
+	return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+}
+
+std::string toLowercase(std::string s)
+{
+	std::transform(s.begin(), s.end(), s.begin(), toLowerAscii);
+	return s;
+}
+
 std::string getLowercaseExtension(const std::filesystem::path &p)
 {
 	std::string ext = p.extension().string();
-
-	std::transform(ext.begin(), ext.end(), ext.begin(),
-		       [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
-
-	return ext;
+	return toLowercase(ext);
 }
 
 } // anonymous namespace
