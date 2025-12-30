@@ -508,7 +508,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 	auto logger = self->logger_;
 
-	logger->info("OAuth2FlowStart", {});
+	logger->info("OAuth2FlowStart");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
@@ -565,7 +565,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
-		logger->info("OAuth2AuthSuccess", {});
+		logger->info("OAuth2AuthSuccess");
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
@@ -595,20 +595,19 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		std::string accessToken;
 		if (tokenState.isAuthorized()) {
 			if (tokenState.isAccessTokenFresh()) {
-				logger->info("YouTubeAccessTokenFresh", {});
+				logger->info("YouTubeAccessTokenFresh");
 				accessToken = tokenState.access_token;
 			} else {
-				logger->info("YouTubeAccessTokenNotFresh", {});
+				logger->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 				GoogleAuth::GoogleTokenState newTokenState =
 					tokenState.withUpdatedAuthResponse(freshAuthResponse);
 				authStore_->setGoogleTokenState(newTokenState);
 				accessToken = freshAuthResponse.access_token;
-				logger->info("YouTubeAccessTokenFetched", {});
+				logger->info("YouTubeAccessTokenFetched");
 			}
 		}
-		logger->info("YouTubeAccessToken", {{"accessToken", accessToken}});
 
 		YouTubeApi::YouTubeApiClient client(logger);
 		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
