@@ -81,7 +81,7 @@ private:
 		auto *weakSelfPtr = static_cast<std::weak_ptr<MainPluginContext> *>(private_data);
 
 		if (auto self = weakSelfPtr->lock()) {
-			std::shared_ptr<Logger::ILogger> logger = self->logger_;
+			std::shared_ptr<const Logger::ILogger> logger = self->logger_;
 
 			if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGING) {
 				std::scoped_lock lock(self->profileContextMutex_);
