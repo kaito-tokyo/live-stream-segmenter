@@ -35,18 +35,18 @@ namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlHandle {
 public:
-	CurlUrlHandle() : handle_(curl_url())
+	CurlUrlHandle() : handle_([]() {
+		CURLU *ptr = curl_url();
+		if (!ptr)
+			throw std::runtime_error("InitError(CurlUrlHandle::CurlUrlHandle)");
+		return ptr;
+	}())
 	{
-		if (!handle_) {
-			throw std::runtime_error("InitError(CurlUrlHandle)");
-		}
 	}
 
-	~CurlUrlHandle()
+	~CurlUrlHandle() noexcept
 	{
-		if (handle_) {
-			curl_url_cleanup(handle_);
-		}
+		curl_url_cleanup(handle_);
 	}
 
 	CurlUrlHandle(const CurlUrlHandle &) = delete;
@@ -57,17 +57,15 @@ public:
 	void setUrl(const char *url)
 	{
 		CURLUcode uc = curl_url_set(handle_, CURLUPART_URL, url, 0);
-		if (uc != CURLUE_OK) {
-			throw std::runtime_error("URLParseError(CurlUrlHandle):" + std::string(url));
-		}
+		if (uc != CURLUE_OK)
+			throw std::runtime_error("URLParseError(CurlUrlHandle::setUrl)");
 	}
 
 	void appendQuery(const char *query)
 	{
 		CURLUcode uc = curl_url_set(handle_, CURLUPART_QUERY, query, CURLU_APPENDQUERY);
-		if (uc != CURLUE_OK) {
-			throw std::runtime_error("QueryAppendError(CurlUrlHandle):" + std::string(query));
-		}
+		if (uc != CURLUE_OK)
+			throw std::runtime_error("QueryAppendError(CurlUrlHandle::appendQuery)");
 	}
 
 	std::unique_ptr<char, decltype(&curl_free)> c_str() const
@@ -75,7 +73,7 @@ public:
 		char *urlStr = nullptr;
 		CURLUcode uc = curl_url_get(handle_, CURLUPART_URL, &urlStr, 0);
 		if (uc != CURLUE_OK || !urlStr) {
-			throw std::runtime_error("GetUrlError(CurlUrlHandle)");
+			throw std::runtime_error("GetUrlError(CurlUrlHandle::c_str)");
 		}
 		return std::unique_ptr<char, decltype(&curl_free)>(urlStr, curl_free);
 	}

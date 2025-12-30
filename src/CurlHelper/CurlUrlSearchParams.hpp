@@ -71,12 +71,12 @@ public:
 
 			auto escapedKey = curlEasyEscape(key);
 			if (!escapedKey) {
-				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams)");
+				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams::toString)");
 			}
 
 			auto escapedValue = curlEasyEscape(value);
 			if (!escapedValue) {
-				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams)");
+				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams::toString)");
 			}
 
 			oss << escapedKey.get() << "=" << escapedValue.get();

@@ -32,14 +32,14 @@ namespace KaitoTokyo::CurlHelper {
 class CurlSlistHandle {
 public:
 	CurlSlistHandle() = default;
-	~CurlSlistHandle() { curl_slist_free_all(slist_); }
+	~CurlSlistHandle() noexcept { curl_slist_free_all(slist_); }
 
 	CurlSlistHandle(const CurlSlistHandle &) = delete;
 	CurlSlistHandle &operator=(const CurlSlistHandle &) = delete;
 	CurlSlistHandle(CurlSlistHandle &&) = delete;
 	CurlSlistHandle &operator=(CurlSlistHandle &&) = delete;
 
-	void append(const char *str) { slist_ = curl_slist_append(slist_, str); }
+	void append(const char *str) noexcept { slist_ = curl_slist_append(slist_, str); }
 
 	curl_slist *get() const noexcept { return slist_; }
 
