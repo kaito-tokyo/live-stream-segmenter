@@ -174,8 +174,8 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 
 			return std::string(resultStr.get());
 		} else if (promiseState == JS_PROMISE_REJECTED) {
-			ScopedJSValue reason(ctx_.get(), JS_GetPropertyStr(ctx_.get(), resultObj.get(), "reason"));
-			ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), reason.get()));
+			ScopedJSValue rejectedObj(ctx_.get(), JS_PromiseResult(ctx_.get(), resultObj.get()));
+			ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), rejectedObj.get()));
 			if (str) {
 				logger_->error("PromiseRejected", {{"message", str.get()}});
 			} else {
