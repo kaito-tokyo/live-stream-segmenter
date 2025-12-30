@@ -525,7 +525,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		uint16_t port = self->currentCallbackServer_->serverPort();
 		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		logger->info("OAuth2OpenAuthUrl", {Logger::LogField{"url", authUrl}});
+		logger->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
@@ -553,7 +553,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
-		logger->error("OAuthFlowFailed", {Logger::LogField{"exception", e.what()}});
+		logger->error("OAuthFlowFailed", {{"exception", e.what()}});
 	}
 
 	co_await ResumeOnQtMainThread{self};
@@ -608,7 +608,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 				logger->info("YouTubeAccessTokenFetched", {});
 			}
 		}
-		logger->info("YouTubeAccessToken", {Logger::LogField{"accessToken", accessToken}});
+		logger->info("YouTubeAccessToken", {{"accessToken", accessToken}});
 
 		YouTubeApi::YouTubeApiClient client(logger);
 		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
@@ -648,7 +648,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
-		logger->error("FetchStreamKeysFailed", {Logger::LogField{"exception", e.what()}});
+		logger->error("FetchStreamKeysFailed", {{"exception", e.what()}});
 	}
 }
 

@@ -123,8 +123,7 @@ private:
 	{
 		BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 		if (!profilePathRaw) {
-			logger_->error("ProfilePathError",
-				       {Logger::LogField{"context", "YouTubeStore::getConfigPath"}});
+			logger_->error("ProfilePathError");
 			return {};
 		}
 
