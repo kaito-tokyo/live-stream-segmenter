@@ -36,6 +36,7 @@
 #include <ScriptingDatabase.hpp>
 #include <YouTubeApiClient.hpp>
 #include <YouTubeTypes.hpp>
+#include <ResumeOnQThreadPool.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -130,39 +131,31 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 			"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
 
-	// YouTubeApi::YouTubeApiClient apiClient(logger);
-	// YouTubeApi::YouTubeLiveBroadcast broadcast = apiClient.createLiveBroadcast(accessToken, settings);
+	YouTubeApi::YouTubeApiClient apiClient(logger);
 
-	std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast", R"({})");
+	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = apiClient.createLiveBroadcast(accessToken, settings);
+
+	nlohmann::json setThumbnailEventObj{
+		{"LiveBroadcast", liveBroadcast},
+	};
+	std::string setThumbnailEventObjJson = setThumbnailEventObj.dump();
+	std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast",
+							      setThumbnailEventObjJson.c_str());
 	nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
 
-	if (jThumbnail.contains("thumbnailFile")) {
-		std::filesystem::path thumbnailPath = jThumbnail.value("thumbnailFile", "");
-		std::ifstream ifs(thumbnailPath, std::ios::binary | std::ios::ate);
-		if (!ifs.is_open()) {
-			logger->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error(
-				"ThumbnailFileOpenError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
-		}
-		std::streamsize size = ifs.tellg();
-		if (size < 0) {
-			logger->error("ThumbnailFileSizeError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error(
-				"ThumbnailFileSizeError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
-		}
-		if (size > 5 * 1024 * 1024) {
-			logger->error("ThumbnailFileTooLarge", {{"size", std::to_string(size)}});
-			throw std::runtime_error(
-				"ThumbnailFileTooLarge(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
-		}
-		ifs.seekg(0, std::ios::beg);
+	if (jThumbnail.contains("videoId") && jThumbnail["videoId"].is_string()) {
+		auto videoId = jThumbnail.value("videoId", "");
 
-		std::vector<char> thumbnailBuffer(size);
-		if (!ifs.read(thumbnailBuffer.data(), size)) {
-			logger->error("ThumbnailFileReadError", {{"path", thumbnailPath.string()}});
-			throw std::runtime_error(
-				"ThumbnailFileReadError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
+			auto thumbnailFile = jThumbnail.value("thumbnailFile", "");
+			std::filesystem::path thumbnailPath(thumbnailFile);
+			apiClient.setThumbnail(accessToken, videoId, thumbnailPath);
+			logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
+		} else {
+			logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
 		}
+	} else {
+		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	}
 
 	co_return;
@@ -183,6 +176,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		if (!message.has_value()) {
 			break;
 		}
+
+		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
 		try {
 			switch (message->type) {

@@ -97,8 +97,6 @@ std::string doPost(CURL *curl, const char *url, std::string_view body, std::shar
 
 	CURLcode res = curl_easy_perform(curl);
 
-	curl_slist_free_all(headers);
-
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost):");
