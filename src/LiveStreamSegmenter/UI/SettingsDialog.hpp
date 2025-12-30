@@ -146,6 +146,7 @@ private:
 	QVBoxLayout *scriptTabLayout_;
 	QLabel *scriptHelpLabel_;
 	QPlainTextEdit *scriptEditor_;
+	QComboBox *scriptFunctionCombo_;
 	QPushButton *runScriptButton_;
 
 	// 8. LocalStorage Tab

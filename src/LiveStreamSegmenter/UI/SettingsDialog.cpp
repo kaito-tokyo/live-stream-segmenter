@@ -135,6 +135,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  scriptTabLayout_(new QVBoxLayout(scriptTab_)),
 	  scriptHelpLabel_(new QLabel(this)),
 	  scriptEditor_(new QPlainTextEdit(this)),
+	  scriptFunctionCombo_(new QComboBox(this)),
 	  runScriptButton_(new QPushButton(this)),
 
 	  // 8. LocalStorage Tab
@@ -267,7 +268,11 @@ try {
 
 	const std::string scriptContent = scriptEditor_->toPlainText().toStdString();
 	context.loadEventHandler(scriptContent.c_str());
-	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
+
+	// コンボボックスで選択された関数名を取得
+	QString selectedFunction = scriptFunctionCombo_->currentText();
+	std::string functionName = selectedFunction.toStdString();
+	std::string result = context.executeFunction(functionName.c_str(), R"({})");
 
 	QMessageBox::information(this, tr("Script Result"), QString::fromStdString(result));
 
@@ -413,6 +418,10 @@ void SettingsDialog::setupUi()
 
 	const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
 	scriptEditor_->setFont(fixedFont);
+
+	scriptFunctionCombo_->addItem("onCreateYouTubeLiveBroadcast");
+	scriptFunctionCombo_->addItem("onSetThumbnailOnCreatedYouTubeLiveBroadcast");
+	scriptTabLayout_->addWidget(scriptFunctionCombo_);
 
 	scriptEditor_->setPlaceholderText(tr("// Example Script\n"
 					     "function generate(context) {\n"
