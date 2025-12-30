@@ -112,6 +112,7 @@ std::string doPost(CURL *curl, const char *url, std::ifstream &ifs, std::streams
 	assert(curl);
 	assert(url);
 	assert(ifs.is_open());
+	assert(ifsSize > 0);
 	assert(logger);
 
 	CurlHelper::CurlVectorWriterBuffer readBuffer;
