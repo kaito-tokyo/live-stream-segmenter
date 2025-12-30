@@ -29,45 +29,10 @@
 #include <string_view>
 
 #include <EventScriptingContext.hpp>
+#include <PrintLogger.hpp>
 
 using namespace KaitoTokyo;
 using namespace KaitoTokyo::LiveStreamSegmenter;
-
-class PrintLogger : public Logger::ILogger {
-public:
-	void log(LogLevel level, std::string_view name, std::source_location /*loc*/,
-		 std::span<const Logger::LogField> context) const noexcept override
-	{
-		std::cout << "[";
-		switch (level) {
-		case LogLevel::Debug:
-			std::cout << "DEBUG";
-			break;
-		case LogLevel::Info:
-			std::cout << "INFO";
-			break;
-		case LogLevel::Warn:
-			std::cout << "WARN";
-			break;
-		case LogLevel::Error:
-			std::cout << "ERROR";
-			break;
-		}
-		std::cout << "] " << name;
-		if (!context.empty()) {
-			std::cout << " {";
-			bool first = true;
-			for (const auto &field : context) {
-				if (!first)
-					std::cout << ", ";
-				std::cout << field.key << ": " << field.value;
-				first = false;
-			}
-			std::cout << "}";
-		}
-		std::cout << std::endl;
-	}
-};
 
 struct TemporaryFile {
 	std::filesystem::path tempDir;
@@ -124,7 +89,7 @@ protected:
 
 	void SetUp() override
 	{
-		logger = std::make_shared<PrintLogger>();
+		logger = std::make_shared<Logger::PrintLogger>();
 		runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
 		ctx = runtime->createContextRaw();
 		context = std::make_unique<Scripting::EventScriptingContext>(runtime, ctx, logger);
@@ -366,7 +331,7 @@ TEST_F(EventScriptingContextTest, LocalStorage_TypeCoercion)
 
 TEST(EventScriptingContextTest_NoFixture, LocalStorage_Persistence)
 {
-	std::shared_ptr<Logger::ILogger> logger = std::make_shared<PrintLogger>();
+	std::shared_ptr<Logger::ILogger> logger = std::make_shared<Logger::PrintLogger>();
 	TemporaryFile tempFile("test_localstorage_persist.sqlite3");
 
 	auto createEnv = [&](auto &context_out, auto &db_out) {
