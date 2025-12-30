@@ -101,7 +101,13 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 		logger->error("MissingInsertLiveBroadcastInScriptResult", {{"json", result}});
 		co_return;
 	}
-	auto settings = j["InsertLiveBroadcast"].template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+	YouTubeApi::YouTubeLiveBroadcastSettings settings;
+	try {
+		j.get_to(settings);
+	} catch (const std::exception &e) {
+		logger->error("FailedToParseYouTubeLiveBroadcastSettings", {{"error", e.what()}});
+		co_return;
+	}
 
 	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
