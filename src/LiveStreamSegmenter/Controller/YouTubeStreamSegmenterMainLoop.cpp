@@ -144,10 +144,10 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 	nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
 
 	if (jThumbnail.contains("videoId") && jThumbnail["videoId"].is_string()) {
-		auto videoId = jThumbnail.value("videoId", "");
+		auto videoId = jThumbnail.at("videoId").get<std::string>();
 
 		if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
-			auto thumbnailFile = jThumbnail.value("thumbnailFile", "");
+			auto thumbnailFile = jThumbnail.at("thumbnailFile").get<std::string>();
 			std::filesystem::path thumbnailPath(thumbnailFile);
 			apiClient.setThumbnail(accessToken, videoId, thumbnailPath);
 			logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
