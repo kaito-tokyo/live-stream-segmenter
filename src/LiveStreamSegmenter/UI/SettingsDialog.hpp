@@ -20,16 +20,19 @@
 
 #include <memory>
 
+#include <QAbstractItemView>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGroupBox>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPointer>
 #include <QPushButton>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QThreadPool>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -74,12 +77,19 @@ private slots:
 	void onClearAuthButtonClicked();
 	void onApply();
 	void onRunScriptClicked();
+	void onAddLocalStorageItem();
+	void onEditLocalStorageItem();
+	void onDeleteLocalStorageItem();
+	void onLocalStorageTableDoubleClicked(int row, int column);
 
 private:
 	void setupUi();
 
 	void saveSettings();
 	void restoreSettings();
+
+	void loadLocalStorageData();
+	void saveLocalStorageData();
 
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
@@ -138,7 +148,18 @@ private:
 	QPlainTextEdit *scriptEditor_;
 	QPushButton *runScriptButton_;
 
-	// 8. Dialog Buttons
+	// 8. LocalStorage Tab
+	QWidget *localStorageTab_;
+	QVBoxLayout *localStorageTabLayout_;
+	QLabel *localStorageHelpLabel_;
+	QTableWidget *localStorageTable_;
+	QWidget *localStorageButtonsWidget_;
+	QVBoxLayout *localStorageButtonsLayout_;
+	QPushButton *addLocalStorageButton_;
+	QPushButton *editLocalStorageButton_;
+	QPushButton *deleteLocalStorageButton_;
+
+	// 9. Dialog Buttons
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 
