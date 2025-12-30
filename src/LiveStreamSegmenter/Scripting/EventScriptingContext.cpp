@@ -174,7 +174,6 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 
 			return std::string(resultStr.get());
 		} else if (promiseState == JS_PROMISE_REJECTED) {
-			logger_->info("PromiseRejected");
 			ScopedJSValue reason(ctx_.get(), JS_GetPropertyStr(ctx_.get(), resultObj.get(), "reason"));
 			ScopedJSString str(ctx_.get(), JS_ToCString(ctx_.get(), reason.get()));
 			if (str) {
@@ -184,7 +183,7 @@ std::string EventScriptingContext::executeFunction(const char *functionName, con
 			}
 			throw std::runtime_error("PromiseRejectedError(EventScriptingContext::executeFunction)");
 		} else {
-			logger_->info("PromisePending");
+			logger_->error("PromisePending");
 			throw std::runtime_error("PromisePendingError(EventScriptingContext::executeFunction)");
 		}
 	} else {
