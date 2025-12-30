@@ -43,6 +43,9 @@ public:
 	YouTubeLiveBroadcast createLiveBroadcast(const std::string &accessToken,
 						 const YouTubeLiveBroadcastSettings &settings) const;
 
+	void setThumbnail(const std::string &accessToken, const std::string &videoId,
+			  const std::vector<std::uint8_t> &thumbnailData) const;
+
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 };

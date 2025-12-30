@@ -206,4 +206,51 @@ YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(const std::string &ac
 	return j.get<YouTubeLiveBroadcast>();
 }
 
+void YouTubeApiClient::setThumbnail(const std::string &accessToken, const std::string &videoId,
+				    const std::vector<std::uint8_t> &thumbnailData) const
+{
+	const std::string url = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=" + videoId;
+
+	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
+	if (!curl) {
+		throw std::runtime_error("InitError(YouTubeApiClient::setThumbnail)");
+	}
+
+	CurlHelper::CurlVectorWriterBuffer readBuffer;
+	struct curl_slist *headers = NULL;
+
+	std::string authHeader = std::string("Authorization: Bearer ") + accessToken;
+	headers = curl_slist_append(headers, authHeader.c_str());
+	headers = curl_slist_append(headers, "Content-Type: multipart/form-data");
+
+	curl_mime *mime = curl_mime_init(curl.get());
+	curl_mimepart *part = curl_mime_addpart(mime);
+	curl_mime_name(part, "media");
+	curl_mime_filename(part, "thumbnail.jpg");
+	curl_mime_type(part, "image/jpeg");
+	curl_mime_data(part, reinterpret_cast<const char *>(thumbnailData.data()), thumbnailData.size());
+
+	curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl.get(), CURLOPT_MIMEPOST, mime);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlVectorWriter);
+	curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
+	curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
+
+	CURLcode res = curl_easy_perform(curl.get());
+
+	curl_slist_free_all(headers);
+	curl_mime_free(mime);
+
+	if (res != CURLE_OK) {
+		throw std::runtime_error(std::string("NetworkError(YouTubeApiClient::setThumbnail):") +
+					 curl_easy_strerror(res));
+	}
+
+	// Optionally, parse response or log success
+	logger_->info("ThumbnailSet");
+}
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
