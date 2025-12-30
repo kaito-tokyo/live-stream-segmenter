@@ -18,12 +18,17 @@
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
+#include <filesystem>
+#include <fstream>
 #include <optional>
+#include <string_view>
+#include <vector>
 
 #include <QMessageBox>
 
 #include <quickjs.h>
 
+#include <CurlVectorWriter.hpp>
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
@@ -95,19 +100,10 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 
 	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
 	context.loadEventHandler(scriptContent.c_str());
+
 	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
 	nlohmann::json j = nlohmann::json::parse(result);
-	if (!j.contains("InsertLiveBroadcast")) {
-		logger->error("MissingInsertLiveBroadcastInScriptResult", {{"json", result}});
-		co_return;
-	}
-	YouTubeApi::YouTubeLiveBroadcastSettings settings;
-	try {
-		j.get_to(settings);
-	} catch (const std::exception &e) {
-		logger->error("FailedToParseYouTubeLiveBroadcastSettings", {{"error", e.what()}});
-		co_return;
-	}
+	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
 	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
@@ -130,10 +126,40 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 
 	if (accessToken.empty()) {
 		logger->error("YouTubeAccessTokenUnavailable");
-		co_return;
+		throw std::runtime_error("YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
-	YouTubeApi::YouTubeApiClient apiClient(logger);
-	apiClient.createLiveBroadcast(accessToken, settings);
+
+	// YouTubeApi::YouTubeApiClient apiClient(logger);
+	// YouTubeApi::YouTubeLiveBroadcast broadcast = apiClient.createLiveBroadcast(accessToken, settings);
+
+	std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast", R"({})");
+	nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
+
+	if (jThumbnail.contains("thumbnailFile")) {
+		std::filesystem::path thumbnailPath = jThumbnail.value("thumbnailFile", "");
+		std::ifstream ifs(thumbnailPath, std::ios::binary | std::ios::ate);
+		if (!ifs.is_open()) {
+			logger->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
+			throw std::runtime_error("ThumbnailFileOpenError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		}
+		std::streamsize size = ifs.tellg();
+		if (size < 0) {
+			logger->error("ThumbnailFileSizeError", {{"path", thumbnailPath.string()}});
+			throw std::runtime_error("ThumbnailFileSizeError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		}
+		if (size > 5 * 1024 * 1024) {
+			logger->error("ThumbnailFileTooLarge", {{"size", std::to_string(size)}});
+			throw std::runtime_error("ThumbnailFileTooLarge(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		}
+		ifs.seekg(0, std::ios::beg);
+
+		std::vector<char> thumbnailBuffer(size);
+		if (!ifs.read(thumbnailBuffer.data(), size))
+		{
+			logger->error("ThumbnailFileReadError", {{"path", thumbnailPath.string()}});
+			throw std::runtime_error("ThumbnailFileReadError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+		}
+	}
 
 	co_return;
 }
@@ -154,21 +180,27 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 			break;
 		}
 
-		switch (message->type) {
-		case MessageType::StartContinuousSession: {
-			auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
-			task.start();
-			co_await task;
-			break;
-		}
-		case MessageType::StopContinuousSession:
-			QMessageBox::information(parent, "Info", "StopContinuousSession received");
-			break;
-		case MessageType::SegmentCurrentSession:
-			QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
-			break;
-		default:
-			logger->warn("UnknownMessageType");
+		try {
+			switch (message->type) {
+			case MessageType::StartContinuousSession: {
+				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
+				task.start();
+				co_await task;
+				break;
+			}
+			case MessageType::StopContinuousSession:
+				QMessageBox::information(parent, "Info", "StopContinuousSession received");
+				break;
+			case MessageType::SegmentCurrentSession:
+				QMessageBox::information(parent, "Info", "SegmentCurrentSession received");
+				break;
+			default:
+				logger->warn("UnknownMessageType");
+			}
+		} catch (const std::exception &e) {
+			logger->error("MainLoopError", {{"exception", e.what()}});
+		} catch (...) {
+			logger->error("MainLoopUnknownError");
 		}
 	}
 }
