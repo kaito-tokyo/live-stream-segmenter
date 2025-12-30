@@ -39,7 +39,8 @@ namespace KaitoTokyo::CurlHelper {
 class CurlUrlSearchParams {
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
-		: curl_(curl ? curl : throw std::invalid_argument("InitError(CurlUrlSearchParams)"))
+		: curl_(curl ? curl
+			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
 	{
 	}
 
@@ -48,10 +49,29 @@ public:
 	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
 	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
 
-	void append(const std::string &name, const std::string &value) { params_.emplace_back(name, value); }
+	CurlUrlSearchParams(CurlUrlSearchParams &&other) noexcept
+		: curl_(other.curl_),
+		  params_(std::move(other.params_))
+	{
+	}
+
+	CurlUrlSearchParams &operator=(CurlUrlSearchParams &&other) noexcept
+	{
+		if (this != &other) {
+			params_ = std::move(other.params_);
+		}
+		return *this;
+	}
+
+	void append(std::string_view name, std::string_view value) { params_.emplace_back(name, value); }
 
 	std::string toString() const
 	{
+		auto curlEasyEscape = [curl = curl_](const std::string &str) {
+			return std::unique_ptr<char, decltype(&curl_free)>(
+				curl_easy_escape(curl, str.c_str(), static_cast<int>(str.length())), curl_free);
+		};
+
 		std::ostringstream oss;
 		for (std::size_t i = 0; i < params_.size(); i++) {
 			if (i > 0) {
@@ -61,12 +81,14 @@ public:
 			const std::string &key = params_[i].first;
 			const std::string &value = params_[i].second;
 
-			std::unique_ptr<char, decltype(&curl_free)> escapedKey(
-				curl_easy_escape(curl_, key.c_str(), static_cast<int>(key.length())), curl_free);
-			std::unique_ptr<char, decltype(&curl_free)> escapedValue(
-				curl_easy_escape(curl_, value.c_str(), static_cast<int>(value.length())), curl_free);
-			if (!escapedKey || !escapedValue) {
-				throw std::runtime_error("EncodeError(CurlUrlSearchParams)");
+			auto escapedKey = curlEasyEscape(key);
+			if (!escapedKey) {
+				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams)");
+			}
+
+			auto escapedValue = curlEasyEscape(value);
+			if (!escapedValue) {
+				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams)");
 			}
 
 			oss << escapedKey.get() << "=" << escapedValue.get();
@@ -76,7 +98,7 @@ public:
 
 private:
 	CURL *const curl_;
-	std::vector<std::pair<std::string, std::string>> params_;
+	std::vector<std::pair<const std::string, const std::string>> params_;
 };
 
 } // namespace KaitoTokyo::CurlHelper

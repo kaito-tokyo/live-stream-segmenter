@@ -23,9 +23,12 @@
 
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <curl/curl.h>
 
 #include <ILogger.hpp>
 
@@ -38,16 +41,18 @@ public:
 	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() = default;
 
-	std::vector<YouTubeStreamKey> listStreamKeys(const std::string &accessToken) const;
+	std::vector<YouTubeStreamKey> listStreamKeys(std::string_view accessToken);
 
-	YouTubeLiveBroadcast createLiveBroadcast(const std::string &accessToken,
-						 const YouTubeLiveBroadcastSettings &settings) const;
+	YouTubeLiveBroadcast createLiveBroadcast(std::string_view accessToken,
+						 const YouTubeLiveBroadcastSettings &settings);
 
 	void setThumbnail(std::string_view accessToken, std::string_view videoId,
-			  const std::filesystem::path &thumbnailPath) const;
+			  const std::filesystem::path &thumbnailPath);
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
+
+	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
