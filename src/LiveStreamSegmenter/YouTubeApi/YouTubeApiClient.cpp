@@ -197,6 +197,8 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 {
 }
 
+YouTubeApiClient::~YouTubeApiClient() noexcept = default;
+
 std::vector<YouTubeStreamKey> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
 {
 	if (accessToken.empty()) {
