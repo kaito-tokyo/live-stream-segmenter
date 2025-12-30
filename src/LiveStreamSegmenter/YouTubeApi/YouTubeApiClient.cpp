@@ -24,6 +24,7 @@
 #include "YouTubeApiClient.hpp"
 
 #include <cassert>
+#include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <string>

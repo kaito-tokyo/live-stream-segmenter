@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -51,6 +52,12 @@ struct YouTubeStreamKey {
 void to_json(nlohmann::json &j, const YouTubeStreamKey &p);
 void from_json(const nlohmann::json &j, YouTubeStreamKey &p);
 
+struct YouTubeLiveBroadcastThumbnail {
+	std::string url;
+	std::optional<std::uint32_t> width;
+	std::optional<std::uint32_t> height;
+};
+
 struct YouTubeLiveBroadcast {
 	// Top-level fields
 	std::string kind;
@@ -62,7 +69,7 @@ struct YouTubeLiveBroadcast {
 	std::string snippet_channelId;
 	std::string snippet_title;
 	std::string snippet_description;
-	std::map<std::string, struct YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
+	std::map<std::string, YouTubeLiveBroadcastThumbnail> snippet_thumbnails;
 	std::string snippet_scheduledStartTime;
 	std::optional<std::string> snippet_scheduledEndTime;
 	std::optional<std::string> snippet_actualStartTime;
@@ -81,7 +88,7 @@ struct YouTubeLiveBroadcast {
 	std::optional<std::string> contentDetails_boundStreamId;
 	std::optional<std::string> contentDetails_boundStreamLastUpdateTimeMs;
 	std::optional<bool> contentDetails_monitorStream_enableMonitorStream;
-	std::optional<uint32_t> contentDetails_monitorStream_broadcastStreamDelayMs;
+	std::optional<std::uint32_t> contentDetails_monitorStream_broadcastStreamDelayMs;
 	std::optional<std::string> contentDetails_monitorStream_embedHtml;
 	std::optional<bool> contentDetails_enableEmbed;
 	std::optional<bool> contentDetails_enableDvr;
@@ -102,12 +109,6 @@ struct YouTubeLiveBroadcast {
 	std::optional<std::string> monetizationDetails_cuepointSchedule_pauseAdsUntil;
 	std::optional<std::string> monetizationDetails_cuepointSchedule_scheduleStrategy;
 	std::optional<uint32_t> monetizationDetails_cuepointSchedule_repeatIntervalSecs;
-};
-
-struct YouTubeLiveBroadcastThumbnail {
-	std::string url;
-	std::optional<uint32_t> width;
-	std::optional<uint32_t> height;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
