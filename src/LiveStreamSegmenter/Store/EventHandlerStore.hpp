@@ -38,10 +38,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class EventHandlerStore {
 public:
-	explicit EventHandlerStore(std::shared_ptr<const Logger::ILogger> logger)
-		: logger_(logger ? std::move(logger)
-				 : throw std::invalid_argument(
-					   "LoggerIsNullError(EventHandlerStore::EventHandlerStore)")) {};
+	EventHandlerStore() = default;
 	~EventHandlerStore() noexcept = default;
 
 	EventHandlerStore(const EventHandlerStore &) = delete;
