@@ -62,8 +62,10 @@ private:
 				 : throw std::invalid_argument(
 					   "LoggerIsNullError(MainPluginContext::MainPluginContext)")),
 		  runtime_(std::make_shared<Scripting::ScriptingRuntime>(logger_)),
-		  dock_(new UI::StreamSegmenterDock(runtime_, logger_, mainWindow))
+		  dock_(new UI::StreamSegmenterDock(runtime_, mainWindow))
 	{
+		dock_->setLogger(logger_);
+
 		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
 					    dock_);
 

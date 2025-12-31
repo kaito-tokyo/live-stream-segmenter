@@ -29,6 +29,7 @@
 #include <obs-frontend-api.h>
 
 #include <ILogger.hpp>
+#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 #include <YouTubeTypes.hpp>
 
@@ -36,13 +37,18 @@ namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class YouTubeStore {
 public:
-	explicit YouTubeStore(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {};
+	YouTubeStore() = default;
 	~YouTubeStore() noexcept = default;
 
 	YouTubeStore(const YouTubeStore &) = delete;
 	YouTubeStore &operator=(const YouTubeStore &) = delete;
 	YouTubeStore(YouTubeStore &&) = delete;
 	YouTubeStore &operator=(YouTubeStore &&) = delete;
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
+	{
+		logger_ = std::move(logger);
+	}
 
 	void setStreamKeyA(const YouTubeApi::YouTubeLiveStream &streamKey)
 	{
@@ -131,11 +137,11 @@ private:
 		return profilePath / "live-stream-segmenter_YouTubeStore.json";
 	}
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
 	mutable std::mutex mutex_;
 	YouTubeApi::YouTubeLiveStream streamKeyA_;
 	YouTubeApi::YouTubeLiveStream streamKeyB_;
+
+	std::shared_ptr<const Logger::ILogger> logger_{std::make_shared<Logger::NullLogger>()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

@@ -41,8 +41,13 @@ namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
 
 class YouTubeApiClient {
 public:
-	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
+	YouTubeApiClient();
 	~YouTubeApiClient() noexcept;
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
+	{
+		logger_ = std::move(logger);
+	}
 
 	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken,
 						       std::span<std::string_view> ids = {});
@@ -63,9 +68,9 @@ public:
 			  const std::filesystem::path &thumbnailPath);
 
 private:
-	std::shared_ptr<const Logger::ILogger> logger_;
-
 	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_;
+
+	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

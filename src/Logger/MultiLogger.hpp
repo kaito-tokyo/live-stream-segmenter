@@ -29,6 +29,7 @@
 #include <string_view>
 #include <vector>
 #include <memory>
+#include <iostream>
 
 #include "ILogger.hpp"
 
@@ -47,10 +48,11 @@ public:
 	void log(LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const LogField> context) const noexcept override
 	{
+		std::cout << "MultiLogger " << loggers_.size() << " loggers" << std::endl;
 		for (const std::shared_ptr<const ILogger> &logger : loggers_) {
-			if (logger) {
-				logger->log(level, name, loc, context);
-			}
+			// if (logger) {
+			logger->log(level, name, loc, context);
+			// }
 		}
 	}
 

@@ -24,6 +24,13 @@
 #include <QMetaObject>
 #include <QScrollBar>
 #include <QUrl>
+#include <QDateTime>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QToolButton>
 
 #include <fmt/format.h>
 
@@ -37,20 +44,12 @@ namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
 namespace UI {
 
-StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-					 std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent)
 	: QWidget(parent),
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument(
 				     "RuntimeIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
-	  parentLogger_(
-		  logger ? std::move(logger)
-			 : throw std::invalid_argument("LoggerIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
 	  loggerAdapter_(std::make_shared<const LoggerAdapter>(this)),
-	  logger_(std::make_shared<const Logger::MultiLogger>(std::vector<std::shared_ptr<const ILogger>>{
-		  parentLogger_,
-		  loggerAdapter_,
-	  })),
 	  mainLayout_(new QVBoxLayout(this)),
 
 	  // Top Controls
@@ -245,6 +244,14 @@ void StreamSegmenterDock::setupUi()
 	bottomControlLayout_->addWidget(settingsButton_);
 	bottomControlLayout_->addWidget(segmentNowButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
+}
+
+void StreamSegmenterDock::logMessage(int level, const QString &name, const QString &function)
+{
+	QMessageBox::information(this, "Log Message",
+				 QString("Level: %1\nName: %2\nFunction: %3").arg(level).arg(name).arg(function));
+	consoleView_->append(
+		QString::fromStdString(fmt::format("{} {} - {}", level, name.toStdString(), function.toStdString())));
 }
 
 void StreamSegmenterDock::onSettingsButtonClicked()
