@@ -41,7 +41,7 @@ public:
 	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() noexcept;
 
-	std::vector<YouTubeStreamKey> listStreamKeys(std::string_view accessToken);
+	std::vector<YouTubeLiveStream> listStreamKeys(std::string_view accessToken);
 
 	YouTubeLiveBroadcast createLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);

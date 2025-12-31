@@ -573,15 +573,13 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	if (!self)
 		co_return;
 
-	auto logger = self->logger_;
-
-	logger->info("OAuth2FlowStart");
+	self->logger_->info("OAuth2FlowStart");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", logger);
+		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
@@ -592,7 +590,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		uint16_t port = self->currentCallbackServer_->serverPort();
 		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
 		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		logger->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
+		self->logger_->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
 
 		QString qUrlStr = QString::fromStdString(authUrl);
 		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
@@ -620,7 +618,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 		result = flow->exchangeCodeForToken(code, redirectUri);
 	} catch (const std::exception &e) {
-		logger->error("OAuthFlowFailed", {{"exception", e.what()}});
+		self->logger_->error("OAuthFlowFailed", {{"exception", e.what()}});
 	}
 
 	co_await ResumeOnQtMainThread{self};
@@ -632,7 +630,7 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
-		logger->info("OAuth2AuthSuccess");
+		self->logger_->info("OAuth2AuthSuccess");
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
 		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
@@ -651,8 +649,6 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 
 Async::Task<void> SettingsDialog::fetchStreamKeys()
 {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	co_await ResumeOnGlobalQThreadPool{};
 	try {
 		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(),
@@ -662,41 +658,47 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		std::string accessToken;
 		if (tokenState.isAuthorized()) {
 			if (tokenState.isAccessTokenFresh()) {
-				logger->info("YouTubeAccessTokenFresh");
+				logger_->info("YouTubeAccessTokenFresh");
 				accessToken = tokenState.access_token;
 			} else {
-				logger->info("YouTubeAccessTokenNotFresh");
+				logger_->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 				GoogleAuth::GoogleTokenState newTokenState =
 					tokenState.withUpdatedAuthResponse(freshAuthResponse);
 				authStore_->setGoogleTokenState(newTokenState);
 				accessToken = freshAuthResponse.access_token;
-				logger->info("YouTubeAccessTokenFetched");
+				logger_->info("YouTubeAccessTokenFetched");
 			}
 		}
 
-		YouTubeApi::YouTubeApiClient client(logger);
-		std::vector<YouTubeApi::YouTubeStreamKey> streamKeys = client.listStreamKeys(accessToken);
+		YouTubeApi::YouTubeApiClient client(logger_);
+		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listStreamKeys(accessToken);
 
 		co_await ResumeOnQtMainThread{this};
 
+		streamKeyComboA_->clear();
+		streamKeyComboB_->clear();
+
 		streamKeys_ = std::move(streamKeys);
 
-		YouTubeApi::YouTubeStreamKey currentStreamKeyA = youTubeStore_->getStreamKeyA();
-		YouTubeApi::YouTubeStreamKey currentStreamKeyB = youTubeStore_->getStreamKeyB();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
 
-		streamKeyComboA_->setEnabled(true);
-		streamKeyComboB_->setEnabled(true);
-
+		logger_->info("CurrentStreamKeys",
+			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
-			const YouTubeApi::YouTubeStreamKey &key = streamKeys_[i];
+			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
 
 			QString displayText = QString::fromStdString(
-				fmt::format("{} ({} - {})", key.snippet_title, key.cdn_resolution, key.cdn_frameRate));
+				fmt::format("{} ({} - {})", key.snippet.title, key.cdn.resolution, key.cdn.frameRate));
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
 
+			logger_->info("StreamKeyListed", {{"id", key.id},
+							  {"title", key.snippet.title},
+							  {"resolution", key.cdn.resolution},
+							  {"frameRate", key.cdn.frameRate}});
 			if (currentStreamKeyA.id == key.id) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
@@ -706,6 +708,9 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			}
 		}
 
+		streamKeyComboA_->setEnabled(true);
+		streamKeyComboB_->setEnabled(true);
+
 		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
@@ -714,28 +719,26 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
 			Qt::UniqueConnection);
 	} catch (const std::exception &e) {
-		logger->error("FetchStreamKeysFailed", {{"exception", e.what()}});
+		logger_->error("FetchStreamKeysFailed", {{"exception", e.what()}});
 	}
 }
 
 void SettingsDialog::loadLocalStorageData()
 try {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
 	if (dbPath.empty()) {
-		logger->warn("DatabasePathEmpty");
+		logger_->warn("DatabasePathEmpty");
 		return;
 	}
 
 	// Check if database file exists
 	if (!std::filesystem::exists(dbPath)) {
-		logger->info("DatabaseFileNotFound", {{"path", dbPath.string()}});
+		logger_->info("DatabaseFileNotFound", {{"path", dbPath.string()}});
 		return;
 	}
 
 	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
-	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, false);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, dbPath, false);
 	database.setupContext();
 
 	// Get the db object from global scope
@@ -753,7 +756,7 @@ try {
 	Scripting::ScopedJSValue scopedGlobalObj(ctx.get(), globalObj);
 
 	if (JS_IsException(queryResult.get())) {
-		logger->warn("LocalStorageQueryFailed");
+		logger_->warn("LocalStorageQueryFailed");
 		return;
 	}
 
@@ -806,16 +809,14 @@ try {
 
 void SettingsDialog::saveLocalStorageData()
 try {
-	std::shared_ptr<const Logger::ILogger> logger = logger_;
-
 	std::filesystem::path dbPath = eventHandlerStore_->getEventHandlerDatabasePath();
 	if (dbPath.empty()) {
-		logger->error("DatabasePathEmpty");
+		logger_->error("DatabasePathEmpty");
 		return;
 	}
 
 	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
-	Scripting::ScriptingDatabase database(runtime_, ctx, logger, dbPath, true);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, dbPath, true);
 	database.setupContext();
 
 	// Get the db object from global scope
@@ -834,7 +835,7 @@ try {
 	if (JS_IsException(createTableResult.get())) {
 		JS_FreeValue(ctx.get(), dbObj);
 		JS_FreeValue(ctx.get(), globalObj);
-		logger->error("LocalStorageCreateTableFailed");
+		logger_->error("LocalStorageCreateTableFailed");
 		throw std::runtime_error("Failed to create localStorage table");
 	}
 
@@ -849,7 +850,7 @@ try {
 	if (JS_IsException(deleteResult.get())) {
 		JS_FreeValue(ctx.get(), dbObj);
 		JS_FreeValue(ctx.get(), globalObj);
-		logger->error("LocalStorageDeleteFailed");
+		logger_->error("LocalStorageDeleteFailed");
 		throw std::runtime_error("Failed to clear localStorage table");
 	}
 
@@ -875,7 +876,7 @@ try {
 			JS_FreeValue(ctx.get(), insertArgs[2]);
 
 			if (JS_IsException(insertResult.get())) {
-				logger->error("LocalStorageInsertFailed", {{"key", key}});
+				logger_->error("LocalStorageInsertFailed", {{"key", key}});
 			}
 		}
 	}
@@ -883,7 +884,7 @@ try {
 	JS_FreeValue(ctx.get(), dbObj);
 	JS_FreeValue(ctx.get(), globalObj);
 
-	logger->info("LocalStorageSaved");
+	logger_->info("LocalStorageSaved");
 } catch (const std::exception &e) {
 	logger_->error("SaveLocalStorageError", {{"exception", e.what()}});
 

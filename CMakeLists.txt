@@ -6,6 +6,7 @@ include(init)
 project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION} LANGUAGES C CXX)
 
 option(BUILD_TESTING "Build test cases" ON)
+option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(ENABLE_UBSAN "Enable Undefined Behavior Sanitizer" OFF)
 option(USE_PKGCONFIG "Use pkg-config to find dependencies" OFF)
 
@@ -35,6 +36,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+  add_compile_options("/pathmap:${CMAKE_SOURCE_DIR}=.")
+else()
+  add_compile_options(-fno-omit-frame-pointer -fstack-protector-strong "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}=.")
 endif()
 
 if(MSVC)
@@ -56,6 +60,18 @@ elseif(APPLE)
   )
 endif()
 
+if(ENABLE_ASAN)
+  if(MSVC)
+    message(
+      WARNING
+      "ENABLE_ASAN is enabled, but ASan flags are not applied for MSVC due to limited support and incompatible flag syntax."
+    )
+  else()
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+  endif()
+endif()
+
 if(ENABLE_UBSAN)
   if(MSVC)
     message(
@@ -63,7 +79,7 @@ if(ENABLE_UBSAN)
       "ENABLE_UBSAN is enabled, but UBSan flags are not applied for MSVC due to limited support and incompatible flag syntax."
     )
   else()
-    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
+    add_compile_options(-fsanitize=undefined)
     add_link_options(-fsanitize=undefined)
   endif()
 endif()
@@ -80,7 +96,6 @@ if(VCPKG_TARGET_TRIPLET)
   find_package(nlohmann_json CONFIG REQUIRED)
   find_package(qjs CONFIG REQUIRED)
   find_package(unofficial-sqlite3 CONFIG REQUIRED)
-  find_package(absl CONFIG REQUIRED)
 
   add_library(qjs::qjs ALIAS qjs)
 elseif(USE_PKGCONFIG)

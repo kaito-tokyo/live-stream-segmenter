@@ -164,7 +164,7 @@ private:
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 
-	std::vector<YouTubeApi::YouTubeStreamKey> streamKeys_;
+	std::vector<YouTubeApi::YouTubeLiveStream> streamKeys_;
 
 	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
 	Async::Task<void> currentAuthFlowTask_ = {};
