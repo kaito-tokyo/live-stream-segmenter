@@ -172,7 +172,6 @@ startContinuousSessionTask([[maybe_unused]] std::shared_ptr<Scripting::Scripting
 	// 	logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	// }
 
-
 	// YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
 
 	if (liveStream.cdn.ingestionType == "rtmp") {
@@ -183,8 +182,9 @@ startContinuousSessionTask([[maybe_unused]] std::shared_ptr<Scripting::Scripting
 		obs_data_t *settings = obs_data_create();
 		obs_data_set_string(settings, "service", "YouTube - HLS");
 
-		obs_data_set_string(settings, "server",
-			    "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
+		obs_data_set_string(
+			settings, "server",
+			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
 
 		obs_data_set_string(settings, "key", liveStream.cdn.ingestionInfo.streamName.c_str());
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings, NULL);
@@ -223,8 +223,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		try {
 			switch (message->type) {
 			case MessageType::StartContinuousSession: {
-				Async::Task<void> task = startContinuousSessionTask(runtime, authStore, eventHandlerStore,
-								       youtubeStore, logger, parent);
+				Async::Task<void> task = startContinuousSessionTask(
+					runtime, authStore, eventHandlerStore, youtubeStore, logger, parent);
 				co_await task;
 				break;
 			}
