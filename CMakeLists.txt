@@ -90,57 +90,119 @@ find_package(Qt6 REQUIRED COMPONENTS Network Widgets Core)
 
 if(VCPKG_TARGET_TRIPLET)
   list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}")
-
-  find_package(CURL CONFIG REQUIRED)
-  find_package(fmt CONFIG REQUIRED)
-  find_package(nlohmann_json CONFIG REQUIRED)
-  find_package(qjs CONFIG REQUIRED)
-  find_package(unofficial-sqlite3 CONFIG REQUIRED)
-
-  add_library(qjs::qjs ALIAS qjs)
-elseif(USE_PKGCONFIG)
-  find_package(PkgConfig REQUIRED)
-
-  # --- CURL ---
-  pkg_check_modules(PC_CURL REQUIRED libcurl)
-  add_library(CURL::libcurl INTERFACE IMPORTED)
-  target_link_libraries(CURL::libcurl INTERFACE ${PC_CURL_LIBRARIES})
-  target_include_directories(CURL::libcurl INTERFACE ${PC_CURL_INCLUDE_DIRS})
-  target_compile_definitions(CURL::libcurl INTERFACE ${PC_CURL_CFLAGS_OTHER})
-  target_link_directories(CURL::libcurl INTERFACE ${PC_CURL_LIBRARY_DIRS})
-
-  # --- fmt ---
-  pkg_check_modules(PC_FMT REQUIRED fmt)
-  add_library(fmt::fmt INTERFACE IMPORTED)
-  target_link_libraries(fmt::fmt INTERFACE ${PC_FMT_LIBRARIES})
-  target_include_directories(fmt::fmt INTERFACE ${PC_FMT_INCLUDE_DIRS})
-  target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
-  target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
-
-  # --- nlohmann_json ---
-  pkg_check_modules(PC_NLOHMANN_JSON REQUIRED nlohmann_json)
-  add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
-  target_link_libraries(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARIES})
-  target_include_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_INCLUDE_DIRS})
-  target_compile_definitions(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_CFLAGS_OTHER})
-  target_link_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARY_DIRS})
-
-  # --- qjs ---
-  find_package(qjs CONFIG REQUIRED)
-  add_library(qjs::qjs ALIAS qjs)
-else()
-  message(FATAL_ERROR "Either USE_PKGCONFIG or VCPKG_TARGET_TRIPLET must be set.")
 endif()
 
+find_package(PkgConfig QUIET)
+
+# --- CURL ---
+find_package(CURL CONFIG QUIET)
+if(NOT CURL_FOUND)
+  find_package(CURL QUIET)
+endif()
+
+if(NOT CURL_FOUND AND PkgConfig_FOUND)
+  pkg_check_modules(PC_CURL libcurl)
+  if(PC_CURL_FOUND)
+    add_library(CURL::libcurl INTERFACE IMPORTED)
+    target_link_libraries(CURL::libcurl INTERFACE ${PC_CURL_LIBRARIES})
+    target_include_directories(CURL::libcurl INTERFACE ${PC_CURL_INCLUDE_DIRS})
+    target_compile_definitions(CURL::libcurl INTERFACE ${PC_CURL_CFLAGS_OTHER})
+    target_link_directories(CURL::libcurl INTERFACE ${PC_CURL_LIBRARY_DIRS})
+    set(CURL_FOUND TRUE)
+  endif()
+endif()
+
+if(NOT CURL_FOUND)
+  message(FATAL_ERROR "CURL not found via CMake Config or PkgConfig.")
+endif()
+
+# --- fmt ---
+find_package(fmt CONFIG QUIET)
+
+if(NOT fmt_FOUND AND PkgConfig_FOUND)
+  pkg_check_modules(PC_FMT fmt)
+  if(PC_FMT_FOUND)
+    add_library(fmt::fmt INTERFACE IMPORTED)
+    target_link_libraries(fmt::fmt INTERFACE ${PC_FMT_LIBRARIES})
+    target_include_directories(fmt::fmt INTERFACE ${PC_FMT_INCLUDE_DIRS})
+    target_compile_definitions(fmt::fmt INTERFACE ${PC_FMT_CFLAGS_OTHER})
+    target_link_directories(fmt::fmt INTERFACE ${PC_FMT_LIBRARY_DIRS})
+    set(fmt_FOUND TRUE)
+  endif()
+endif()
+
+if(NOT fmt_FOUND)
+  message(FATAL_ERROR "fmt not found via CMake Config or PkgConfig.")
+endif()
+
+# --- nlohmann_json ---
+find_package(nlohmann_json CONFIG QUIET)
+
+if(NOT nlohmann_json_FOUND AND PkgConfig_FOUND)
+  pkg_check_modules(PC_NLOHMANN_JSON nlohmann_json)
+  if(PC_NLOHMANN_JSON_FOUND)
+    add_library(nlohmann_json::nlohmann_json INTERFACE IMPORTED)
+    target_link_libraries(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARIES})
+    target_include_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_INCLUDE_DIRS})
+    target_compile_definitions(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_CFLAGS_OTHER})
+    target_link_directories(nlohmann_json::nlohmann_json INTERFACE ${PC_NLOHMANN_JSON_LIBRARY_DIRS})
+    set(nlohmann_json_FOUND TRUE)
+  endif()
+endif()
+
+if(NOT nlohmann_json_FOUND)
+  message(FATAL_ERROR "nlohmann_json not found via CMake Config or PkgConfig.")
+endif()
+
+# --- qjs (QuickJS) ---
+find_package(qjs CONFIG QUIET)
+
+if(NOT qjs_FOUND AND PkgConfig_FOUND)
+  pkg_check_modules(PC_QJS qjs)
+  if(PC_QJS_FOUND)
+    add_library(qjs INTERFACE IMPORTED)
+    target_link_libraries(qjs INTERFACE ${PC_QJS_LIBRARIES})
+    target_include_directories(qjs INTERFACE ${PC_QJS_INCLUDE_DIRS})
+    target_compile_definitions(qjs INTERFACE ${PC_QJS_CFLAGS_OTHER})
+    target_link_directories(qjs INTERFACE ${PC_QJS_LIBRARY_DIRS})
+    set(qjs_FOUND TRUE)
+  endif()
+endif()
+
+if(NOT qjs_FOUND)
+  message(FATAL_ERROR "qjs not found.")
+endif()
+
+if(TARGET qjs AND NOT TARGET qjs::qjs)
+  add_library(qjs::qjs ALIAS qjs)
+endif()
+
+# --- sqlite3 ---
+find_package(unofficial-sqlite3 CONFIG QUIET)
+
+if(NOT unofficial-sqlite3_FOUND)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(PC_SQLITE3 sqlite3)
+    if(PC_SQLITE3_FOUND)
+      add_library(unofficial::sqlite3::sqlite3 INTERFACE IMPORTED)
+      target_link_libraries(unofficial::sqlite3::sqlite3 INTERFACE ${PC_SQLITE3_LIBRARIES})
+      target_include_directories(unofficial::sqlite3::sqlite3 INTERFACE ${PC_SQLITE3_INCLUDE_DIRS})
+      target_compile_definitions(unofficial::sqlite3::sqlite3 INTERFACE ${PC_SQLITE3_CFLAGS_OTHER})
+      target_link_directories(unofficial::sqlite3::sqlite3 INTERFACE ${PC_SQLITE3_LIBRARY_DIRS})
+      set(unofficial-sqlite3_FOUND TRUE)
+    endif()
+  endif()
+endif()
+
+if(NOT unofficial-sqlite3_FOUND)
+  message(FATAL_ERROR "unofficial-sqlite3 or sqlite3 not found.")
+endif()
+
+# --- jthread ---
 if(APPLE)
   set(JTHREAD_LIBRARIES jthread::jthread)
   add_subdirectory(vendor/josuttis-jthread)
 endif()
-
-include(CheckIncludeFileCXX)
-check_include_file_cxx(immintrin.h HAVE_IMMINTRIN_H)
-
-add_compile_definitions(PLUGIN_NAME="${PLUGIN_NAME}" PLUGIN_VERSION="${PLUGIN_VERSION}")
 
 add_subdirectory(src)
 
@@ -149,24 +211,9 @@ add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
-  PUBLIC OBS::libobs OBS::obs-frontend-api ${CMAKE_PROJECT_NAME}_Controller Logger BridgeUtils
+  PUBLIC OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
 )
-
-target_compile_options(
-  ${CMAKE_PROJECT_NAME}
-  PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
-)
-target_compile_definitions(
-  ${CMAKE_PROJECT_NAME}
-  PUBLIC PLUGIN_NAME="${CMAKE_PROJECT_NAME}" PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}"
-)
-set_target_properties(
-  ${CMAKE_PROJECT_NAME}
-  PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON POSITION_INDEPENDENT_CODE ON
-)
-if(HAVE_IMMINTRIN_H AND UNIX AND NOT APPLE)
-  target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -include immintrin.h)
-endif()
+target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
 
 if(APPLE)
   target_link_options(

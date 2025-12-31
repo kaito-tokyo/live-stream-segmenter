@@ -22,6 +22,12 @@
 
 #include <MainPluginContext.hpp>
 
+#define PLUGIN_NAME "live-stream-segmenter"
+
+#ifndef PLUGIN_VERSION
+#define PLUGIN_VERSION "0.0.0"
+#endif
+
 using namespace KaitoTokyo;
 using namespace KaitoTokyo::LiveStreamSegmenter;
 
