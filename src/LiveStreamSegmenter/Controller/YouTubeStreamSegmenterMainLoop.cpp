@@ -172,7 +172,7 @@ startContinuousSessionTask([[maybe_unused]] std::shared_ptr<Scripting::Scripting
 	// 	logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	// }
 
-	// YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
+	YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
 
 	if (liveStream.cdn.ingestionType == "rtmp") {
 
