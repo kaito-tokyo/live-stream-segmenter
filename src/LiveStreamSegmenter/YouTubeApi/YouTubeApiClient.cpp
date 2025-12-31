@@ -293,7 +293,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 }
 
 std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(std::string_view accessToken,
-									    std::string_view broadcastStatus)
+									       std::string_view broadcastStatus)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -301,7 +301,8 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	}
 	if (broadcastStatus.empty()) {
 		logger_->error("BroadcastStatusIsEmptyError");
-		throw std::invalid_argument("BroadcastStatusIsEmptyError(YouTubeApiClient::listLiveBroadcastsByStatus)");
+		throw std::invalid_argument(
+			"BroadcastStatusIsEmptyError(YouTubeApiClient::listLiveBroadcastsByStatus)");
 	}
 
 	curl_easy_reset(curl_.get());

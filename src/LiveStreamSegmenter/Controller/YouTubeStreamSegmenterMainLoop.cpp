@@ -228,6 +228,17 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 
 	std::string accessToken = getAccessToken(authStore, logger);
 
+	// --- Complete existing live broadcasts bound to the next live stream ---
+	std::vector<YouTubeApi::YouTubeLiveBroadcast> existingBroadcasts =
+		youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
+	for (const auto &broadcast : existingBroadcasts) {
+		auto boundStreamId = broadcast.contentDetails.boundStreamId;
+		if (boundStreamId.has_value() && boundStreamId.value() == nextLiveStream.id) {
+			logger->info("CompletingExistingLiveBroadcast", {{"broadcastId", broadcast.id}});
+			youTubeApiClient->transitionLiveBroadcast(accessToken, broadcast.id, "complete");
+		}
+	}
+
 	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = youTubeApiClient->createLiveBroadcast(accessToken, settings);
 
 	nlohmann::json setThumbnailEventObj{
