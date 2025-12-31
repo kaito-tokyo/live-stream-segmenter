@@ -67,13 +67,30 @@ template<ChannelMessage T> class Channel {
 public:
 	Channel() = default;
 
-	/**
-	 * @brief Destructor.
-	 *
-	 * Automatically closes the channel. If a receiver is currently suspended
-	 * waiting for data, it will be resumed immediately with `std::nullopt`.
-	 */
-	~Channel() { close(); }
+	~Channel() noexcept
+	{
+		std::unique_lock lock(mutex_, std::defer_lock);
+
+		std::coroutine_handle<> h = nullptr;
+
+		try {
+			lock.lock();
+
+			if (!closed_) {
+				closed_ = true;
+				if (receiver_) {
+					h = receiver_;
+					receiver_ = nullptr;
+				}
+			}
+		} catch (...) {
+			return;
+		}
+
+		if (h) {
+			h.destroy();
+		}
+	}
 
 	// Non-copyable and Non-movable to ensure unique ownership and stable address for the mutex.
 	Channel(const Channel &) = delete;
@@ -96,8 +113,10 @@ public:
 		std::coroutine_handle<> h = nullptr;
 		{
 			std::scoped_lock lock(mutex_);
+
 			if (closed_)
 				return;
+
 			closed_ = true;
 
 			// If a receiver is waiting, grab its handle to resume it outside the lock.
@@ -106,8 +125,10 @@ public:
 				receiver_ = nullptr;
 			}
 		}
-		if (h)
+
+		if (h) {
 			h.resume();
+		}
 	}
 
 	/**
@@ -135,9 +156,12 @@ public:
 				receiver_ = nullptr;
 			}
 		}
+
 		// Resume outside the lock to minimize contention.
-		if (h)
+		if (h) {
 			h.resume();
+		}
+
 		return true;
 	}
 
