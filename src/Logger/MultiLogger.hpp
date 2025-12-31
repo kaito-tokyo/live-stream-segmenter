@@ -50,9 +50,7 @@ public:
 	{
 		std::cout << "MultiLogger " << loggers_.size() << " loggers" << std::endl;
 		for (const std::shared_ptr<const ILogger> &logger : loggers_) {
-			// if (logger) {
 			logger->log(level, name, loc, context);
-			// }
 		}
 	}
 
