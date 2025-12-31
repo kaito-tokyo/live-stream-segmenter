@@ -248,7 +248,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_view accessToken, std::span<std::string> ids)
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_view accessToken, std::span<std::string_view> ids)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -259,8 +259,9 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 
 	CurlHelper::CurlUrlSearchParams params(curl_.get());
 	params.append("part", "id,snippet,cdn,status");
-	params.append("mine", "true");
-	if (!ids.empty()) {
+	if (ids.empty()) {
+		params.append("mine", "true");
+	} else {
 		params.append("id", fmt::format("{}", fmt::join(ids, ",")));
 	}
 	std::string qs = params.toString();

@@ -27,6 +27,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <string_view>
+#include <span>
 
 #include <curl/curl.h>
 
@@ -41,7 +43,7 @@ public:
 	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() noexcept;
 
-	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken, std::span<std::string> ids = {});
+	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken, std::span<std::string_view> ids = {});
 
 	YouTubeLiveBroadcast createLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);

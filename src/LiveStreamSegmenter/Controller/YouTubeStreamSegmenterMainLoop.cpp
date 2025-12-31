@@ -18,6 +18,7 @@
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -293,14 +294,12 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	obs_frontend_streaming_start();
 
 	logger->info("WaitingForLiveBroadcastStart");
+	std::array<std::string_view, 1> ids{ nextLiveStream.id };
 	for (int maxAttempts = 20; true; --maxAttempts) {
 		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
-		std::string idStr = nextLiveStream.id;
-		std::vector<std::string> ids{ idStr };
+
 		std::vector<YouTubeApi::YouTubeLiveStream> liveStreams = youTubeApiClient->listLiveStreams(accessToken, ids);
-		nlohmann::json jLs{liveStreams};
-		logger->debug("YouTubeLiveStreamsFetched", {{"liveStreams", jLs.dump()}});
 		if (liveStreams.size() > 0 && liveStreams[0].status.has_value() && liveStreams[0].status->streamStatus == "active") {
 			logger->info("YouTubeLiveStreamActive");
 			break;
