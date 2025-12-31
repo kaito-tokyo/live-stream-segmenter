@@ -172,7 +172,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(Asy
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
-Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask([[maybe_unused]] Async::Channel<Message> &channel)
+Async::Task<void>
+YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask([[maybe_unused]] Async::Channel<Message> &channel)
 {
 	obs_frontend_streaming_stop();
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
