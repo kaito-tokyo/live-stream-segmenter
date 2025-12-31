@@ -24,11 +24,9 @@
 #pragma once
 
 #include <coroutine>
-#include <stdexcept>
 
 #include <QTimer>
 #include <QObject>
-#include <QThreadPool>
 
 namespace KaitoTokyo::AsyncQt {
 
