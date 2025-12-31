@@ -98,8 +98,7 @@ private:
 				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 				 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				 std::shared_ptr<Store::AuthStore> authStore,
-				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-				 std::shared_ptr<Store::YouTubeStore> youtubeStore, QWidget *parent,
+				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
 				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };
 

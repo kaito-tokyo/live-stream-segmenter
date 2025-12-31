@@ -32,6 +32,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include <CurlReader.hpp>
@@ -247,7 +248,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listStreamKeys(std::string_view accessToken)
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_view accessToken, std::span<std::string> ids)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -256,13 +257,24 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listStreamKeys(std::string_view
 
 	curl_easy_reset(curl_.get());
 
-	const char *url = "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn&mine=true";
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
+	params.append("part", "id,snippet,cdn,status");
+	params.append("mine", "true");
+	if (!ids.empty()) {
+		params.append("id", fmt::format("{}", fmt::join(ids, ",")));
+	}
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveStreams");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
 
 	CurlHelper::CurlSlistHandle headers;
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<nlohmann::json> items = performList(curl_.get(), url, logger_, headers.get());
+	std::vector<nlohmann::json> items = performList(curl_.get(), url.get(), logger_, headers.get());
 
 	std::vector<YouTubeLiveStream> streamKeys;
 	try {

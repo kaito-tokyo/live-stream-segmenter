@@ -26,14 +26,15 @@
 #include <coroutine>
 #include <stdexcept>
 
-#include <QThreadPool>
 #include <QTimer>
+#include <QObject>
+#include <QThreadPool>
 
 namespace KaitoTokyo::AsyncQt {
 
 class ResumeOnQTimerSingleShot {
 public:
-	ResumeOnQTimerSingleShot(int interval) : interval_(interval)
+	ResumeOnQTimerSingleShot(int interval, QObject *parent) : interval_(interval), parent_(parent)
 	{
 	}
 
@@ -41,13 +42,14 @@ public:
 
 	void await_suspend(std::coroutine_handle<> h) const
 	{
-		QTimer::singleShot(interval_, [h]() mutable { h.resume(); });
+		QTimer::singleShot(interval_, parent_, [h]() mutable { h.resume(); });
 	}
 
 	void await_resume() const noexcept {}
 
 private:
 	const int interval_;
+	QObject *const parent_;
 };
 
 } // namespace KaitoTokyo::AsyncQt

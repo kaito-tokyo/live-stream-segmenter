@@ -673,7 +673,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		}
 
 		YouTubeApi::YouTubeApiClient client(logger_);
-		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listStreamKeys(accessToken);
+		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listLiveStreams(accessToken);
 
 		co_await ResumeOnQtMainThread{this};
 
