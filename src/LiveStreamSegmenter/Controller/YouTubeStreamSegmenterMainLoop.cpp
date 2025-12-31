@@ -89,8 +89,7 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 
 namespace {
 
-std::string getAccessToken(
-	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger)
+std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger)
 {
 
 	std::string accessToken;
