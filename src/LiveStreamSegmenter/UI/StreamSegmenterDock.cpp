@@ -247,10 +247,54 @@ void StreamSegmenterDock::setupUi()
 }
 
 void StreamSegmenterDock::logMessage(int level, const QString &name, const QString &function,
-                                     const QMap<QString, QString> &context)
+				     const QMap<QString, QString> &context)
 {
 	if (name == "StoppingCurrentStreamBeforeSegmenting") {
 		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+	} else if (name == "CompletingExistingLiveBroadcast") {
+		QString msg;
+		if (context.contains("title")) {
+			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
+		} else {
+			msg = tr("Completing existing live broadcast.");
+		} else if (name == "YouTubeLiveBroadcastThumbnailSetting") {
+			QString msg;
+			if (context.contains("thumbnailFile")) {
+				msg = tr("Setting YouTube live broadcast thumbnail: %1").arg(context["thumbnailFile"]);
+			} else {
+				msg = tr("Setting YouTube live broadcast thumbnail.");
+			}
+			consoleView_->append(msg);
+		} else if (name == "YouTubeLiveBroadcastThumbnailSet") {
+			QString msg;
+			if (context.contains("thumbnailFile")) {
+				msg = tr("YouTube live broadcast thumbnail set: %1").arg(context["thumbnailFile"]);
+			} else {
+				msg = tr("YouTube live broadcast thumbnail set.");
+			}
+			consoleView_->append(msg);
+		} else if (name == "YouTubeLiveBroadcastThumbnailMissing") {
+			QString msg;
+			if (context.contains("thumbnailFile")) {
+				msg = tr("YouTube live broadcast thumbnail missing: %1").arg(context["thumbnailFile"]);
+			} else {
+				msg = tr("YouTube live broadcast thumbnail missing.");
+			}
+			consoleView_->append(msg);
+		} else if (name == "YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId") {
+			consoleView_->append(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."));
+		}
+		consoleView_->append(msg);
+	} else if (name == "YouTubeLiveBroadcastInserting") {
+		consoleView_->append(tr("Creating new YouTube live broadcast..."));
+	} else if (name == "YouTubeLiveBroadcastInserted") {
+		QString msg;
+		if (context.contains("title")) {
+			msg = tr("YouTube live broadcast created: %1").arg(context["title"]);
+		} else {
+			msg = tr("YouTube live broadcast created.");
+		}
+		consoleView_->append(msg);
 	}
 }
 

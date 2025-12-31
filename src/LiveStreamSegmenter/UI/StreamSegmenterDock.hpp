@@ -111,8 +111,7 @@ signals:
 	void segmentNowButtonClicked();
 
 public slots:
-void logMessage(int level, const QString &name, const QString &function,
-                    const QMap<QString, QString> &context);
+	void logMessage(int level, const QString &name, const QString &function, const QMap<QString, QString> &context);
 private slots:
 	void onSettingsButtonClicked();
 

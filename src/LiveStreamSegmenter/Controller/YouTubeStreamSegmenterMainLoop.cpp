@@ -210,25 +210,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	const YouTubeApi::YouTubeLiveStream &currentLiveStream, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	if (obs_frontend_streaming_active()) {
-		std::string stoppedTitle;
-		try {
-			std::string accessToken = getAccessToken(authStore, logger);
-			std::vector<YouTubeApi::YouTubeLiveBroadcast> activeBroadcasts = youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
-			for (const auto &broadcast : activeBroadcasts) {
-				auto boundStreamId = broadcast.contentDetails.boundStreamId;
-				if (boundStreamId.has_value() && boundStreamId.value() == currentLiveStream.id) {
-					stoppedTitle = broadcast.snippet.title;
-					break;
-				}
-			}
-		} catch (...) {
-			// ignore errors, fallback to empty title
-		}
-		if (!stoppedTitle.empty()) {
-			logger->info("StoppingCurrentStreamBeforeSegmenting", {{"title", stoppedTitle}});
-		} else {
-			logger->info("StoppingCurrentStreamBeforeSegmenting");
-		}
+		logger->info("StoppingCurrentStreamBeforeSegmenting");
 		obs_frontend_streaming_stop();
 		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
@@ -260,12 +242,15 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		auto boundStreamId = broadcast.contentDetails.boundStreamId;
 		if (boundStreamId.has_value() &&
 		    ((boundStreamId.value() == currentLiveStream.id) || (boundStreamId.value() == nextLiveStream.id))) {
-			logger->info("CompletingExistingLiveBroadcast", {{"broadcastId", broadcast.id}});
+			logger->info("CompletingExistingLiveBroadcast",
+				     {{"broadcastId", broadcast.id}, {"title", broadcast.snippet.title}});
 			youTubeApiClient->transitionLiveBroadcast(accessToken, broadcast.id, "complete");
 		}
 	}
 
+	logger->info("YouTubeLiveBroadcastInserting", {{"title", settings.snippet.title}});
 	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = youTubeApiClient->insertLiveBroadcast(accessToken, settings);
+	logger->info("YouTubeLiveBroadcastInserted", {{"broadcastId", liveBroadcast.id}, {"title", liveBroadcast.snippet.title}});
 
 	nlohmann::json setThumbnailEventObj{
 		{"LiveBroadcast", liveBroadcast},
@@ -281,23 +266,24 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
 			auto thumbnailFile = jThumbnail.at("thumbnailFile").get<std::string>();
 			std::filesystem::path thumbnailPath(thumbnailFile);
+			logger->info("YouTubeLiveBroadcastThumbnailSetting", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
 			youTubeApiClient->setThumbnail(accessToken, videoId, thumbnailPath);
-			logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
+			logger->info("YouTubeLiveBroadcastThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
 		} else {
-			logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
+			logger->warn("YouTubeLiveBroadcastThumbnailMissing", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
 		}
-
-		logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}});
-
-		logger->info("WaitingForLiveBroadcastCreated");
-		co_await AsyncQt::ResumeOnQTimerSingleShot{1000, parent};
-		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
-
-		youTubeApiClient->bindLiveBroadcast(accessToken, liveBroadcast.id, nextLiveStream.id);
-		logger->info("YouTubeLiveBroadcastBound");
 	} else {
-		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
+		logger->warn("YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId");
 	}
+
+	logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}, {"title", liveBroadcast.snippet.title}});
+
+	logger->info("WaitingForLiveBroadcastCreated");
+	co_await AsyncQt::ResumeOnQTimerSingleShot{1000, parent};
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+
+	youTubeApiClient->bindLiveBroadcast(accessToken, liveBroadcast.id, nextLiveStream.id);
+	logger->info("YouTubeLiveBroadcastBound");
 
 	logger->info("WaitingForLiveBroadcastBound");
 
