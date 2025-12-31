@@ -294,6 +294,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 			obs_service_create("rtmp_common", "YouTube RTMP Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
+		obs_service_release(service);
 	} else if (nextLiveStream.cdn.ingestionType == "hls") {
 		logger->info("CreatingYouTubeHLSService");
 
@@ -308,6 +309,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
+		obs_service_release(service);
 	} else {
 		logger->error("UnsupportedIngestionType", {{"type", nextLiveStream.cdn.ingestionType}});
 		co_return;
