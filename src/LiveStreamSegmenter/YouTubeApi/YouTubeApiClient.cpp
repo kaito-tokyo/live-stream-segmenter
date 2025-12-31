@@ -253,7 +253,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listStreamKeys)");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listLiveStreams)");
 	}
 
 	curl_easy_reset(curl_.get());
@@ -286,7 +286,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 	} catch (const std::exception &e) {
 		// Do not print the response body, which includes stream keys
 		logger_->error("ParseLiveStreamError", {{"exception", e.what()}});
-		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listStreamKeys)");
+		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listLiveStreams)");
 	}
 
 	return streamKeys;
@@ -297,7 +297,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listStreamKeys)");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listLiveBroadcastsByStatus)");
 	}
 	if (broadcastStatus.empty()) {
 		logger_->error("BroadcastStatusIsEmptyError");
@@ -331,18 +331,18 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	} catch (const std::exception &e) {
 		// Do not print the response body, which includes stream keys
 		logger_->error("ParseLiveStreamError", {{"exception", e.what()}});
-		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listStreamKeys)");
+		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listLiveBroadcastsByStatus)");
 	}
 
 	return broadcasts;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view accessToken,
 							   const YouTubeLiveBroadcastSettings &settings)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::createLiveBroadcast)");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::insertLiveBroadcast)");
 	}
 
 	curl_easy_reset(curl_.get());

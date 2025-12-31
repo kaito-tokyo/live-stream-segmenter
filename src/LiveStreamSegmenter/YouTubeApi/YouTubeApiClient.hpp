@@ -50,7 +50,7 @@ public:
 	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(std::string_view accessToken,
 								     std::string_view broadcastStatus);
 
-	YouTubeLiveBroadcast createLiveBroadcast(std::string_view accessToken,
+	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);
 
 	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,

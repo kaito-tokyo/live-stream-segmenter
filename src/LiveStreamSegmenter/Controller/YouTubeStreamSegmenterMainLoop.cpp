@@ -243,7 +243,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		}
 	}
 
-	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = youTubeApiClient->createLiveBroadcast(accessToken, settings);
+	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = youTubeApiClient->insertLiveBroadcast(accessToken, settings);
 
 	nlohmann::json setThumbnailEventObj{
 		{"LiveBroadcast", liveBroadcast},
