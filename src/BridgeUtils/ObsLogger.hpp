@@ -37,21 +37,21 @@ public:
 	~ObsLogger() override = default;
 
 protected:
-	void log(LogLevel level, std::string_view name, std::source_location loc,
+	void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const Logger::LogField> context) const noexcept override
 	{
 		int blogLevel;
 		switch (level) {
-		case LogLevel::Debug:
+		case Logger::LogLevel::Debug:
 			blogLevel = LOG_DEBUG;
 			break;
-		case LogLevel::Info:
+		case Logger::LogLevel::Info:
 			blogLevel = LOG_INFO;
 			break;
-		case LogLevel::Warn:
+		case Logger::LogLevel::Warn:
 			blogLevel = LOG_WARNING;
 			break;
-		case LogLevel::Error:
+		case Logger::LogLevel::Error:
 			blogLevel = LOG_ERROR;
 			break;
 		default:

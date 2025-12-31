@@ -21,12 +21,13 @@
 #include <QDesktopServices>
 #include <QFontDatabase>
 #include <QMessageBox>
+#include <QMetaObject>
 #include <QScrollBar>
 #include <QUrl>
 
 #include <fmt/format.h>
 
-#include <NullLogger.hpp>
+#include <MultiLogger.hpp>
 
 #include "SettingsDialog.hpp"
 
@@ -42,8 +43,14 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument(
 				     "RuntimeIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
-	  logger_(logger ? std::move(logger)
+	  parentLogger_(
+		  logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
+	  loggerAdapter_(std::make_shared<const LoggerAdapter>(this)),
+	  logger_(std::make_shared<const Logger::MultiLogger>(std::vector<std::shared_ptr<const ILogger>>{
+		  parentLogger_,
+		  loggerAdapter_,
+	  })),
 	  mainLayout_(new QVBoxLayout(this)),
 
 	  // Top Controls

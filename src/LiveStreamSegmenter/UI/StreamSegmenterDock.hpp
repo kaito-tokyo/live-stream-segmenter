@@ -34,6 +34,7 @@
 #include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <YouTubeStore.hpp>
+#include <ILogger.hpp>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -41,6 +42,23 @@ namespace UI {
 
 class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
+
+	class LoggerAdapter : public Logger::ILogger {
+	public:
+		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
+
+		void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
+			 [[maybe_unused]] std::span<const Logger::LogField> context) const noexcept override
+		{
+			QMetaObject::invokeMethod(parent_, "logMessage", Qt::QueuedConnection,
+						  Q_ARG(int, static_cast<int>(level)),
+						  Q_ARG(QString, QString::fromStdString(std::string(name))),
+						  Q_ARG(QString, QString::fromStdString(loc.function_name())));
+		}
+
+	private:
+		QObject *const parent_;
+	};
 
 public:
 	StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
@@ -75,6 +93,9 @@ signals:
 	void stopButtonClicked();
 	void segmentNowButtonClicked();
 
+public slots:
+	void logMessage(int level, const QString &name, const QString &file, int line, const QString &function);
+
 private slots:
 	void onSettingsButtonClicked();
 
@@ -82,6 +103,8 @@ private:
 	void setupUi();
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
+	const std::shared_ptr<const Logger::ILogger> parentLogger_;
+	const std::shared_ptr<const Logger::ILogger> loggerAdapter_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
 	// Data Cache

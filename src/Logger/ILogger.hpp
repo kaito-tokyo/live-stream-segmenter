@@ -35,10 +35,12 @@ struct LogField {
 	std::string_view value;
 };
 
+enum class LogLevel { Debug, Info, Warn, Error };
+
 class ILogger {
 public:
 	ILogger() = default;
-	virtual ~ILogger() = default;
+	virtual ~ILogger() noexcept = default;
 
 	ILogger(const ILogger &) = delete;
 	ILogger &operator=(const ILogger &) = delete;
@@ -68,9 +70,6 @@ public:
 	{
 		log(LogLevel::Error, name, loc, context);
 	}
-
-protected:
-	enum class LogLevel { Debug, Info, Warn, Error };
 
 	virtual void log(LogLevel level, std::string_view name, std::source_location loc,
 			 std::span<const LogField> context) const noexcept = 0;
