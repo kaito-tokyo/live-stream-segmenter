@@ -33,21 +33,22 @@
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
 #include <nlohmann/json.hpp>
+#include <ResumeOnQThreadPool.hpp>
 #include <ScriptingDatabase.hpp>
 #include <YouTubeApiClient.hpp>
 #include <YouTubeTypes.hpp>
-#include <ResumeOnQThreadPool.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<const Logger::ILogger> logger,
-	QWidget *parent)
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
+	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QObject(nullptr),
 	  runtime_(std::move(runtime)),
 	  authStore_(std::move(authStore)),
 	  eventHandlerStore_(std::move(eventHandlerStore)),
+	  youtubeStore_(std::move(youtubeStore)),
 	  logger_(std::move(logger)),
 	  parent_(parent)
 {
@@ -61,7 +62,7 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(channel_, runtime_, authStore_, eventHandlerStore_, logger_, parent_);
+	mainLoopTask_ = mainLoop(channel_, runtime_, authStore_, eventHandlerStore_, youtubeStore_, logger_, parent_);
 	mainLoopTask_.start();
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
@@ -89,6 +90,7 @@ namespace {
 Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					     std::shared_ptr<Store::AuthStore> authStore,
 					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+					     std::shared_ptr<Store::YouTubeStore> youtubeStore,
 					     std::shared_ptr<const Logger::ILogger> logger)
 {
 	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
@@ -154,6 +156,11 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 		} else {
 			logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
 		}
+
+		logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}});
+		YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
+		apiClient.bindLiveBroadcast(accessToken, liveBroadcast.id, liveStream.id);
+		logger->info("YouTubeLiveBroadcastBound");
 	} else {
 		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	}
@@ -167,6 +174,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 							   std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 							   std::shared_ptr<Store::AuthStore> authStore,
 							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+							   std::shared_ptr<Store::YouTubeStore> youtubeStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
 							   [[maybe_unused]] QWidget *parent)
 {
@@ -182,7 +190,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		try {
 			switch (message->type) {
 			case MessageType::StartContinuousSession: {
-				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore, logger);
+				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore,
+								       youtubeStore, logger);
 				task.start();
 				co_await task;
 				break;

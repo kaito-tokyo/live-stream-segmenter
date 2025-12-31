@@ -47,7 +47,7 @@ public:
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
 		  dock_(dock),
 		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
-			  runtime_, authStore_, eventHandlerStore_, logger_, dock_))
+			  runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 	{
 		authStore_->restoreAuthStore();
 		eventHandlerStore_->restore();
