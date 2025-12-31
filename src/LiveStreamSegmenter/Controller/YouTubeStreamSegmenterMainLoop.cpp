@@ -198,7 +198,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, [[maybe_unused]] std::shared_ptr<Store::YouTubeStore> youtubeStore,
 	QWidget *parent, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
