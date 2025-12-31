@@ -28,8 +28,9 @@
 #include <Channel.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
-#include <Task.hpp>
 #include <ScriptingRuntime.hpp>
+#include <Task.hpp>
+#include <YouTubeStore.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -50,6 +51,7 @@ public:
 	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				       std::shared_ptr<Store::AuthStore> authStore,
 				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+				       std::shared_ptr<Store::YouTubeStore> youtubeStore,
 				       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 	~YouTubeStreamSegmenterMainLoop() override;
 
@@ -69,6 +71,7 @@ private:
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
+	const std::shared_ptr<Store::YouTubeStore> youtubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
 
@@ -79,6 +82,7 @@ private:
 					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					  std::shared_ptr<Store::AuthStore> authStore,
 					  std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+					  std::shared_ptr<Store::YouTubeStore> youtubeStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 };
 

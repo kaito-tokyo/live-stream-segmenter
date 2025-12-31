@@ -49,6 +49,9 @@ public:
 	void setThumbnail(std::string_view accessToken, std::string_view videoId,
 			  const std::filesystem::path &thumbnailPath);
 
+	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
+					       std::optional<std::string_view> streamId);
+
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 
