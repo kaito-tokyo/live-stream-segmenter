@@ -165,6 +165,10 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 				} else if (currentLiveStreamIndex == 1) {
 					currentLiveStream = youtubeStore->getStreamKeyB();
 					nextLiveStream = youtubeStore->getStreamKeyA();
+				} else {
+					logger->error("InvalidCurrentLiveStreamIndex");
+					throw std::runtime_error(
+						"InvalidCurrentLiveStreamIndex(YouTubeStreamSegmenterMainLoop::mainLoop)");
 				}
 				Async::Task<void> task = segmentLiveBroadcastTask(channel, logger, youTubeApiClient,
 										  runtime, authStore, eventHandlerStore,
