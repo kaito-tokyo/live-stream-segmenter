@@ -1,6 +1,8 @@
 /*
- * Live Stream Segmenter -  YouTubeApi Module
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo YouTubeApi Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +39,7 @@
 
 #include "YouTubeTypes.hpp"
 
-namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
+namespace KaitoTokyo::YouTubeApi {
 
 class YouTubeApiClient {
 public:
@@ -70,4 +72,4 @@ private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
+} // namespace KaitoTokyo::YouTubeApi

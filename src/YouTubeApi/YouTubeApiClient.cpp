@@ -1,6 +1,8 @@
 /*
- * Live Stream Segmenter -  YouTubeApi Module
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo YouTubeApi Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +44,7 @@
 #include <CurlVectorWriter.hpp>
 #include <ILogger.hpp>
 
-namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
+namespace KaitoTokyo::YouTubeApi {
 
 namespace {
 
@@ -514,4 +516,4 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_vi
 	logger_->info("ThumbnailSet", {{"responseBody", responseBody}});
 }
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
+} // namespace KaitoTokyo::YouTubeApi
