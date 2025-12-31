@@ -93,12 +93,14 @@ private:
 
 	static Async::Task<void> stopContinuousSessionTask(Async::Channel<Message> &channel);
 
-	static Async::Task<void> segmentLiveBroadcastTask(
-		Async::Channel<Message> &channel, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-		std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::shared_ptr<const Logger::ILogger> logger,
-		QWidget *parent);
+	static Async::Task<void>
+	segmentLiveBroadcastTask(Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
+				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+				 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+				 std::shared_ptr<Store::AuthStore> authStore,
+				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
+				 const YouTubeApi::YouTubeLiveStream &currentLiveStream,
+				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

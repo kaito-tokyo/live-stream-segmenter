@@ -25,6 +25,9 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
+#include <span>
+#include <string_view>
 #include <string>
 #include <vector>
 
@@ -41,16 +44,23 @@ public:
 	explicit YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger);
 	~YouTubeApiClient() noexcept;
 
-	std::vector<YouTubeLiveStream> listStreamKeys(std::string_view accessToken);
+	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken,
+						       std::span<std::string_view> ids = {});
 
-	YouTubeLiveBroadcast createLiveBroadcast(std::string_view accessToken,
+	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(std::string_view accessToken,
+								     std::string_view broadcastStatus);
+
+	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);
-
-	void setThumbnail(std::string_view accessToken, std::string_view videoId,
-			  const std::filesystem::path &thumbnailPath);
 
 	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
 					       std::optional<std::string_view> streamId);
+
+	YouTubeLiveBroadcast transitionLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
+						     std::string_view broadcastStatus);
+
+	void setThumbnail(std::string_view accessToken, std::string_view videoId,
+			  const std::filesystem::path &thumbnailPath);
 
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
