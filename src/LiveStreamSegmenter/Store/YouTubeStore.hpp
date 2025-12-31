@@ -45,10 +45,7 @@ public:
 	YouTubeStore(YouTubeStore &&) = delete;
 	YouTubeStore &operator=(YouTubeStore &&) = delete;
 
-	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
-	{
-		logger_ = std::move(logger);
-	}
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	void setStreamKeyA(const YouTubeApi::YouTubeLiveStream &streamKey)
 	{
@@ -141,7 +138,7 @@ private:
 	YouTubeApi::YouTubeLiveStream streamKeyA_;
 	YouTubeApi::YouTubeLiveStream streamKeyB_;
 
-	std::shared_ptr<const Logger::ILogger> logger_{std::make_shared<Logger::NullLogger>()};
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

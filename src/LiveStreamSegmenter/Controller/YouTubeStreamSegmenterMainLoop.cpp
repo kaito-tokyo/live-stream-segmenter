@@ -210,7 +210,25 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	const YouTubeApi::YouTubeLiveStream &currentLiveStream, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	if (obs_frontend_streaming_active()) {
-		logger->info("StoppingCurrentStreamBeforeSegmenting");
+		std::string stoppedTitle;
+		try {
+			std::string accessToken = getAccessToken(authStore, logger);
+			std::vector<YouTubeApi::YouTubeLiveBroadcast> activeBroadcasts = youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
+			for (const auto &broadcast : activeBroadcasts) {
+				auto boundStreamId = broadcast.contentDetails.boundStreamId;
+				if (boundStreamId.has_value() && boundStreamId.value() == currentLiveStream.id) {
+					stoppedTitle = broadcast.snippet.title;
+					break;
+				}
+			}
+		} catch (...) {
+			// ignore errors, fallback to empty title
+		}
+		if (!stoppedTitle.empty()) {
+			logger->info("StoppingCurrentStreamBeforeSegmenting", {{"title", stoppedTitle}});
+		} else {
+			logger->info("StoppingCurrentStreamBeforeSegmenting");
+		}
 		obs_frontend_streaming_stop();
 		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};

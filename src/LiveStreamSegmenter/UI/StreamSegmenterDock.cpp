@@ -246,12 +246,12 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->addLayout(bottomControlLayout_);
 }
 
-void StreamSegmenterDock::logMessage(int level, const QString &name, const QString &function)
+void StreamSegmenterDock::logMessage(int level, const QString &name, const QString &function,
+                                     const QMap<QString, QString> &context)
 {
-	QMessageBox::information(this, "Log Message",
-				 QString("Level: %1\nName: %2\nFunction: %3").arg(level).arg(name).arg(function));
-	consoleView_->append(
-		QString::fromStdString(fmt::format("{} {} - {}", level, name.toStdString(), function.toStdString())));
+	if (name == "StoppingCurrentStreamBeforeSegmenting") {
+		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+	}
 }
 
 void StreamSegmenterDock::onSettingsButtonClicked()

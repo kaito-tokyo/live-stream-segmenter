@@ -46,10 +46,7 @@ public:
 	AuthStore(AuthStore &&) = delete;
 	AuthStore &operator=(AuthStore &&) = delete;
 
-	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
-	{
-		logger_ = std::move(logger);
-	}
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	void setGoogleOAuth2ClientCredentials(GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials)
 	{
@@ -143,7 +140,7 @@ private:
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
 	GoogleAuth::GoogleTokenState googleTokenState_;
 
-	std::shared_ptr<const Logger::ILogger> logger_{std::make_shared<Logger::NullLogger>()};
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

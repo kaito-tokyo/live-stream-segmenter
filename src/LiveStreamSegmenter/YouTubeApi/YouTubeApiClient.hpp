@@ -44,10 +44,7 @@ public:
 	YouTubeApiClient();
 	~YouTubeApiClient() noexcept;
 
-	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
-	{
-		logger_ = std::move(logger);
-	}
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken,
 						       std::span<std::string_view> ids = {});

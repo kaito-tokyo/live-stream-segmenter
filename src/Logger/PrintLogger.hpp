@@ -24,6 +24,10 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
+#include <source_location>
+#include <span>
+#include <string_view>
 
 #include "ILogger.hpp"
 
@@ -35,7 +39,6 @@ public:
 	PrintLogger() = default;
 	~PrintLogger() override = default;
 
-protected:
 	void log(LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const LogField> context) const noexcept override
 	{
@@ -62,6 +65,12 @@ protected:
 			std::cout << "\t" << field.key << "=" << field.value;
 		}
 		std::cout << std::endl;
+	}
+
+	static std::shared_ptr<PrintLogger> instance()
+	{
+		static std::shared_ptr<PrintLogger> instance = std::make_shared<PrintLogger>();
+		return instance;
 	}
 };
 

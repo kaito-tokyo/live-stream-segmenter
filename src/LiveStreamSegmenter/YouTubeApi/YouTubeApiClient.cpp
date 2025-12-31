@@ -231,7 +231,8 @@ std::string getLowercaseExtension(const std::filesystem::path &p)
 	return toLowercase(ext);
 }
 
-auto initCurlEasy() {
+auto initCurlEasy()
+{
 	auto ptr = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), &curl_easy_cleanup);
 	if (!ptr) {
 		throw std::runtime_error("CurlInitError(initCurlEasy)");
@@ -241,9 +242,7 @@ auto initCurlEasy() {
 
 } // anonymous namespace
 
-YouTubeApiClient::YouTubeApiClient() : curl_(initCurlEasy())
-{
-}
+YouTubeApiClient::YouTubeApiClient() : curl_(initCurlEasy()) {}
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
@@ -300,8 +299,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	}
 	if (broadcastStatus.empty()) {
 		logger_->error("BroadcastStatusIsEmptyError");
-		throw std::invalid_argument(
-			"BroadcastStatusIsEmptyError(listLiveBroadcastsByStatus)");
+		throw std::invalid_argument("BroadcastStatusIsEmptyError(listLiveBroadcastsByStatus)");
 	}
 
 	curl_easy_reset(curl_.get());

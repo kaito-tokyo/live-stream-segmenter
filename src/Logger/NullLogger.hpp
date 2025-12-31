@@ -23,6 +23,11 @@
 
 #pragma once
 
+#include <memory>
+#include <source_location>
+#include <span>
+#include <string_view>
+
 #include "ILogger.hpp"
 
 namespace KaitoTokyo {
@@ -33,10 +38,15 @@ public:
 	NullLogger() = default;
 	~NullLogger() override = default;
 
-protected:
 	void log(LogLevel, std::string_view, std::source_location, std::span<const LogField>) const noexcept override
 	{
 		// No-op
+	}
+
+	static std::shared_ptr<NullLogger> instance()
+	{
+		static std::shared_ptr<NullLogger> instance = std::make_shared<NullLogger>();
+		return instance;
 	}
 };
 

@@ -49,17 +49,20 @@ class StreamSegmenterDock : public QWidget {
 		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
 
 		void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
-			 [[maybe_unused]] std::span<const Logger::LogField> context) const noexcept override
+			 std::span<const Logger::LogField> context) const noexcept override
 		{
 			const int logLevel = static_cast<int>(level);
-			const QString logName = QString::fromStdString(std::string(name));
-			const QString logFunc = QString::fromStdString(loc.function_name());
+			const QString logName = QString::fromUtf8(name.data(), name.size());
+			const QString logFunc = QString::fromUtf8(loc.function_name());
+
+			QMap<QString, QString> contextMap;
+			for (const auto &field : context) {
+				contextMap.insert(QString::fromUtf8(field.key.data(), field.key.size()),
+						  QString::fromUtf8(field.value.data(), field.value.size()));
+			}
 
 			QMetaObject::invokeMethod(
-				parent_,
-				[parent = parent_, logLevel, logName, logFunc]() {
-					parent->logMessage(logLevel, logName, logFunc);
-				},
+				parent_, [=]() { parent_->logMessage(logLevel, logName, logFunc, contextMap); },
 				Qt::QueuedConnection);
 		}
 
@@ -108,8 +111,8 @@ signals:
 	void segmentNowButtonClicked();
 
 public slots:
-	void logMessage(int level, const QString &name, const QString &function);
-
+void logMessage(int level, const QString &name, const QString &function,
+                    const QMap<QString, QString> &context);
 private slots:
 	void onSettingsButtonClicked();
 
@@ -172,7 +175,7 @@ private:
 	QPushButton *const segmentNowButton_;
 
 	mutable std::mutex mutex_;
-	std::shared_ptr<const Logger::ILogger> logger_{std::make_shared<Logger::NullLogger>()};
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;

@@ -46,10 +46,7 @@ public:
 	EventHandlerStore(EventHandlerStore &&) = delete;
 	EventHandlerStore &operator=(EventHandlerStore &&) = delete;
 
-	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
-	{
-		logger_ = std::move(logger);
-	}
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	void setEventHandlerScript(std::string eventHandlerScript)
 	{
@@ -146,7 +143,7 @@ private:
 	mutable std::mutex mutex_;
 	std::string eventHandlerScript_;
 
-	std::shared_ptr<const Logger::ILogger> logger_{std::make_shared<Logger::NullLogger>()};
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store
