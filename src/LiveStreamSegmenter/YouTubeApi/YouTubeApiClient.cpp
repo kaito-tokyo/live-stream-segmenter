@@ -382,11 +382,11 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view access
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::BindLiveBroadcast)");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::bindLiveBroadcast)");
 	}
 	if (broadcastId.empty()) {
 		logger_->error("BroadcastIdIsEmptyError");
-		throw std::invalid_argument("BroadcastIdIsEmptyError(YouTubeApiClient::BindLiveBroadcast)");
+		throw std::invalid_argument("BroadcastIdIsEmptyError(YouTubeApiClient::bindLiveBroadcast)");
 	}
 
 	curl_easy_reset(curl_.get());
