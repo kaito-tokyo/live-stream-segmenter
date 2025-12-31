@@ -100,7 +100,7 @@ private:
 				 std::shared_ptr<Store::AuthStore> authStore,
 				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 				 std::shared_ptr<Store::YouTubeStore> youtubeStore, QWidget *parent,
-				 const YouTubeApi::YouTubeLiveStream &liveStream);
+				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

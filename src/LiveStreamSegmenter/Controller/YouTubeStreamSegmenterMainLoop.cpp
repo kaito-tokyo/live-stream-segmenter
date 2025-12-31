@@ -38,6 +38,7 @@
 #include <ObsUnique.hpp>
 #include <ResumeOnQObject.hpp>
 #include <ResumeOnQThreadPool.hpp>
+#include <ResumeOnQTimerSingleShot.hpp>
 #include <ScriptingDatabase.hpp>
 #include <YouTubeTypes.hpp>
 
@@ -156,15 +157,15 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 				break;
 			}
 			case MessageType::SegmentLiveBroadcast: {
-				YouTubeApi::YouTubeLiveStream newLiveStream;
+				YouTubeApi::YouTubeLiveStream nextLiveStream;
 				if (currentLiveStreamIndex == 0) {
-					newLiveStream = youtubeStore->getStreamKeyB();
+					nextLiveStream = youtubeStore->getStreamKeyB();
 				} else if (currentLiveStreamIndex == 1) {
-					newLiveStream = youtubeStore->getStreamKeyA();
+					nextLiveStream = youtubeStore->getStreamKeyA();
 				}
 				Async::Task<void> task = segmentLiveBroadcastTask(channel, logger, youTubeApiClient,
 										  runtime, authStore, eventHandlerStore,
-										  youtubeStore, parent, newLiveStream);
+										  youtubeStore, parent, nextLiveStream);
 				co_await task;
 				currentLiveStreamIndex = 1 - currentLiveStreamIndex;
 				break;
@@ -198,7 +199,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	QWidget *parent, const YouTubeApi::YouTubeLiveStream &newLiveStream)
+	QWidget *parent, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
@@ -242,16 +243,22 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		}
 
 		logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}});
-		YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
-		youTubeApiClient->bindLiveBroadcast(accessToken, liveBroadcast.id, liveStream.id);
+
+		logger->info("WaitingForLiveBroadcastCreated");
+		co_await AsyncQt::ResumeOnQTimerSingleShot{1000};
+
+		youTubeApiClient->bindLiveBroadcast(accessToken, liveBroadcast.id, nextLiveStream.id);
 		logger->info("YouTubeLiveBroadcastBound");
 	} else {
 		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	}
 
+	logger->info("WaitingForLiveBroadcastBound");
+	co_await AsyncQt::ResumeOnQTimerSingleShot{1000};
+
 	co_await AsyncQt::ResumeOnQObject{parent};
 
-	if (newLiveStream.cdn.ingestionType == "rtmp") {
+	if (nextLiveStream.cdn.ingestionType == "rtmp") {
 		logger->info("CreatingYouTubeRTMPService");
 
 		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
@@ -259,12 +266,12 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
 
-		obs_data_set_string(settings.get(), "key", newLiveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStream.cdn.ingestionInfo.streamName.c_str());
 		obs_service_t *service =
 			obs_service_create("rtmp_common", "YouTube RTMP Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
-	} else if (newLiveStream.cdn.ingestionType == "hls") {
+	} else if (nextLiveStream.cdn.ingestionType == "hls") {
 		logger->info("CreatingYouTubeHLSService");
 
 		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
@@ -274,18 +281,24 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 			settings.get(), "server",
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
 
-		obs_data_set_string(settings.get(), "key", newLiveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStream.cdn.ingestionInfo.streamName.c_str());
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
 	} else {
-		logger->error("UnsupportedIngestionType", {{"type", newLiveStream.cdn.ingestionType}});
+		logger->error("UnsupportedIngestionType", {{"type", nextLiveStream.cdn.ingestionType}});
 		co_return;
 	}
 
 	obs_frontend_streaming_start();
 
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+
+	logger->info("WaitingForLiveBroadcastStart");
+	co_await AsyncQt::ResumeOnQTimerSingleShot(5000);
+
+	YouTubeApi::YouTubeLiveBroadcast startedLiveBroadcast = youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "live");
+	logger->info("YouTubeLiveBroadcastStarted");
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

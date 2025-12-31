@@ -415,4 +415,45 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view access
 	return j.get<YouTubeLiveBroadcast>();
 }
 
+YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string_view accessToken,
+							       std::string_view broadcastId,
+							       std::string_view broadcastStatus)
+{
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::transitionLiveBroadcast)");
+	}
+	if (broadcastId.empty()) {
+		logger_->error("BroadcastIdIsEmptyError");
+		throw std::invalid_argument("BroadcastIdIsEmptyError(YouTubeApiClient::transitionLiveBroadcast)");
+	}
+	if (broadcastStatus.empty()) {
+		logger_->error("BroadcastStatusIsEmptyError");
+		throw std::invalid_argument("BroadcastStatusIsEmptyError(YouTubeApiClient::transitionLiveBroadcast)");
+	}
+
+	curl_easy_reset(curl_.get());
+
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
+	params.append("id", broadcastId);
+	params.append("broadcastStatus", broadcastStatus);
+	params.append("part", "id,snippet,contentDetails,status");
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveBroadcasts/transition");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
+
+	CurlHelper::CurlSlistHandle headers;
+	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+
+	std::string responseBody = doPost(curl_.get(), url.get(), logger_, headers.get());
+	logger_->info("LiveBroadcastTransitioned", {{"responseBody", responseBody}});
+
+	nlohmann::json j = nlohmann::json::parse(responseBody);
+	return j.get<YouTubeLiveBroadcast>();
+}
+
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

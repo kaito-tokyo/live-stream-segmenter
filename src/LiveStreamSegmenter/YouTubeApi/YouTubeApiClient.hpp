@@ -52,6 +52,9 @@ public:
 	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
 					       std::optional<std::string_view> streamId);
 
+	YouTubeLiveBroadcast transitionLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
+						     std::string_view broadcastStatus);
+
 private:
 	std::shared_ptr<const Logger::ILogger> logger_;
 
