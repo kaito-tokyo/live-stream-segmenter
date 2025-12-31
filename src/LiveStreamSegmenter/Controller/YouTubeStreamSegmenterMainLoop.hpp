@@ -99,6 +99,7 @@ private:
 				 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				 std::shared_ptr<Store::AuthStore> authStore,
 				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
+				 const YouTubeApi::YouTubeLiveStream &currentLiveStream,
 				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };
 

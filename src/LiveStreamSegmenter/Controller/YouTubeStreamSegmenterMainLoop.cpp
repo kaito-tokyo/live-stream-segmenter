@@ -158,15 +158,18 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 				break;
 			}
 			case MessageType::SegmentLiveBroadcast: {
-				YouTubeApi::YouTubeLiveStream nextLiveStream;
+				YouTubeApi::YouTubeLiveStream currentLiveStream, nextLiveStream;
 				if (currentLiveStreamIndex == 0) {
+					currentLiveStream = youtubeStore->getStreamKeyA();
 					nextLiveStream = youtubeStore->getStreamKeyB();
 				} else if (currentLiveStreamIndex == 1) {
+					currentLiveStream = youtubeStore->getStreamKeyB();
 					nextLiveStream = youtubeStore->getStreamKeyA();
 				}
 				Async::Task<void> task = segmentLiveBroadcastTask(channel, logger, youTubeApiClient,
 										  runtime, authStore, eventHandlerStore,
-										  parent, nextLiveStream);
+										  parent, currentLiveStream,
+										  nextLiveStream);
 				co_await task;
 				currentLiveStreamIndex = 1 - currentLiveStreamIndex;
 				break;
@@ -200,12 +203,12 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
-	const YouTubeApi::YouTubeLiveStream &nextLiveStream)
+	const YouTubeApi::YouTubeLiveStream &currentLiveStream, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	if (obs_frontend_streaming_active()) {
 		logger->info("StoppingCurrentStreamBeforeSegmenting");
 		obs_frontend_streaming_stop();
-		co_await AsyncQt::ResumeOnQTimerSingleShot{10000, parent};
+		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 	}
 
@@ -233,7 +236,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
 	for (const auto &broadcast : existingBroadcasts) {
 		auto boundStreamId = broadcast.contentDetails.boundStreamId;
-		if (boundStreamId.has_value() && boundStreamId.value() == nextLiveStream.id) {
+		if (boundStreamId.has_value() &&
+		    ((boundStreamId.value() == currentLiveStream.id) || (boundStreamId.value() == nextLiveStream.id))) {
 			logger->info("CompletingExistingLiveBroadcast", {{"broadcastId", broadcast.id}});
 			youTubeApiClient->transitionLiveBroadcast(accessToken, broadcast.id, "complete");
 		}
