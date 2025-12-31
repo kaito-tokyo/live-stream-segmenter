@@ -120,13 +120,12 @@ std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::sha
 	return accessToken;
 }
 
-Async::Task<void>
-startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-			   std::shared_ptr<Store::AuthStore> authStore,
-			   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-			   std::shared_ptr<Store::YouTubeStore> youtubeStore,
-			   std::shared_ptr<const Logger::ILogger> logger,
-			   [[maybe_unused]] QWidget *parent)
+Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					     std::shared_ptr<Store::AuthStore> authStore,
+					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+					     std::shared_ptr<Store::YouTubeStore> youtubeStore,
+					     std::shared_ptr<const Logger::ILogger> logger,
+					     [[maybe_unused]] QWidget *parent)
 {
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
