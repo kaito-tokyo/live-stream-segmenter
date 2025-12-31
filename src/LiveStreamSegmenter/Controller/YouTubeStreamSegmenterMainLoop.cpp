@@ -28,6 +28,8 @@
 
 #include <quickjs.h>
 
+#include <obs-frontend-api.h>
+
 #include <CurlVectorWriter.hpp>
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
