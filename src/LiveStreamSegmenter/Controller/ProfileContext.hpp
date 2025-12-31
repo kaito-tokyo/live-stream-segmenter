@@ -24,8 +24,10 @@
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
-#include <YouTubeStore.hpp>
+#include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
+#include <YouTubeApiClient.hpp>
+#include <YouTubeStore.hpp>
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
@@ -41,13 +43,14 @@ public:
 	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
 		: logger_(std::move(logger)),
+		  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(logger_)),
 		  runtime_(std::move(runtime)),
 		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
 		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>(logger_)),
 		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
 		  dock_(dock),
 		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
-			  runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
+			  youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 	{
 		authStore_->restoreAuthStore();
 		eventHandlerStore_->restore();
@@ -80,6 +83,7 @@ public:
 
 private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;

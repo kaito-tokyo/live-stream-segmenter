@@ -30,6 +30,7 @@
 #include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <Task.hpp>
+#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
@@ -40,7 +41,7 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	enum class MessageType {
 		StartContinuousSession,
 		StopContinuousSession,
-		SegmentCurrentSession,
+		SegmentLiveBroadcast,
 	};
 
 	struct Message {
@@ -48,7 +49,8 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+				       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				       std::shared_ptr<Store::AuthStore> authStore,
 				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 				       std::shared_ptr<Store::YouTubeStore> youtubeStore,
@@ -68,6 +70,7 @@ public slots:
 	void segmentCurrentSession();
 
 private:
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
@@ -79,11 +82,23 @@ private:
 	Async::Task<void> mainLoopTask_;
 
 	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+					  std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					  std::shared_ptr<Store::AuthStore> authStore,
 					  std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 					  std::shared_ptr<Store::YouTubeStore> youtubeStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+
+	static Async::Task<void> startContinuousSessionTask(Async::Channel<Message> &channel);
+
+	static Async::Task<void> stopContinuousSessionTask(Async::Channel<Message> &channel);
+
+	static Async::Task<void> segmentLiveBroadcastTask(
+		Async::Channel<Message> &channel, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
+		std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::shared_ptr<const Logger::ILogger> logger,
+		QWidget *parent);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
