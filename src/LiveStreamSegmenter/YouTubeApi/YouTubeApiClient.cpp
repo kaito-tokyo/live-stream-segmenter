@@ -308,7 +308,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	curl_easy_reset(curl_.get());
 
 	CurlHelper::CurlUrlSearchParams params(curl_.get());
-	params.append("part", "id,snippet,cdn,status");
+	params.append("part", "id,snippet,contentDetails,status");
 	params.append("broadcastStatus", broadcastStatus);
 	std::string qs = params.toString();
 
