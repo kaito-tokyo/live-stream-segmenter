@@ -22,7 +22,7 @@
 
 #include <MainPluginContext.hpp>
 
-#define PLUGIN_NAME "live-backgroundremoval-lite"
+#define PLUGIN_NAME "live-stream-segmenter"
 
 #ifndef PLUGIN_VERSION
 #define PLUGIN_VERSION "0.0.0"
