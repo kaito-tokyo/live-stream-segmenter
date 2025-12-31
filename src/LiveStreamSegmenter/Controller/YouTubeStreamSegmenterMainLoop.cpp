@@ -131,6 +131,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 {
+	int currentLiveStreamIndex = 0;
+
 	while (true) {
 		std::optional<Message> message = co_await channel.receive();
 
@@ -144,19 +146,29 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 		try {
 			switch (message->type) {
 			case MessageType::StartContinuousSession: {
-				task = startContinuousSessionTask(channel);
+				Async::Task<void> task = startContinuousSessionTask(channel);
 				co_await task;
 				break;
 			}
-			case MessageType::StopContinuousSession:
-				task = stopContinuousSessionTask(channel);
+			case MessageType::StopContinuousSession: {
+				Async::Task<void> task = stopContinuousSessionTask(channel);
 				co_await task;
 				break;
-			case MessageType::SegmentLiveBroadcast:
-				task = segmentLiveBroadcastTask(channel, youTubeApiClient, runtime, authStore,
-								eventHandlerStore, youtubeStore, logger, parent);
+			}
+			case MessageType::SegmentLiveBroadcast: {
+				YouTubeApi::YouTubeLiveStream newLiveStream;
+				if (currentLiveStreamIndex == 0) {
+					newLiveStream = youtubeStore->getStreamKeyB();
+				} else if (currentLiveStreamIndex == 1) {
+					newLiveStream = youtubeStore->getStreamKeyA();
+				}
+				Async::Task<void> task = segmentLiveBroadcastTask(channel, logger, youTubeApiClient,
+										  runtime, authStore, eventHandlerStore,
+										  youtubeStore, parent, newLiveStream);
 				co_await task;
+				currentLiveStreamIndex = 1 - currentLiveStreamIndex;
 				break;
+			}
 			default:
 				logger->warn("UnknownMessageType");
 			}
@@ -182,11 +194,11 @@ YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask([[maybe_unused]] Async
 }
 
 Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
-	[[maybe_unused]] Async::Channel<Message> &channel,
+	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
+	QWidget *parent, const YouTubeApi::YouTubeLiveStream &newLiveStream)
 {
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
@@ -237,13 +249,22 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	}
 
-	YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
-
 	co_await AsyncQt::ResumeOnQObject{parent};
 
-	if (liveStream.cdn.ingestionType == "rtmp") {
+	if (newLiveStream.cdn.ingestionType == "rtmp") {
+		logger->info("CreatingYouTubeRTMPService");
 
-	} else if (liveStream.cdn.ingestionType == "hls") {
+		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
+		obs_data_set_string(settings.get(), "service", "YouTube - RTMP");
+
+		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
+
+		obs_data_set_string(settings.get(), "key", newLiveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_service_t *service =
+			obs_service_create("rtmp_common", "YouTube RTMP Service", settings.get(), NULL);
+
+		obs_frontend_set_streaming_service(service);
+	} else if (newLiveStream.cdn.ingestionType == "hls") {
 		logger->info("CreatingYouTubeHLSService");
 
 		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
@@ -253,15 +274,16 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 			settings.get(), "server",
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
 
-		obs_data_set_string(settings.get(), "key", liveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", newLiveStream.cdn.ingestionInfo.streamName.c_str());
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
-		obs_frontend_streaming_start();
 	} else {
-		logger->error("UnsupportedIngestionType", {{"type", liveStream.cdn.ingestionType}});
+		logger->error("UnsupportedIngestionType", {{"type", newLiveStream.cdn.ingestionType}});
 		co_return;
 	}
+
+	obs_frontend_streaming_start();
 
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
