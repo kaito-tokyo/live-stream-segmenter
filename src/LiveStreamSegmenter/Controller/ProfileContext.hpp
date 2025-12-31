@@ -24,8 +24,10 @@
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
-#include <YouTubeStore.hpp>
+#include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
+#include <YouTubeApiClient.hpp>
+#include <YouTubeStore.hpp>
 
 #include "YouTubeStreamSegmenterMainLoop.hpp"
 
