@@ -33,6 +33,8 @@
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
 #include <nlohmann/json.hpp>
+#include <ObsUnique.hpp>
+#include <ResumeOnQObject.hpp>
 #include <ResumeOnQThreadPool.hpp>
 #include <ScriptingDatabase.hpp>
 #include <YouTubeApiClient.hpp>
@@ -87,26 +89,8 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 
 namespace {
 
-Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-					     std::shared_ptr<Store::AuthStore> authStore,
-					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-					     std::shared_ptr<Store::YouTubeStore> youtubeStore,
-					     std::shared_ptr<const Logger::ILogger> logger)
+std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger)
 {
-	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-	Scripting::EventScriptingContext context(runtime, ctx, logger);
-	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
-					      true);
-	context.setupContext();
-	database.setupContext();
-	context.setupLocalStorage();
-
-	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
-	context.loadEventHandler(scriptContent.c_str());
-
-	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
-	nlohmann::json j = nlohmann::json::parse(result);
-	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
 	std::string accessToken;
 	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
@@ -133,7 +117,36 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 			"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
 
+	return accessToken;
+}
+
+Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					     std::shared_ptr<Store::AuthStore> authStore,
+					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+					     std::shared_ptr<Store::YouTubeStore> youtubeStore,
+					     std::shared_ptr<const Logger::ILogger> logger,
+					     [[maybe_unused]] QWidget *parent)
+{
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+
 	YouTubeApi::YouTubeApiClient apiClient(logger);
+
+	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	Scripting::EventScriptingContext context(runtime, ctx, logger);
+	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
+					      true);
+	context.setupContext();
+	database.setupContext();
+	context.setupLocalStorage();
+
+	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
+	context.loadEventHandler(scriptContent.c_str());
+
+	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
+	nlohmann::json j = nlohmann::json::parse(result);
+	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+
+	std::string accessToken = getAccessToken(authStore, logger);
 
 	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = apiClient.createLiveBroadcast(accessToken, settings);
 
@@ -165,7 +178,31 @@ Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::Scriptin
 		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
 	}
 
-	co_return;
+	YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
+
+	if (liveStream.cdn.ingestionType == "rtmp") {
+
+	} else if (liveStream.cdn.ingestionType == "hls") {
+		logger->info("CreatingYouTubeHLSService");
+
+		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
+		obs_data_set_string(settings.get(), "service", "YouTube - HLS");
+
+		obs_data_set_string(
+			settings.get(), "server",
+			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
+
+		obs_data_set_string(settings.get(), "key", liveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
+
+		obs_frontend_set_streaming_service(service);
+		obs_frontend_streaming_start();
+	} else {
+		logger->error("UnsupportedIngestionType", {{"type", liveStream.cdn.ingestionType}});
+		co_return;
+	}
+
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
 } // anonymous namespace
@@ -176,7 +213,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 							   std::shared_ptr<Store::YouTubeStore> youtubeStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
-							   [[maybe_unused]] QWidget *parent)
+							   QWidget *parent)
 {
 	while (true) {
 		std::optional<Message> message = co_await channel.receive();
@@ -190,9 +227,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		try {
 			switch (message->type) {
 			case MessageType::StartContinuousSession: {
-				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore,
-								       youtubeStore, logger);
-				task.start();
+				Async::Task<void> task = startContinuousSessionTask(
+					runtime, authStore, eventHandlerStore, youtubeStore, logger, parent);
 				co_await task;
 				break;
 			}
