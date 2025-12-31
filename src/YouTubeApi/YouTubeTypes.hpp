@@ -1,6 +1,8 @@
 /*
- * Live Stream Segmenter -  YouTubeApi Module
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo YouTubeApi Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +32,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi {
+namespace KaitoTokyo::YouTubeApi {
 
 struct YouTubeLiveStream {
 	std::string kind;
@@ -180,4 +182,4 @@ struct YouTubeLiveBroadcastSettings {
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p);
 
-} // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi
+} // namespace KaitoTokyo::YouTubeApi

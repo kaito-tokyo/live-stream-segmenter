@@ -1,6 +1,8 @@
 /*
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
  * KaitoTokyo Logger Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +32,7 @@
 
 #include "ILogger.hpp"
 
-namespace KaitoTokyo {
-namespace Logger {
+namespace KaitoTokyo::Logger {
 
 class NullLogger : public ILogger {
 public:
@@ -50,5 +51,4 @@ public:
 	}
 };
 
-} // namespace Logger
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::Logger
