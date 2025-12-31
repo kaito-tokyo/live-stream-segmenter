@@ -48,12 +48,11 @@ class StreamSegmenterDock : public QWidget {
 	public:
 		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
 
-		void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
+		void log(Logger::LogLevel level, std::string_view name, std::source_location,
 			 std::span<const Logger::LogField> context) const noexcept override
 		{
 			const int logLevel = static_cast<int>(level);
 			const QString logName = QString::fromUtf8(name.data(), name.size());
-			const QString logFunc = QString::fromUtf8(loc.function_name());
 
 			QMap<QString, QString> contextMap;
 			for (const auto &field : context) {
@@ -62,7 +61,7 @@ class StreamSegmenterDock : public QWidget {
 			}
 
 			QMetaObject::invokeMethod(
-				parent_, [=]() { parent_->logMessage(logLevel, logName, logFunc, contextMap); },
+				parent_, [=, this]() { parent_->logMessage(logLevel, logName, contextMap); },
 				Qt::QueuedConnection);
 		}
 
@@ -111,7 +110,8 @@ signals:
 	void segmentNowButtonClicked();
 
 public slots:
-	void logMessage(int level, const QString &name, const QString &function, const QMap<QString, QString> &context);
+	void logMessage(int level, const QString &name, const QMap<QString, QString> &context);
+
 private slots:
 	void onSettingsButtonClicked();
 

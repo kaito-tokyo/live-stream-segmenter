@@ -40,9 +40,7 @@
 
 using namespace KaitoTokyo::Logger;
 
-namespace KaitoTokyo {
-namespace LiveStreamSegmenter {
-namespace UI {
+namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
 StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent)
 	: QWidget(parent),
@@ -246,45 +244,91 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->addLayout(bottomControlLayout_);
 }
 
-void StreamSegmenterDock::logMessage(int level, const QString &name, const QString &function,
+void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &name,
 				     const QMap<QString, QString> &context)
 {
-	if (name == "StoppingCurrentStreamBeforeSegmenting") {
+	if (name == "OBSStreamingStarted") {
+		consoleView_->append(tr("OBS streaming started."));
+	} else if (name == "YouTubeLiveStreamStatusChecking") {
+		QString nextLiveStreamId = context.value("nextLiveStreamId");
+		if (!nextLiveStreamId.isEmpty()) {
+			consoleView_->append(
+				tr("Checking YouTube live stream status (ID: %1)...").arg(nextLiveStreamId));
+		} else {
+			consoleView_->append(tr("Checking YouTube live stream status..."));
+		}
+	} else if (name == "YouTubeLiveStreamActive") {
+		consoleView_->append(tr("YouTube live stream is active."));
+	} else if (name == "YouTubeLiveStreamNotActiveYet") {
+		QString remainingAttempts = context.value("remainingAttempts");
+		if (!remainingAttempts.isEmpty()) {
+			consoleView_->append(tr("YouTube live stream is not active yet. Remaining attempts: %1")
+						     .arg(remainingAttempts));
+		} else {
+			consoleView_->append(tr("YouTube live stream is not active yet."));
+		}
+	} else if (name == "YouTubeLiveStreamStartTimeout") {
+		consoleView_->append(tr("Timeout: YouTube live stream did not become active in time."));
+	} else if (name == "YouTubeLiveBroadcastTransitioningToTesting") {
+		consoleView_->append(tr("Transitioning YouTube live broadcast to 'testing' state..."));
+	} else if (name == "YouTubeLiveBroadcastTransitionedToTesting") {
+		consoleView_->append(tr("YouTube live broadcast transitioned to 'testing' state."));
+	} else if (name == "YouTubeLiveBroadcastTransitioningToLive") {
+		consoleView_->append(tr("Transitioning YouTube live broadcast to 'live' state..."));
+	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
+		consoleView_->append(tr("YouTube live broadcast transitioned to 'live' state."));
+	} else if (name == "UnsupportedIngestionTypeError") {
+		QString msg;
+		if (context.contains("type")) {
+			msg = tr("Unsupported ingestion type: %1").arg(context["type"]);
+		} else {
+			msg = tr("Unsupported ingestion type: %1").arg(context["type"]);
+		}
+		consoleView_->append(msg);
+	} else if (name == "YouTubeRTMPServiceCreated") {
+		consoleView_->append(tr("YouTube RTMP service created."));
+	} else if (name == "YouTubeHLSServiceCreated") {
+		consoleView_->append(tr("YouTube HLS service created."));
+	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
 		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
 		if (context.contains("title")) {
 			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
 		} else {
-			msg = tr("Completing existing live broadcast.");
-		} else if (name == "YouTubeLiveBroadcastThumbnailSetting") {
-			QString msg;
-			if (context.contains("thumbnailFile")) {
-				msg = tr("Setting YouTube live broadcast thumbnail: %1").arg(context["thumbnailFile"]);
-			} else {
-				msg = tr("Setting YouTube live broadcast thumbnail.");
-			}
-			consoleView_->append(msg);
-		} else if (name == "YouTubeLiveBroadcastThumbnailSet") {
-			QString msg;
-			if (context.contains("thumbnailFile")) {
-				msg = tr("YouTube live broadcast thumbnail set: %1").arg(context["thumbnailFile"]);
-			} else {
-				msg = tr("YouTube live broadcast thumbnail set.");
-			}
-			consoleView_->append(msg);
-		} else if (name == "YouTubeLiveBroadcastThumbnailMissing") {
-			QString msg;
-			if (context.contains("thumbnailFile")) {
-				msg = tr("YouTube live broadcast thumbnail missing: %1").arg(context["thumbnailFile"]);
-			} else {
-				msg = tr("YouTube live broadcast thumbnail missing.");
-			}
-			consoleView_->append(msg);
-		} else if (name == "YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId") {
-			consoleView_->append(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."));
+			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
 		}
 		consoleView_->append(msg);
+	} else if (name == "YouTubeLiveBroadcastThumbnailSetting") {
+		QString msg;
+		if (context.contains("thumbnailFile")) {
+			msg = tr("Setting YouTube live broadcast thumbnail: %1").arg(context["thumbnailFile"]);
+		} else {
+			msg = tr("Setting YouTube live broadcast thumbnail.");
+		}
+		consoleView_->append(msg);
+	} else if (name == "YouTubeLiveBroadcastBinding") {
+		consoleView_->append(tr("Binding YouTube live broadcast to stream..."));
+	} else if (name == "YouTubeLiveBroadcastBound") {
+		consoleView_->append(tr("YouTube live broadcast bound to stream."));
+	} else if (name == "YouTubeLiveBroadcastThumbnailSet") {
+		QString msg;
+		if (context.contains("thumbnailFile")) {
+			msg = tr("YouTube live broadcast thumbnail set: %1").arg(context["thumbnailFile"]);
+		} else {
+			msg = tr("YouTube live broadcast thumbnail set.");
+		}
+		consoleView_->append(msg);
+	} else if (name == "YouTubeLiveBroadcastThumbnailMissing") {
+		QString msg;
+		if (context.contains("thumbnailFile")) {
+			msg = tr("YouTube live broadcast thumbnail missing: %1").arg(context["thumbnailFile"]);
+		} else {
+			msg = tr("YouTube live broadcast thumbnail missing.");
+		}
+		consoleView_->append(msg);
+	} else if (name == "YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId") {
+		consoleView_->append(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."));
 	} else if (name == "YouTubeLiveBroadcastInserting") {
 		consoleView_->append(tr("Creating new YouTube live broadcast..."));
 	} else if (name == "YouTubeLiveBroadcastInserted") {
@@ -304,6 +348,4 @@ void StreamSegmenterDock::onSettingsButtonClicked()
 	settingsDialog.exec();
 }
 
-} // namespace UI
-} // namespace LiveStreamSegmenter
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::LiveStreamSegmenter::UI
