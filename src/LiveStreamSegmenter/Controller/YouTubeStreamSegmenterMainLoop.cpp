@@ -33,6 +33,7 @@
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
 #include <nlohmann/json.hpp>
+#include <ResumeOnQObject.hpp>
 #include <ResumeOnQThreadPool.hpp>
 #include <ScriptingDatabase.hpp>
 #include <YouTubeApiClient.hpp>
@@ -87,85 +88,117 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 
 namespace {
 
-Async::Task<void> startContinuousSessionTask(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-					     std::shared_ptr<Store::AuthStore> authStore,
-					     std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-					     std::shared_ptr<Store::YouTubeStore> youtubeStore,
-					     std::shared_ptr<const Logger::ILogger> logger)
+Async::Task<void>
+startContinuousSessionTask([[maybe_unused]] std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+			   [[maybe_unused]] std::shared_ptr<Store::AuthStore> authStore,
+			   [[maybe_unused]] std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+			   [[maybe_unused]] std::shared_ptr<Store::YouTubeStore> youtubeStore,
+			   [[maybe_unused]] std::shared_ptr<const Logger::ILogger> logger,
+			   [[maybe_unused]] QWidget *parent)
 {
-	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-	Scripting::EventScriptingContext context(runtime, ctx, logger);
-	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
-					      true);
-	context.setupContext();
-	database.setupContext();
-	context.setupLocalStorage();
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
-	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
-	context.loadEventHandler(scriptContent.c_str());
+	// std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
+	// Scripting::EventScriptingContext context(runtime, ctx, logger);
+	// Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
+	// 				      true);
+	// context.setupContext();
+	// database.setupContext();
+	// context.setupLocalStorage();
 
-	std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
-	nlohmann::json j = nlohmann::json::parse(result);
-	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
+	// const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
+	// context.loadEventHandler(scriptContent.c_str());
 
-	std::string accessToken;
-	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
-	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
-	if (tokenState.isAuthorized()) {
-		if (tokenState.isAccessTokenFresh()) {
-			logger->info("YouTubeAccessTokenFresh");
-			accessToken = tokenState.access_token;
-		} else {
-			logger->info("YouTubeAccessTokenNotFresh");
-			GoogleAuth::GoogleAuthResponse freshAuthResponse =
-				authManager.fetchFreshAuthResponse(tokenState.refresh_token);
-			GoogleAuth::GoogleTokenState newTokenState =
-				tokenState.withUpdatedAuthResponse(freshAuthResponse);
-			authStore->setGoogleTokenState(newTokenState);
-			accessToken = freshAuthResponse.access_token;
-			logger->info("YouTubeAccessTokenFetched");
-		}
-	}
+	// std::string result = context.executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
+	// nlohmann::json j = nlohmann::json::parse(result);
+	// YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
-	if (accessToken.empty()) {
-		logger->error("YouTubeAccessTokenUnavailable");
-		throw std::runtime_error(
-			"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
-	}
+	// std::string accessToken;
+	// GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
+	// GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
+	// if (tokenState.isAuthorized()) {
+	// 	if (tokenState.isAccessTokenFresh()) {
+	// 		logger->info("YouTubeAccessTokenFresh");
+	// 		accessToken = tokenState.access_token;
+	// 	} else {
+	// 		logger->info("YouTubeAccessTokenNotFresh");
+	// 		GoogleAuth::GoogleAuthResponse freshAuthResponse =
+	// 			authManager.fetchFreshAuthResponse(tokenState.refresh_token);
+	// 		GoogleAuth::GoogleTokenState newTokenState =
+	// 			tokenState.withUpdatedAuthResponse(freshAuthResponse);
+	// 		authStore->setGoogleTokenState(newTokenState);
+	// 		accessToken = freshAuthResponse.access_token;
+	// 		logger->info("YouTubeAccessTokenFetched");
+	// 	}
+	// }
 
-	YouTubeApi::YouTubeApiClient apiClient(logger);
+	// if (accessToken.empty()) {
+	// 	logger->error("YouTubeAccessTokenUnavailable");
+	// 	throw std::runtime_error(
+	// 		"YouTubeAccessTokenUnavailable(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+	// }
 
-	YouTubeApi::YouTubeLiveBroadcast liveBroadcast = apiClient.createLiveBroadcast(accessToken, settings);
+	// YouTubeApi::YouTubeApiClient apiClient(logger);
 
-	nlohmann::json setThumbnailEventObj{
-		{"LiveBroadcast", liveBroadcast},
-	};
-	std::string setThumbnailEventObjJson = setThumbnailEventObj.dump();
-	std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast",
-							      setThumbnailEventObjJson.c_str());
-	nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
+	// // YouTubeApi::YouTubeLiveBroadcast liveBroadcast = apiClient.createLiveBroadcast(accessToken, settings);
+	// YouTubeApi::YouTubeLiveBroadcast liveBroadcast;
+	// liveBroadcast.id = "XFis52YTv30";
 
-	if (jThumbnail.contains("videoId") && jThumbnail["videoId"].is_string()) {
-		auto videoId = jThumbnail.at("videoId").get<std::string>();
+	// nlohmann::json setThumbnailEventObj{
+	// 	{"LiveBroadcast", liveBroadcast},
+	// };
+	// std::string setThumbnailEventObjJson = setThumbnailEventObj.dump();
+	// std::string thumbnailResult = context.executeFunction("onSetThumbnailOnCreatedYouTubeLiveBroadcast",
+	// 						      setThumbnailEventObjJson.c_str());
+	// nlohmann::json jThumbnail = nlohmann::json::parse(thumbnailResult);
 
-		if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
-			auto thumbnailFile = jThumbnail.at("thumbnailFile").get<std::string>();
-			std::filesystem::path thumbnailPath(thumbnailFile);
-			apiClient.setThumbnail(accessToken, videoId, thumbnailPath);
-			logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
-		} else {
-			logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
-		}
+	// if (jThumbnail.contains("videoId") && jThumbnail["videoId"].is_string()) {
+	// 	auto videoId = jThumbnail.at("videoId").get<std::string>();
 
-		logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}});
-		YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
-		apiClient.bindLiveBroadcast(accessToken, liveBroadcast.id, liveStream.id);
-		logger->info("YouTubeLiveBroadcastBound");
+	// 	if (jThumbnail.contains("thumbnailFile") && jThumbnail["thumbnailFile"].is_string()) {
+	// 		auto thumbnailFile = jThumbnail.at("thumbnailFile").get<std::string>();
+	// 		std::filesystem::path thumbnailPath(thumbnailFile);
+	// 		apiClient.setThumbnail(accessToken, videoId, thumbnailPath);
+	// 		logger->info("YouTubeThumbnailSet", {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
+	// 	} else {
+	// 		logger->warn("ThumbnailFileMissing", {{"videoId", videoId}});
+	// 	}
+
+	// 	logger->info("YouTubeLiveBroadcastCreated", {{"broadcastId", liveBroadcast.id}});
+	// 	YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
+	// 	apiClient.bindLiveBroadcast(accessToken, liveBroadcast.id, liveStream.id);
+	// 	logger->info("YouTubeLiveBroadcastBound");
+	// } else {
+	// 	logger->warn("SkippingThumbnailSetDueToMissingVideoId");
+	// }
+
+
+	// YouTubeApi::YouTubeLiveStream liveStream = youtubeStore->getStreamKeyA();
+
+	if (liveStream.cdn.ingestionType == "rtmp") {
+
+	} else if (liveStream.cdn.ingestionType == "hls") {
+		logger->info("CreatingYouTubeHLSService");
+
+		obs_data_t *settings = obs_data_create();
+		obs_data_set_string(settings, "service", "YouTube - HLS");
+
+		obs_data_set_string(settings, "server",
+			    "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
+
+		obs_data_set_string(settings, "key", liveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings, NULL);
+
+		obs_data_release(settings);
+
+		obs_frontend_set_streaming_service(service);
+		obs_frontend_streaming_start();
 	} else {
-		logger->warn("SkippingThumbnailSetDueToMissingVideoId");
+		logger->error("UnsupportedIngestionType", {{"type", liveStream.cdn.ingestionType}});
+		co_return;
 	}
 
-	co_return;
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
 } // anonymous namespace
@@ -176,7 +209,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 							   std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 							   std::shared_ptr<Store::YouTubeStore> youtubeStore,
 							   std::shared_ptr<const Logger::ILogger> logger,
-							   [[maybe_unused]] QWidget *parent)
+							   QWidget *parent)
 {
 	while (true) {
 		std::optional<Message> message = co_await channel.receive();
@@ -190,9 +223,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(Async::Channel<Messag
 		try {
 			switch (message->type) {
 			case MessageType::StartContinuousSession: {
-				auto task = startContinuousSessionTask(runtime, authStore, eventHandlerStore,
-								       youtubeStore, logger);
-				task.start();
+				Async::Task<void> task = startContinuousSessionTask(runtime, authStore, eventHandlerStore,
+								       youtubeStore, logger, parent);
 				co_await task;
 				break;
 			}
