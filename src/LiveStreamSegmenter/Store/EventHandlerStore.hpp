@@ -31,22 +31,22 @@
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <ILogger.hpp>
+#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class EventHandlerStore {
 public:
-	explicit EventHandlerStore(std::shared_ptr<const Logger::ILogger> logger)
-		: logger_(logger ? std::move(logger)
-				 : throw std::invalid_argument(
-					   "LoggerIsNullError(EventHandlerStore::EventHandlerStore)")) {};
+	EventHandlerStore() = default;
 	~EventHandlerStore() noexcept = default;
 
 	EventHandlerStore(const EventHandlerStore &) = delete;
 	EventHandlerStore &operator=(const EventHandlerStore &) = delete;
 	EventHandlerStore(EventHandlerStore &&) = delete;
 	EventHandlerStore &operator=(EventHandlerStore &&) = delete;
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	void setEventHandlerScript(std::string eventHandlerScript)
 	{
@@ -140,10 +140,10 @@ private:
 		return profilePath / "live-stream-segmenter_EventHandlerStore.json";
 	}
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
 	mutable std::mutex mutex_;
 	std::string eventHandlerScript_;
+
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

@@ -23,56 +23,39 @@
 
 #pragma once
 
-#include <iostream>
-#include <memory>
+#include <iterator>
 #include <source_location>
 #include <span>
 #include <string_view>
+#include <vector>
+#include <memory>
+#include <iostream>
 
 #include "ILogger.hpp"
 
-namespace KaitoTokyo {
-namespace Logger {
+namespace KaitoTokyo::Logger {
 
-class PrintLogger : public ILogger {
+class MultiLogger : public ILogger {
 public:
-	PrintLogger() = default;
-	~PrintLogger() override = default;
+	explicit MultiLogger(std::vector<std::shared_ptr<const ILogger>> loggers) : loggers_(std::move(loggers)) {}
+	virtual ~MultiLogger() noexcept = default;
+
+	MultiLogger(const MultiLogger &) = delete;
+	MultiLogger &operator=(const MultiLogger &) = delete;
+	MultiLogger(MultiLogger &&) = delete;
+	MultiLogger &operator=(MultiLogger &&) = delete;
 
 	void log(LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const LogField> context) const noexcept override
 	{
-		switch (level) {
-		case LogLevel::Debug:
-			std::cout << "level=DEBUG";
-			break;
-		case LogLevel::Info:
-			std::cout << "level=INFO";
-			break;
-		case LogLevel::Warn:
-			std::cout << "level=WARN";
-			break;
-		case LogLevel::Error:
-			std::cout << "level=ERROR";
-			break;
-		default:
-			std::cout << "level=UNKNOWN";
-			break;
+		std::cout << "MultiLogger " << loggers_.size() << " loggers" << std::endl;
+		for (const std::shared_ptr<const ILogger> &logger : loggers_) {
+			logger->log(level, name, loc, context);
 		}
-
-		std::cout << "\tname=" << name << "\tlocation=" << loc.file_name() << ":" << loc.line();
-		for (const auto &field : context) {
-			std::cout << "\t" << field.key << "=" << field.value;
-		}
-		std::cout << std::endl;
 	}
 
-	static std::shared_ptr<PrintLogger> instance()
-	{
-		static std::shared_ptr<PrintLogger> instance = std::make_shared<PrintLogger>();
-		return instance;
-	}
+private:
+	std::vector<std::shared_ptr<const ILogger>> loggers_;
 };
 
-} // namespace Logger
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::Logger

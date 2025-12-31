@@ -20,20 +20,22 @@
 
 #include <mutex>
 
-#include <QDateTime>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QPushButton>
-#include <QTextEdit>
-#include <QToolButton>
-#include <QVBoxLayout>
+#include <QWidget>
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
+#include <NullLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <YouTubeStore.hpp>
+
+class QGroupBox;
+class QHBoxLayout;
+class QLabel;
+class QPushButton;
+class QTextEdit;
+class QToolButton;
+class QVBoxLayout;
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -42,15 +44,47 @@ namespace UI {
 class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
 
+	class LoggerAdapter : public Logger::ILogger {
+	public:
+		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
+
+		void log(Logger::LogLevel level, std::string_view name, std::source_location,
+			 std::span<const Logger::LogField> context) const noexcept override
+		{
+			const int logLevel = static_cast<int>(level);
+			const QString logName = QString::fromUtf8(name.data(), name.size());
+
+			QMap<QString, QString> contextMap;
+			for (const auto &field : context) {
+				contextMap.insert(QString::fromUtf8(field.key.data(), field.key.size()),
+						  QString::fromUtf8(field.value.data(), field.value.size()));
+			}
+
+			QMetaObject::invokeMethod(
+				parent_, [=, this]() { parent_->logMessage(logLevel, logName, contextMap); },
+				Qt::QueuedConnection);
+		}
+
+	private:
+		StreamSegmenterDock *const parent_;
+	};
+
 public:
-	StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-			    std::shared_ptr<const Logger::ILogger> logger, QWidget *parent = nullptr);
+	StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
 	StreamSegmenterDock(const StreamSegmenterDock &) = delete;
 	StreamSegmenterDock &operator=(const StreamSegmenterDock &) = delete;
 	StreamSegmenterDock(StreamSegmenterDock &&) = delete;
 	StreamSegmenterDock &operator=(StreamSegmenterDock &&) = delete;
+
+	std::shared_ptr<const Logger::ILogger> getLoggerAdapter() const { return loggerAdapter_; }
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger)
+	{
+		std::scoped_lock lock(mutex_);
+		logger_ = std::move(logger);
+	}
 
 	void setAuthStore(std::shared_ptr<Store::AuthStore> authStore)
 	{
@@ -75,6 +109,9 @@ signals:
 	void stopButtonClicked();
 	void segmentNowButtonClicked();
 
+public slots:
+	void logMessage(int level, const QString &name, const QMap<QString, QString> &context);
+
 private slots:
 	void onSettingsButtonClicked();
 
@@ -82,7 +119,7 @@ private:
 	void setupUi();
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<const Logger::ILogger> loggerAdapter_;
 
 	// Data Cache
 	QString currentStatusText_;
@@ -137,6 +174,7 @@ private:
 	QPushButton *const segmentNowButton_;
 
 	mutable std::mutex mutex_;
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;

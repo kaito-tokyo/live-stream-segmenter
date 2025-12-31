@@ -31,19 +31,22 @@
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <ILogger.hpp>
+#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class AuthStore {
 public:
-	explicit AuthStore(std::shared_ptr<const Logger::ILogger> logger) : logger_(std::move(logger)) {};
+	AuthStore() = default;
 	~AuthStore() noexcept = default;
 
 	AuthStore(const AuthStore &) = delete;
 	AuthStore &operator=(const AuthStore &) = delete;
 	AuthStore(AuthStore &&) = delete;
 	AuthStore &operator=(AuthStore &&) = delete;
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	void setGoogleOAuth2ClientCredentials(GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials)
 	{
@@ -133,11 +136,11 @@ private:
 		return profilePath / "live-stream-segmenter_AuthStore.json";
 	}
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
 	mutable std::mutex mutex_;
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
 	GoogleAuth::GoogleTokenState googleTokenState_;
+
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

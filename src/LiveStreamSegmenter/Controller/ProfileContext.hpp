@@ -24,6 +24,7 @@
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
+#include <MultiLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 #include <YouTubeApiClient.hpp>
@@ -42,16 +43,22 @@ public:
 
 	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
-		: logger_(std::move(logger)),
-		  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(logger_)),
+		: youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>()),
 		  runtime_(std::move(runtime)),
-		  authStore_(std::make_shared<Store::AuthStore>(logger_)),
-		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>(logger_)),
-		  youTubeStore_(std::make_shared<Store::YouTubeStore>(logger_)),
+		  authStore_(std::make_shared<Store::AuthStore>()),
+		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
+		  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
 		  dock_(dock),
+		  logger_(std::make_shared<Logger::MultiLogger>(
+			  std::vector<std::shared_ptr<const Logger::ILogger>>{logger, dock_->getLoggerAdapter()})),
 		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
 			  youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 	{
+		youTubeApiClient_->setLogger(logger_);
+		authStore_->setLogger(logger_);
+		eventHandlerStore_->setLogger(logger_);
+		youTubeStore_->setLogger(logger_);
+
 		authStore_->restoreAuthStore();
 		eventHandlerStore_->restore();
 		youTubeStore_->restoreYouTubeStore();
@@ -82,7 +89,6 @@ public:
 	ProfileContext &operator=(ProfileContext &&) = delete;
 
 private:
-	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
@@ -90,6 +96,7 @@ private:
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
 	UI::StreamSegmenterDock *const dock_;
+	const std::shared_ptr<const Logger::ILogger> logger_;
 	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;
 };
 
