@@ -344,7 +344,12 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 
 void StreamSegmenterDock::onSettingsButtonClicked()
 {
-	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, this);
+	auto logger = [this]() {
+		std::scoped_lock lock(mutex_);
+		return logger_;
+	}();
+
+	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger, this);
 	settingsDialog.exec();
 }
 
