@@ -292,6 +292,50 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 	return streamKeys;
 }
 
+std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(std::string_view accessToken,
+									    std::string_view broadcastStatus)
+{
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::listStreamKeys)");
+	}
+	if (broadcastStatus.empty()) {
+		logger_->error("BroadcastStatusIsEmptyError");
+		throw std::invalid_argument("BroadcastStatusIsEmptyError(YouTubeApiClient::listLiveBroadcastsByStatus)");
+	}
+
+	curl_easy_reset(curl_.get());
+
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
+	params.append("part", "id,snippet,cdn,status");
+	params.append("broadcastStatus", broadcastStatus);
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveBroadcasts");
+	urlHandle.appendQuery(qs.c_str());
+
+	CurlHelper::CurlSlistHandle headers;
+	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+
+	auto url = urlHandle.c_str();
+	std::vector<nlohmann::json> items = performList(curl_.get(), url.get(), logger_, headers.get());
+
+	std::vector<YouTubeLiveBroadcast> broadcasts;
+	try {
+		for (const nlohmann::json &item : items) {
+			broadcasts.push_back(item.get<YouTubeLiveBroadcast>());
+		}
+	} catch (const std::exception &e) {
+		// Do not print the response body, which includes stream keys
+		logger_->error("ParseLiveStreamError", {{"exception", e.what()}});
+		throw std::runtime_error("ParseLiveStreamError(YouTubeApiClient::listStreamKeys)");
+	}
+
+	return broadcasts;
+}
+
 YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view accessToken,
 							   const YouTubeLiveBroadcastSettings &settings)
 {
@@ -317,78 +361,6 @@ YouTubeLiveBroadcast YouTubeApiClient::createLiveBroadcast(std::string_view acce
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	return j.get<YouTubeLiveBroadcast>();
-}
-
-void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_view videoId,
-				    const std::filesystem::path &thumbnailPath)
-{
-	constexpr std::uintmax_t kMaxThumbnailBytes = 2 * 1024 * 1024;
-
-	if (accessToken.empty()) {
-		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::setThumbnail)");
-	}
-	if (videoId.empty()) {
-		logger_->error("VideoIdIsEmptyError");
-		throw std::invalid_argument("VideoIdIsEmptyError(YouTubeApiClient::setThumbnail)");
-	}
-	if (thumbnailPath.empty()) {
-		logger_->error("ThumbnailPathIsEmptyError");
-		throw std::invalid_argument("ThumbnailPathIsEmptyError(YouTubeApiClient::setThumbnail)");
-	}
-
-	if (!std::filesystem::exists(thumbnailPath)) {
-		logger_->error("ThumbnailFileNotExistError", {{"path", thumbnailPath.string()}});
-		throw std::invalid_argument("ThumbnailFileNotExistError(YouTubeApiClient::setThumbnail)");
-	}
-	if (!std::filesystem::is_regular_file(thumbnailPath)) {
-		logger_->error("ThumbnailNotRegularFileError", {{"path", thumbnailPath.string()}});
-		throw std::invalid_argument("ThumbnailNotRegularFileError(YouTubeApiClient::setThumbnail)");
-	}
-
-	std::uintmax_t size = std::filesystem::file_size(thumbnailPath);
-	if (size > kMaxThumbnailBytes) {
-		logger_->error("ThumbnailFileSizeExceedsLimitError", {{"path", thumbnailPath.string()},
-								      {"size", std::to_string(size)},
-								      {"maxSize", std::to_string(kMaxThumbnailBytes)}});
-		throw std::invalid_argument("ThumbnailFileSizeExceedsLimitError(YouTubeApiClient::setThumbnail)");
-	}
-	// FIXME: Path whitelist will be implemented later.
-
-	curl_easy_reset(curl_.get());
-
-	CurlHelper::CurlUrlSearchParams params(curl_.get());
-	params.append("videoId", videoId);
-	std::string qs = params.toString();
-
-	CurlHelper::CurlUrlHandle urlHandle;
-	urlHandle.setUrl("https://www.googleapis.com/upload/youtube/v3/thumbnails/set");
-	urlHandle.appendQuery(qs.c_str());
-	auto url = urlHandle.c_str();
-
-	CurlHelper::CurlSlistHandle headers;
-
-	const std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
-	headers.append(authHeader.c_str());
-
-	const std::string ext = getLowercaseExtension(thumbnailPath);
-	if (ext == ".png") {
-		headers.append("Content-Type: image/png");
-	} else if (ext == ".jpg" || ext == ".jpeg") {
-		headers.append("Content-Type: image/jpeg");
-	} else {
-		headers.append("Content-Type: application/octet-stream");
-	}
-
-	std::ifstream ifs(thumbnailPath, std::ios::binary);
-	if (!ifs.is_open()) {
-		logger_->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
-		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
-	}
-
-	std::string responseBody = doPost(curl_.get(), url.get(), ifs, size, logger_, headers.get());
-	ifs.close();
-	logger_->info("ThumbnailSet", {{"responseBody", responseBody}});
 }
 
 YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
@@ -470,6 +442,78 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string_view 
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	return j.get<YouTubeLiveBroadcast>();
+}
+
+void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string_view videoId,
+				    const std::filesystem::path &thumbnailPath)
+{
+	constexpr std::uintmax_t kMaxThumbnailBytes = 2 * 1024 * 1024;
+
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::setThumbnail)");
+	}
+	if (videoId.empty()) {
+		logger_->error("VideoIdIsEmptyError");
+		throw std::invalid_argument("VideoIdIsEmptyError(YouTubeApiClient::setThumbnail)");
+	}
+	if (thumbnailPath.empty()) {
+		logger_->error("ThumbnailPathIsEmptyError");
+		throw std::invalid_argument("ThumbnailPathIsEmptyError(YouTubeApiClient::setThumbnail)");
+	}
+
+	if (!std::filesystem::exists(thumbnailPath)) {
+		logger_->error("ThumbnailFileNotExistError", {{"path", thumbnailPath.string()}});
+		throw std::invalid_argument("ThumbnailFileNotExistError(YouTubeApiClient::setThumbnail)");
+	}
+	if (!std::filesystem::is_regular_file(thumbnailPath)) {
+		logger_->error("ThumbnailNotRegularFileError", {{"path", thumbnailPath.string()}});
+		throw std::invalid_argument("ThumbnailNotRegularFileError(YouTubeApiClient::setThumbnail)");
+	}
+
+	std::uintmax_t size = std::filesystem::file_size(thumbnailPath);
+	if (size > kMaxThumbnailBytes) {
+		logger_->error("ThumbnailFileSizeExceedsLimitError", {{"path", thumbnailPath.string()},
+								      {"size", std::to_string(size)},
+								      {"maxSize", std::to_string(kMaxThumbnailBytes)}});
+		throw std::invalid_argument("ThumbnailFileSizeExceedsLimitError(YouTubeApiClient::setThumbnail)");
+	}
+	// FIXME: Path whitelist will be implemented later.
+
+	curl_easy_reset(curl_.get());
+
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
+	params.append("videoId", videoId);
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/upload/youtube/v3/thumbnails/set");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
+
+	CurlHelper::CurlSlistHandle headers;
+
+	const std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+
+	const std::string ext = getLowercaseExtension(thumbnailPath);
+	if (ext == ".png") {
+		headers.append("Content-Type: image/png");
+	} else if (ext == ".jpg" || ext == ".jpeg") {
+		headers.append("Content-Type: image/jpeg");
+	} else {
+		headers.append("Content-Type: application/octet-stream");
+	}
+
+	std::ifstream ifs(thumbnailPath, std::ios::binary);
+	if (!ifs.is_open()) {
+		logger_->error("ThumbnailFileOpenError", {{"path", thumbnailPath.string()}});
+		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
+	}
+
+	std::string responseBody = doPost(curl_.get(), url.get(), ifs, size, logger_, headers.get());
+	ifs.close();
+	logger_->info("ThumbnailSet", {{"responseBody", responseBody}});
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::YouTubeApi

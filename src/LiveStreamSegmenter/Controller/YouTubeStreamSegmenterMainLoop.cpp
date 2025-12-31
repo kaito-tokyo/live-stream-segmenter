@@ -324,7 +324,6 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		}
 	}
 
-
 	co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 	youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "testing");
