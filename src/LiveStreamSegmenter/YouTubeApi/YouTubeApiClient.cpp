@@ -248,7 +248,8 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<const Logger::ILogger> logger
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_view accessToken, std::span<std::string_view> ids)
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_view accessToken,
+								 std::span<std::string_view> ids)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -462,6 +463,8 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string_view 
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
+	logger_->info("TransitioningLiveBroadcast",
+		      {{"broadcastId", broadcastId}, {"broadcastStatus", broadcastStatus}});
 	std::string responseBody = doPost(curl_.get(), url.get(), logger_, headers.get());
 	logger_->info("LiveBroadcastTransitioned", {{"responseBody", responseBody}});
 

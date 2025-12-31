@@ -34,9 +34,7 @@ namespace KaitoTokyo::AsyncQt {
 
 class ResumeOnQTimerSingleShot {
 public:
-	ResumeOnQTimerSingleShot(int interval, QObject *parent) : interval_(interval), parent_(parent)
-	{
-	}
+	ResumeOnQTimerSingleShot(int interval, QObject *parent) : interval_(interval), parent_(parent) {}
 
 	bool await_ready() const noexcept { return false; }
 

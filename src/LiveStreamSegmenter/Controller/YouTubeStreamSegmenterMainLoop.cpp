@@ -199,9 +199,16 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-	QWidget *parent, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
+	const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
+	if (obs_frontend_streaming_active()) {
+		logger->info("StoppingCurrentStreamBeforeSegmenting");
+		obs_frontend_streaming_stop();
+		co_await AsyncQt::ResumeOnQTimerSingleShot{10000, parent};
+		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+	}
+
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
 	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
@@ -294,17 +301,21 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	obs_frontend_streaming_start();
 
 	logger->info("WaitingForLiveBroadcastStart");
-	std::array<std::string_view, 1> ids{ nextLiveStream.id };
+	std::array<std::string_view, 1> ids{nextLiveStream.id};
 	for (int maxAttempts = 20; true; --maxAttempts) {
 		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
-		std::vector<YouTubeApi::YouTubeLiveStream> liveStreams = youTubeApiClient->listLiveStreams(accessToken, ids);
-		if (liveStreams.size() > 0 && liveStreams[0].status.has_value() && liveStreams[0].status->streamStatus == "active") {
+		logger->info("CheckingYouTubeLiveStreamStatus", {{"nextLiveStreamId", nextLiveStream.id}});
+		std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
+			youTubeApiClient->listLiveStreams(accessToken, ids);
+		if (liveStreams.size() > 0 && liveStreams[0].status.has_value() &&
+		    liveStreams[0].status->streamStatus == "active") {
 			logger->info("YouTubeLiveStreamActive");
 			break;
 		} else {
-			logger->info("YouTubeLiveStreamNotActiveYet", {{"remainingAttempts", std::to_string(maxAttempts)}});
+			logger->info("YouTubeLiveStreamNotActiveYet",
+				     {{"remainingAttempts", std::to_string(maxAttempts)}});
 		}
 
 		if (maxAttempts <= 0) {
@@ -313,8 +324,17 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 		}
 	}
 
-	YouTubeApi::YouTubeLiveBroadcast startedLiveBroadcast = youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "live");
-	logger->info("YouTubeLiveBroadcastStarted");
+
+	co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+	youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "testing");
+	logger->info("YouTubeLiveBroadcastTransitionedToTesting");
+
+	co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+	youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "live");
+
+	logger->info("YouTubeLiveBroadcastTransitionedToLive");
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
