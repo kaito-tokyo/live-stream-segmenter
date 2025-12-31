@@ -147,6 +147,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 				break;
 			}
 			case MessageType::StopContinuousSession:
+				task = stopContinuousSessionTask(channel);
+				co_await task;
 				break;
 			case MessageType::SegmentLiveBroadcast:
 				task = segmentLiveBroadcastTask(channel, youTubeApiClient, runtime, authStore,
