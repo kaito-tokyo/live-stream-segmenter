@@ -154,7 +154,7 @@ if(NOT nlohmann_json_FOUND)
 endif()
 
 # --- qjs (QuickJS) ---
-find_package(qjs CONFIG QUIET)
+find_package(qjs NAMES qjs quickjs CONFIG QUIET)
 
 if(NOT qjs_FOUND AND PkgConfig_FOUND)
   pkg_check_modules(PC_QJS qjs)
