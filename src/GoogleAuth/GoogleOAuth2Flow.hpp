@@ -53,10 +53,6 @@ public:
 	std::string getAuthorizationUrl(std::string redirectUri) const;
 
 	[[nodiscard]]
-	std::optional<GoogleAuthResponse> exchangeCodeForToken(const std::string &code, const std::string &redirectUri);
-
-private:
-	[[nodiscard]]
 	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
 
 	const std::shared_ptr<CurlHelper::CurlHandle> curl_;

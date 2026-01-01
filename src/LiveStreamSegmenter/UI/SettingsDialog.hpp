@@ -87,6 +87,7 @@ private slots:
 	void onEditLocalStorageItem();
 	void onDeleteLocalStorageItem();
 	void onLocalStorageTableDoubleClicked(int row, int column);
+	void onCodeReceived(const QString &code, const QUrl &redirectUri);
 
 private:
 	void setupUi();
@@ -100,9 +101,10 @@ private:
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	static Async::Task<void> runAuthFlow(QPointer<SettingsDialog> self);
+	void startGoogleOAuth2Flow();
+	void runAuthFlow();
 
-	Async::Task<void> fetchStreamKeys();
+	void fetchStreamKeys();
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
@@ -175,10 +177,8 @@ private:
 
 	std::vector<YouTubeApi::YouTubeLiveStream> streamKeys_;
 
-	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_;
 	Async::Task<void> currentAuthFlowTask_ = {};
-	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
-
 	Async::Task<void> currentFetchStreamKeysTask_ = {};
 };
 

@@ -47,7 +47,7 @@ GoogleAuthManager::~GoogleAuthManager() noexcept = default;
 
 GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refreshToken) const
 {
-	CurlHelper::CurlUrlSearchParams postParams(curl_.get());
+	CurlHelper::CurlUrlSearchParams postParams(curl_->get());
 	postParams.append("client_id", clientCredentials_.client_id);
 	postParams.append("client_secret", clientCredentials_.client_secret);
 	postParams.append("refresh_token", std::move(refreshToken));
@@ -56,22 +56,22 @@ GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refresh
 	std::vector<char> readBuffer;
 	std::string postData = postParams.toString();
 
-	curl_easy_reset(curl_.get());
+	curl_easy_reset(curl_->get());
 
-	curl_easy_setopt(curl_.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
-	curl_easy_setopt(curl_.get(), CURLOPT_FOLLOWLOCATION, 2L);
-	curl_easy_setopt(curl_.get(), CURLOPT_POST, 1L);
-	curl_easy_setopt(curl_.get(), CURLOPT_POSTFIELDS, postData.c_str());
-	curl_easy_setopt(curl_.get(), CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
+	curl_easy_setopt(curl_->get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
+	curl_easy_setopt(curl_->get(), CURLOPT_FOLLOWLOCATION, 2L);
+	curl_easy_setopt(curl_->get(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl_->get(), CURLOPT_POSTFIELDS, postData.c_str());
+	curl_easy_setopt(curl_->get(), CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
 
-	curl_easy_setopt(curl_.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl_.get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl_->get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl_->get(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl_.get(), CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl_.get(), CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl_.get(), CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl_->get(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl_->get(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl_->get(), CURLOPT_NOSIGNAL, 1L);
 
-	CURLcode res = curl_easy_perform(curl_.get());
+	CURLcode res = curl_easy_perform(curl_->get());
 	if (res != CURLE_OK) {
 		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
 		throw std::runtime_error("NetworkError(fetchFreshAuthResponse)");

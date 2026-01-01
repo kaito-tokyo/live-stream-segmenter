@@ -27,24 +27,24 @@
 
 #include <memory>
 #include <stdexcept>
-#include <type_traits>
+#include <string>
 
 #include <curl/curl.h>
 
 namespace KaitoTokyo::CurlHelper {
 
 class CurlHandle {
-	[[nodiscard]]
-	static auto createCurlHandle()
-	{
-		CURL *curl = curl_easy_init();
-		if (!curl)
-			throw std::runtime_error("CurlInitError(createCurlHandle)");
-		return std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl, &curl_easy_cleanup);
-	}
+	struct CurlDeleter {
+		void operator()(CURL *ptr) const { curl_easy_cleanup(ptr); }
+	};
 
 public:
-	CurlHandle() : curl_(createCurlHandle()) {}
+	CurlHandle() : curl_(curl_easy_init())
+	{
+		if (!curl_) {
+			throw std::runtime_error("CurlEasyInitError(CurlHandle)");
+		}
+	}
 
 	~CurlHandle() noexcept = default;
 
@@ -54,13 +54,13 @@ public:
 	CurlHandle &operator=(CurlHandle &&) = delete;
 
 	[[nodiscard]]
-	CURL *get() const noexcept
+	CURL *get() const
 	{
 		return curl_.get();
 	}
 
 private:
-	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_;
+	const std::unique_ptr<CURL, CurlDeleter> curl_;
 };
 
 } // namespace KaitoTokyo::CurlHelper

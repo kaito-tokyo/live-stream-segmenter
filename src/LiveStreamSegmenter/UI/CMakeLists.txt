@@ -18,6 +18,7 @@ target_link_libraries(
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
   PRIVATE
+    GoogleOAuth2FlowCallbackServer.cpp
     GoogleOAuth2FlowCallbackServer.hpp
     JsonDropArea.cpp
     JsonDropArea.hpp

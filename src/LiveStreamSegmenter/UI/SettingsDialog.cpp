@@ -193,8 +193,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
 
-	currentFetchStreamKeysTask_ = fetchStreamKeys();
-	currentFetchStreamKeysTask_.start();
+	fetchStreamKeys();
 
 	loadLocalStorageData();
 }
@@ -214,23 +213,23 @@ void SettingsDialog::markDirty()
 
 void SettingsDialog::onAuthButtonClicked()
 {
-	if (clientIdDisplay_->text().isEmpty() || clientSecretDisplay_->text().isEmpty()) {
-		QMessageBox::warning(
-			this, tr("Error"),
-			tr("Client ID and Client Secret must be provided before requesting authorization."));
-		return;
+	try {
+		if (clientIdDisplay_->text().isEmpty() || clientSecretDisplay_->text().isEmpty()) {
+			QMessageBox::warning(
+				this, tr("Error"),
+				tr("Client ID and Client Secret must be provided before requesting authorization."));
+			return;
+		}
+
+		authButton_->setEnabled(false);
+		statusLabel_->setText(tr("Waiting for browser..."));
+
+		startGoogleOAuth2Flow();
+	} catch (const std::exception &e) {
+		logger_->error("OnAuthButtonClickedError", {{"exception", e.what()}});
+	} catch (...) {
+		logger_->error("OnAuthButtonClickedUnknownError");
 	}
-
-	if (googleOAuth2Flow_) {
-		logger_->warn("FlowAlreadyRunning");
-		return;
-	}
-
-	authButton_->setEnabled(false);
-	statusLabel_->setText(tr("Waiting for browser..."));
-
-	currentAuthFlowTask_ = runAuthFlow(this);
-	currentAuthFlowTask_.start();
 }
 
 void SettingsDialog::onClearAuthButtonClicked()
@@ -585,90 +584,73 @@ SettingsDialog::parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &l
 	return credentials;
 }
 
-Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
+void SettingsDialog::startGoogleOAuth2Flow()
 {
-	if (!self)
-		co_return;
+	logger_->info("GoogleOAuth2FlowStarted");
 
-	self->logger_->info("OAuth2FlowStart");
 	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
-	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
-	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
+	clientCredentials.client_id = clientIdDisplay_->text().toStdString();
+	clientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
 
-	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		std::make_shared<CurlHelper::CurlHandle>(), clientCredentials,
-		"https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
+	auto curl = std::make_shared<CurlHelper::CurlHandle>();
 
-	auto flow = self->googleOAuth2Flow_;
-	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
+	auto googleOAuth2Flow = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
+		curl, clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", logger_);
 
-	try {
-		self->currentCallbackServer_ = std::make_shared<GoogleOAuth2FlowCallbackServer>();
+	auto callbackServer = new GoogleOAuth2FlowCallbackServer(this);
+	callbackServer->listen();
+	QUrl redirectUri = callbackServer->getRedirectUri();
+	std::string redirectUriStr = redirectUri.toString().toStdString();
+	connect(callbackServer, &GoogleOAuth2FlowCallbackServer::codeReceived, this, &SettingsDialog::onCodeReceived);
+	logger_->info("GoogleOAuth2FlowCallbackServerStarted", {{"redirectUri", redirectUriStr}});
 
-		uint16_t port = self->currentCallbackServer_->serverPort();
-		std::string redirectUri = fmt::format("http://127.0.0.1:{}/callback", port);
-		std::string authUrl = flow->getAuthorizationUrl(redirectUri);
-		self->logger_->info("OAuth2OpenAuthUrl", {{"url", authUrl}});
+	std::string authUrl = googleOAuth2Flow->getAuthorizationUrl(redirectUriStr);
+	bool success = QDesktopServices::openUrl(QUrl(QString::fromStdString(authUrl)));
+	logger_->info("GoogleOAuth2FlowStartedAuthUrlOpened", {{"url", authUrl}});
 
-		QString qUrlStr = QString::fromStdString(authUrl);
-		bool success = QDesktopServices::openUrl(QUrl(qUrlStr));
-
-		if (!success) {
-			QMessageBox msgBox(self);
-			msgBox.setIcon(QMessageBox::Warning);
-			msgBox.setWindowTitle(tr("Warning"));
-			msgBox.setText(tr("Cannot open the authorization URL in the default browser."));
-			msgBox.setInformativeText(tr("Please manually visit:\n<a href=\"%1\">%1</a>").arg(qUrlStr));
-			msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextBrowserInteraction);
-			msgBox.exec();
-		}
-
-		std::string code = co_await self->currentCallbackServer_->waitForCode();
-
-		if (!self)
-			co_return;
-
-		if (code.empty()) {
-			throw std::runtime_error("Authorization code was empty.");
-		}
-
-		co_await ResumeOnGlobalQThreadPool{};
-
-		result = flow->exchangeCodeForToken(code, redirectUri);
-	} catch (const std::exception &e) {
-		self->logger_->error("OAuthFlowFailed", {{"exception", e.what()}});
+	if (!success) {
+		QMessageBox msgBox(this);
+		msgBox.setIcon(QMessageBox::Warning);
+		msgBox.setWindowTitle(tr("Warning"));
+		msgBox.setText(tr("Cannot open the authorization URL in the default browser."));
+		msgBox.setInformativeText(
+			tr("Please manually visit:\n<a href=\"%1\">%1</a>").arg(QString::fromStdString(authUrl)));
+		msgBox.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextBrowserInteraction);
+		msgBox.exec();
 	}
 
-	co_await ResumeOnQtMainThread{self};
-
-	if (!self)
-		co_return;
-
-	// self->currentCallbackServer_.reset();
-	// self->googleOAuth2Flow_.reset();
-
-	if (result.has_value()) {
-		self->logger_->info("OAuth2AuthSuccess");
-		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
-
-		GoogleAuth::GoogleTokenState tokenState;
-		tokenState.loadAuthResponse(result.value());
-		self->authStore_->setGoogleTokenState(tokenState);
-		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
-		self->markDirty();
-	} else {
-		self->statusLabel_->setText(tr("Authorization Failed"));
-		QString msg = tr("Authorization failed.");
-		QMessageBox::critical(self, tr("Error"), msg);
-	}
-
-	self->currentFetchStreamKeysTask_ = self->fetchStreamKeys();
-	self->currentFetchStreamKeysTask_.start();
+	googleOAuth2Flow_ = googleOAuth2Flow;
 }
 
-Async::Task<void> SettingsDialog::fetchStreamKeys()
+void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri)
 {
-	co_await ResumeOnGlobalQThreadPool{};
+	if (code.isEmpty()) {
+		logger_->error("GoogleOAuth2FlowAuthorizationCodeEmpty");
+		QMessageBox::critical(this, tr("Error"), tr("Authorization code was empty."));
+		return;
+	}
+
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow = googleOAuth2Flow_;
+
+	std::string codeStr = code.toStdString();
+	std::string redirectUriStr = redirectUri.toString().toStdString();
+
+	GoogleAuth::GoogleAuthResponse result = googleOAuth2Flow->exchangeCode(codeStr, redirectUriStr);
+
+	logger_->info("OAuth2AuthSuccess");
+	QMessageBox::information(this, tr("Success"), tr("Authorization successful!"));
+
+	GoogleAuth::GoogleTokenState tokenState;
+	tokenState.loadAuthResponse(result);
+	authStore_->setGoogleTokenState(tokenState);
+	statusLabel_->setText(tr("Authorized (Not Saved)"));
+	markDirty();
+
+	fetchStreamKeys();
+}
+
+void SettingsDialog::fetchStreamKeys()
+{
 	try {
 		const auto authManager = std::make_shared<GoogleAuth::GoogleAuthManager>(
 			std::make_shared<CurlHelper::CurlHandle>(), authStore_->getGoogleOAuth2ClientCredentials(),
@@ -693,8 +675,6 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 		}
 
 		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = youTubeApiClient_->listLiveStreams(accessToken);
-
-		co_await ResumeOnQtMainThread{this};
 
 		streamKeyComboA_->clear();
 		streamKeyComboB_->clear();

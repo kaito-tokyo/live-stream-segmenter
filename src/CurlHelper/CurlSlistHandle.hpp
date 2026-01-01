@@ -33,6 +33,10 @@
 namespace KaitoTokyo::CurlHelper {
 
 class CurlSlistHandle {
+	struct CurlSlistDeleter {
+		void operator()(curl_slist *ptr) const { curl_slist_free_all(ptr); }
+	};
+
 public:
 	CurlSlistHandle() = default;
 
@@ -58,7 +62,7 @@ public:
 	}
 
 private:
-	std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)> slist_{nullptr, &curl_slist_free_all};
+	std::unique_ptr<curl_slist, CurlSlistDeleter> slist_{nullptr};
 };
 
 } // namespace KaitoTokyo::CurlHelper
