@@ -27,7 +27,7 @@
 
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 
@@ -37,6 +37,7 @@ struct GoogleOAuth2ClientCredentials {
 	std::string client_secret;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredentials, ver, client_id, client_secret)
+void to_json(nlohmann::json &j, const GoogleOAuth2ClientCredentials &p);
+void from_json(const nlohmann::json &j, GoogleOAuth2ClientCredentials &p);
 
 } // namespace KaitoTokyo::GoogleAuth

@@ -34,16 +34,17 @@
 namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlHandle {
-	static auto initCurlUrl()
+	[[nodiscard]]
+	static auto createCurlUrlHandle()
 	{
 		CURLU *handle = curl_url();
 		if (!handle)
-			throw std::runtime_error("CurlUrlInitError(CurlUrlHandle)");
+			throw std::runtime_error("CurlUrlInitError(createCurlUrlHandle)");
 		return std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(handle, &curl_url_cleanup);
 	}
 
 public:
-	CurlUrlHandle() : handle_(initCurlUrl()) {}
+	CurlUrlHandle() : handle_(createCurlUrlHandle()) {}
 
 	~CurlUrlHandle() noexcept = default;
 
@@ -66,6 +67,7 @@ public:
 			throw std::runtime_error("QueryAppendError(appendQuery)");
 	}
 
+	[[nodiscard]]
 	auto c_str() const
 	{
 		char *urlStr = nullptr;

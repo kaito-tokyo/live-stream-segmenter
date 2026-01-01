@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  * SPDX-License-Identifier: MIT
  *
- * KaitoTokyo GoogleAuth Library
+ * KaitoTokyo CurlHelper Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,37 +26,41 @@
 #pragma once
 
 #include <memory>
-#include <string_view>
+#include <stdexcept>
+#include <type_traits>
 
 #include <curl/curl.h>
 
-#include <ILogger.hpp>
+namespace KaitoTokyo::CurlHelper {
 
-#include "GoogleAuthResponse.hpp"
-#include "GoogleOAuth2ClientCredentials.hpp"
+class CurlHandle {
+	[[nodiscard]]
+	static auto createCurlHandle()
+	{
+		CURL *curl = curl_easy_init();
+		if (!curl)
+			throw std::runtime_error("CurlInitError(createCurlHandle)");
+		return std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl, &curl_easy_cleanup);
+	}
 
-namespace KaitoTokyo::GoogleAuth {
-
-class GoogleAuthManager {
 public:
-	GoogleAuthManager(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials,
-			  std::shared_ptr<const Logger::ILogger> logger);
+	CurlHandle() : curl_(createCurlHandle()) {}
 
-	~GoogleAuthManager() noexcept = default;
+	~CurlHandle() noexcept = default;
 
-	GoogleAuthManager(const GoogleAuthManager &) = delete;
-	GoogleAuthManager &operator=(const GoogleAuthManager &) = delete;
-	GoogleAuthManager(GoogleAuthManager &&) = delete;
-	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
+	CurlHandle(const CurlHandle &) = delete;
+	CurlHandle &operator=(const CurlHandle &) = delete;
+	CurlHandle(CurlHandle &&) = delete;
+	CurlHandle &operator=(CurlHandle &&) = delete;
 
 	[[nodiscard]]
-	GoogleAuthResponse fetchFreshAuthResponse(const char *refreshToken) const;
+	CURL *get() const noexcept
+	{
+		return curl_.get();
+	}
 
 private:
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
-	CURL *const curl_;
+	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_;
 };
 
-} // namespace KaitoTokyo::GoogleAuth
+} // namespace KaitoTokyo::CurlHelper

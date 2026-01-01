@@ -50,8 +50,9 @@ public:
 	CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
 	CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
 
-	void append(std::string_view name, std::string_view value) { params_.emplace_back(name, value); }
+	void append(std::string name, std::string value) { params_.emplace_back(name, value); }
 
+	[[nodiscard]]
 	std::string toString() const
 	{
 		auto curlEasyEscape = [curl = curl_](const std::string &str) {

@@ -23,40 +23,12 @@
  * SOFTWARE.
  */
 
-#pragma once
-
-#include <memory>
-#include <string_view>
-
-#include <curl/curl.h>
-
-#include <ILogger.hpp>
-
-#include "GoogleAuthResponse.hpp"
 #include "GoogleOAuth2ClientCredentials.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 
-class GoogleAuthManager {
-public:
-	GoogleAuthManager(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials,
-			  std::shared_ptr<const Logger::ILogger> logger);
-
-	~GoogleAuthManager() noexcept = default;
-
-	GoogleAuthManager(const GoogleAuthManager &) = delete;
-	GoogleAuthManager &operator=(const GoogleAuthManager &) = delete;
-	GoogleAuthManager(GoogleAuthManager &&) = delete;
-	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
-
-	[[nodiscard]]
-	GoogleAuthResponse fetchFreshAuthResponse(const char *refreshToken) const;
-
-private:
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
-
-	CURL *const curl_;
-};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredentials, ver, client_id, client_secret)
 
 } // namespace KaitoTokyo::GoogleAuth

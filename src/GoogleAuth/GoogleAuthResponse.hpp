@@ -22,12 +22,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #pragma once
 
 #include <optional>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 
@@ -40,46 +41,7 @@ struct GoogleAuthResponse {
 	std::optional<std::string> scope;
 };
 
-inline void from_json(const nlohmann::json &j, GoogleAuthResponse &p)
-{
-	if (auto it = j.find("ver"); it != j.end()) {
-		it->get_to(p.ver);
-	}
-
-	j.at("access_token").get_to(p.access_token);
-
-	const auto set_optional = [&j](const char *key, auto &field) {
-		if (auto it = j.find(key); it != j.end() && !it->is_null()) {
-			it->get_to(field.emplace());
-		} else {
-			field = std::nullopt;
-		}
-	};
-
-	set_optional("expires_in", p.expires_in);
-	set_optional("token_type", p.token_type);
-	set_optional("refresh_token", p.refresh_token);
-	set_optional("scope", p.scope);
-}
-
-inline void to_json(nlohmann::json &j, const GoogleAuthResponse &p)
-{
-	j = nlohmann::json{
-		{"ver", p.ver},
-		{"access_token", p.access_token},
-	};
-
-	if (p.expires_in.has_value())
-		j["expires_in"] = *p.expires_in;
-
-	if (p.token_type.has_value())
-		j["token_type"] = *p.token_type;
-
-	if (p.refresh_token.has_value())
-		j["refresh_token"] = *p.refresh_token;
-
-	if (p.scope.has_value())
-		j["scope"] = *p.scope;
-}
+void from_json(const nlohmann::json &j, GoogleAuthResponse &p);
+void to_json(nlohmann::json &j, const GoogleAuthResponse &p);
 
 } // namespace KaitoTokyo::GoogleAuth

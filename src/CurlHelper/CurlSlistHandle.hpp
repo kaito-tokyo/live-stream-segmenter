@@ -35,6 +35,7 @@ namespace KaitoTokyo::CurlHelper {
 class CurlSlistHandle {
 public:
 	CurlSlistHandle() = default;
+
 	~CurlSlistHandle() noexcept = default;
 
 	CurlSlistHandle(const CurlSlistHandle &) = delete;
@@ -50,7 +51,11 @@ public:
 		slist_.reset(newSlist);
 	}
 
-	curl_slist *get() const noexcept { return slist_.get(); }
+	[[nodiscard]]
+	curl_slist *get() const noexcept
+	{
+		return slist_.get();
+	}
 
 private:
 	std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)> slist_{nullptr, &curl_slist_free_all};
