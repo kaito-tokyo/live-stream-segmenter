@@ -42,6 +42,7 @@ enum class LogLevel { Debug, Info, Warn, Error };
 class ILogger {
 public:
 	ILogger() = default;
+
 	virtual ~ILogger() noexcept = default;
 
 	ILogger(const ILogger &) = delete;

@@ -37,6 +37,7 @@ namespace KaitoTokyo::Logger {
 class NullLogger : public ILogger {
 public:
 	NullLogger() = default;
+
 	~NullLogger() override = default;
 
 	void log(LogLevel, std::string_view, std::source_location, std::span<const LogField>) const noexcept override
