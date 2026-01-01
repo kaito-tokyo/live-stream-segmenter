@@ -110,7 +110,7 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 		throw std::runtime_error("CurlPerformError(exchangeCode)");
 	}
 
-	const nlohmann::json j = nlohmann::json::parse(readBuffer.begin(), readBuffer.end());
+	const nlohmann::json j = nlohmann::json::parse(readBuffer);
 	if (j.contains("error")) {
 		logger_->error("APIError", {{"error", j["error"].dump()}});
 		throw std::runtime_error("APIError(exchangeCode)");

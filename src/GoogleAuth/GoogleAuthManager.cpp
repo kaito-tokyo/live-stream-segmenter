@@ -79,7 +79,7 @@ GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refresh
 		throw std::runtime_error("NetworkError(fetchFreshAuthResponse)");
 	}
 
-	nlohmann::json j = nlohmann::json::parse(readBuffer.begin(), readBuffer.end());
+	nlohmann::json j = nlohmann::json::parse(readBuffer);
 	if (j.contains("error")) {
 		std::string errorJson = j["error"].dump();
 		logger_->error("GoogleOAuth2Error", {{"error", errorJson}});
