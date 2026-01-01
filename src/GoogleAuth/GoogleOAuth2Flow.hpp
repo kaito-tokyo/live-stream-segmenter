@@ -51,7 +51,7 @@ public:
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
 	[[nodiscard]]
-	std::string getAuthorizationUrl(const std::string &redirectUri) const;
+	std::string getAuthorizationUrl(std::string redirectUri) const;
 
 	[[nodiscard]]
 	std::optional<GoogleAuthResponse> exchangeCodeForToken(const std::string &code, const std::string &redirectUri);

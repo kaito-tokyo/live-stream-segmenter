@@ -22,6 +22,7 @@
 
 #include <memory>
 
+#include <QDialog>
 #include <QPointer>
 
 #include <ILogger.hpp>
@@ -30,16 +31,16 @@
 #include <EventHandlerStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
 #include <ScriptingRuntime.hpp>
+#include <Task.hpp>
+#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
-#include <Task.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"
 
 class QAbstractItemView;
 class QComboBox;
-class QDialog;
 class QDialogButtonBox;
 class QGroupBox;
 class QHeaderView;

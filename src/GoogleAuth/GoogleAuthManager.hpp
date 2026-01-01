@@ -50,7 +50,7 @@ public:
 	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
 
 	[[nodiscard]]
-	GoogleAuthResponse fetchFreshAuthResponse(const char *refreshToken) const;
+	GoogleAuthResponse fetchFreshAuthResponse(std::string refreshToken) const;
 
 private:
 	const GoogleOAuth2ClientCredentials clientCredentials_;

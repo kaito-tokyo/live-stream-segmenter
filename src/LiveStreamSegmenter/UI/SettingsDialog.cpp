@@ -20,24 +20,39 @@
 
 #include "SettingsDialog.hpp"
 
+#include <QAbstractItemView>
+#include <QComboBox>
 #include <QDesktopServices>
+#include <QDialogButtonBox>
 #include <QFile>
 #include <QFontDatabase>
 #include <QFormLayout>
+#include <QGroupBox>
+#include <QHeaderView>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPlainTextEdit>
 #include <QPointer>
+#include <QPushButton>
+#include <QPushButton>
 #include <QRegularExpression>
+#include <QTableWidget>
+#include <QTabWidget>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QThreadPool>
+#include <QThreadPool>
 #include <QUrl>
 #include <QUrlQuery>
+#include <QVBoxLayout>
+#include <QWidget>
 
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
@@ -673,7 +688,6 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 			}
 		}
 
-		YouTubeApi::YouTubeApiClient client;
 		client.setLogger(logger_);
 		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listLiveStreams(accessToken);
 
