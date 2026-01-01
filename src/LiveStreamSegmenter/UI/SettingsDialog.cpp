@@ -54,6 +54,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <CurlHandle.hpp>
+
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
@@ -91,13 +93,15 @@ struct ResumeOnQtMainThread {
 
 } // anonymous namespace
 
-SettingsDialog::SettingsDialog(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+SettingsDialog::SettingsDialog(std::shared_ptr<CurlHelper::CurlHandle> curl,
+			       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 			       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
+	  curl_(curl ? std::move(curl) : throw std::invalid_argument("CurlIsNullError(SettingsDialog)")),
 	  youTubeApiClient_(youTubeApiClient
 				    ? std::move(youTubeApiClient)
 				    : throw std::invalid_argument("YouTubeApiClientIsNullError(SettingsDialog)")),
@@ -594,8 +598,10 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
+	CurlHelper::CurlHandle curl;
+
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
+		curl.get(), clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
@@ -649,7 +655,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 		self->logger_->info("OAuth2AuthSuccess");
 		QMessageBox::information(self, tr("Success"), tr("Authorization successful!"));
 
-		auto tokenState = GoogleAuth::GoogleTokenState().withUpdatedAuthResponse(result.value());
+		GoogleAuth::GoogleTokenState tokenState;
+		tokenState.loadAuthResponse(result.value());
 		self->authStore_->setGoogleTokenState(tokenState);
 		self->statusLabel_->setText(tr("Authorized (Not Saved)"));
 		self->markDirty();
@@ -667,8 +674,8 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 {
 	co_await ResumeOnGlobalQThreadPool{};
 	try {
-		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleOAuth2ClientCredentials(),
-								logger_);
+		CurlHelper::CurlHandle curl;
+		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleAuthManager(curl_));
 		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
@@ -680,16 +687,15 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 				logger_->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager.fetchFreshAuthResponse(tokenState.refresh_token);
-				GoogleAuth::GoogleTokenState newTokenState =
-					tokenState.withUpdatedAuthResponse(freshAuthResponse);
+				GoogleAuth::GoogleTokenState newTokenState;
+				newTokenState.loadAuthResponse(freshAuthResponse);
 				authStore_->setGoogleTokenState(newTokenState);
 				accessToken = freshAuthResponse.access_token;
 				logger_->info("YouTubeAccessTokenFetched");
 			}
 		}
 
-		client.setLogger(logger_);
-		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = client.listLiveStreams(accessToken);
+		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = youTubeApiClient_->listLiveStreams(accessToken);
 
 		co_await ResumeOnQtMainThread{this};
 

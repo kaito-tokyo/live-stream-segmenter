@@ -43,7 +43,7 @@ public:
 	GoogleOAuth2Flow(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
 			 std::shared_ptr<const Logger::ILogger> logger);
 
-	~GoogleOAuth2Flow() noexcept = default;
+	~GoogleOAuth2Flow() noexcept;
 
 	GoogleOAuth2Flow(const GoogleOAuth2Flow &) = delete;
 	GoogleOAuth2Flow &operator=(const GoogleOAuth2Flow &) = delete;

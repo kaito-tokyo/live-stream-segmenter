@@ -18,8 +18,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "ProfileContext.hpp"
 
 #include <curl/curl.h>
@@ -40,19 +38,23 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-ProfileContext::ProfileContext(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+ProfileContext::ProfileContext(std::shared_ptr<CurlHelper::CurlHandle> curl,
+			       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 			       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
-	: youTubeApiClient_(std::move(youTubeApiClient)),
-	  runtime_(std::move(runtime)),
+	: curl_(curl ? std::move(curl) : throw std::invalid_argument("CurlIsNullError(ProfileContext)")),
+	  youTubeApiClient_(youTubeApiClient
+				    ? std::move(youTubeApiClient)
+				    : throw std::invalid_argument("YouTubeApiClientIsNullError(ProfileContext)")),
+	  runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeIsNullError(ProfileContext)")),
+	  dock_(dock ? dock : throw std::invalid_argument("DockIsNullError(ProfileContext)")),
 	  authStore_(std::make_shared<Store::AuthStore>()),
 	  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
 	  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
-	  dock_(dock),
 	  logger_(std::make_shared<Logger::MultiLogger>(
 		  std::vector<std::shared_ptr<const Logger::ILogger>>{logger, dock_->getLoggerAdapter()})),
 	  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
-		  youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
+		  curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 {
 	youTubeApiClient_->setLogger(logger_);
 	authStore_->setLogger(logger_);

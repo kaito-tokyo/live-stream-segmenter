@@ -27,6 +27,7 @@
 #include <ILogger.hpp>
 
 #include <AuthStore.hpp>
+#include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
 #include <MultiLogger.hpp>
 #include <ScriptingRuntime.hpp>
@@ -40,11 +41,12 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
 public:
-	ProfileContext(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+	ProfileContext(std::shared_ptr<CurlHelper::CurlHandle> curl,
+		       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock);
 
-	~ProfileContext() noexcept = default;
+	~ProfileContext() noexcept;
 
 	ProfileContext(const ProfileContext &) = delete;
 	ProfileContext &operator=(const ProfileContext &) = delete;
@@ -52,13 +54,15 @@ public:
 	ProfileContext &operator=(ProfileContext &&) = delete;
 
 private:
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
+	UI::StreamSegmenterDock *const dock_;
+
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
-	UI::StreamSegmenterDock *const dock_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;
 };

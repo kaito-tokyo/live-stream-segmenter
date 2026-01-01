@@ -28,6 +28,7 @@
 
 #include <AuthStore.hpp>
 #include <Channel.hpp>
+#include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
@@ -51,12 +52,14 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	YouTubeStreamSegmenterMainLoop(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<CurlHelper::CurlHandle> curl,
+				       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 				       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				       std::shared_ptr<Store::AuthStore> authStore,
 				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 				       std::shared_ptr<Store::YouTubeStore> youtubeStore,
 				       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+
 	~YouTubeStreamSegmenterMainLoop() override;
 
 	YouTubeStreamSegmenterMainLoop(const YouTubeStreamSegmenterMainLoop &) = delete;
@@ -72,6 +75,7 @@ public slots:
 	void segmentCurrentSession();
 
 private:
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
@@ -84,6 +88,7 @@ private:
 	Async::Task<void> mainLoopTask_;
 
 	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
+					std::shared_ptr<CurlHelper::CurlHandle> curl,
 					  std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					  std::shared_ptr<Store::AuthStore> authStore,
@@ -96,11 +101,12 @@ private:
 	static Async::Task<void> stopContinuousSessionTask(Async::Channel<Message> &channel);
 
 	static Async::Task<void>
-	segmentLiveBroadcastTask(Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
+	segmentLiveBroadcastTask(Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
 				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 				 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				 std::shared_ptr<Store::AuthStore> authStore,
-				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
+				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+				 std::shared_ptr<const Logger::ILogger> logger, QWidget *parent,
 				 const YouTubeApi::YouTubeLiveStream &currentLiveStream,
 				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };

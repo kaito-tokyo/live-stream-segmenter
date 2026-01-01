@@ -30,6 +30,8 @@
 
 #include <obs-frontend-api.h>
 
+#include <CurlHandle.hpp>
+#include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
 #include <ILogger.hpp>
@@ -40,7 +42,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
 class AuthStore {
 public:
-	AuthStore() = default;
+	AuthStore() {};
 	~AuthStore() noexcept = default;
 
 	AuthStore(const AuthStore &) = delete;
@@ -72,6 +74,12 @@ public:
 	{
 		std::scoped_lock lock(mutex_);
 		return googleTokenState_;
+	}
+
+	GoogleAuth::GoogleAuthManager getGoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl) const
+	{
+		std::scoped_lock lock(mutex_);
+		return GoogleAuth::GoogleAuthManager(curl, googleOAuth2ClientCredentials_, logger_);
 	}
 
 	bool saveAuthStore() const noexcept

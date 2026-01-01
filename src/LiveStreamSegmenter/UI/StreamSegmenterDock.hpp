@@ -25,6 +25,7 @@
 #include <QWidget>
 
 #include <AuthStore.hpp>
+#include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
 #include <NullLogger.hpp>
@@ -73,7 +74,8 @@ class StreamSegmenterDock : public QWidget {
 	};
 
 public:
-	StreamSegmenterDock(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+	StreamSegmenterDock(std::shared_ptr<CurlHelper::CurlHandle> curl,
+			    std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 			    std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent = nullptr);
 	~StreamSegmenterDock() override = default;
 
@@ -122,6 +124,7 @@ private slots:
 private:
 	void setupUi();
 
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<const Logger::ILogger> loggerAdapter_;

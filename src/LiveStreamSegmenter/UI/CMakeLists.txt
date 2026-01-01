@@ -18,11 +18,14 @@ target_link_libraries(
 target_sources(
   ${CMAKE_PROJECT_NAME}_UI
   PRIVATE
-    fmt_qstring_formatter.hpp
     GoogleOAuth2FlowCallbackServer.hpp
+    JsonDropArea.cpp
     JsonDropArea.hpp
+    SettingsDialog.cpp
     SettingsDialog.hpp
+    StreamSegmenterDock.cpp
     StreamSegmenterDock.hpp
+    fmt_qstring_formatter.hpp
 )
 
 target_compile_options(

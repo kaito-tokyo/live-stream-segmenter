@@ -30,6 +30,7 @@
 
 #include <curl/curl.h>
 
+#include <CurlHandle.hpp>
 #include <ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
@@ -39,10 +40,10 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials,
+	GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
 			  std::shared_ptr<const Logger::ILogger> logger);
 
-	~GoogleAuthManager() noexcept = default;
+	~GoogleAuthManager() noexcept;
 
 	GoogleAuthManager(const GoogleAuthManager &) = delete;
 	GoogleAuthManager &operator=(const GoogleAuthManager &) = delete;
@@ -56,7 +57,7 @@ private:
 	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 
-	CURL *const curl_;
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

@@ -23,8 +23,6 @@
  * SOFTWARE.
  */
 
-#pragma once
-
 #include "GoogleTokenState.hpp"
 
 #include <nlohmann/json.hpp>

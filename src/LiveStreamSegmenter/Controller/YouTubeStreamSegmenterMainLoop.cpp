@@ -33,7 +33,7 @@
 
 #include <obs-frontend-api.h>
 
-#include <CurlVectorWriter.hpp>
+#include <CurlWriteCallback.hpp>
 #include <EventScriptingContext.hpp>
 #include <GoogleAuthManager.hpp>
 #include <Join.hpp>
@@ -49,10 +49,11 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 namespace {
 
-std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<const Logger::ILogger> logger)
+std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<Store::AuthStore> authStore,
+			   std::shared_ptr<const Logger::ILogger> logger)
 {
 	std::string accessToken;
-	GoogleAuth::GoogleAuthManager authManager(authStore->getGoogleOAuth2ClientCredentials(), logger);
+	GoogleAuth::GoogleAuthManager authManager = authStore->getGoogleAuthManager(curl);
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
 	if (tokenState.isAuthorized()) {
 		if (tokenState.isAccessTokenFresh()) {
@@ -62,8 +63,8 @@ std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::sha
 			logger->info("YouTubeAccessTokenNotFresh");
 			GoogleAuth::GoogleAuthResponse freshAuthResponse =
 				authManager.fetchFreshAuthResponse(tokenState.refresh_token);
-			GoogleAuth::GoogleTokenState newTokenState =
-				tokenState.withUpdatedAuthResponse(freshAuthResponse);
+			GoogleAuth::GoogleTokenState newTokenState;
+			tokenState.loadAuthResponse(freshAuthResponse);
 			authStore->setGoogleTokenState(newTokenState);
 			accessToken = freshAuthResponse.access_token;
 			logger->info("YouTubeAccessTokenFetched");
@@ -82,17 +83,29 @@ std::string getAccessToken(std::shared_ptr<Store::AuthStore> authStore, std::sha
 } // anonymous namespace
 
 YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
-	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+	std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QObject(nullptr),
-	  youTubeApiClient_(std::move(youTubeApiClient)),
-	  runtime_(std::move(runtime)),
-	  authStore_(std::move(authStore)),
-	  eventHandlerStore_(std::move(eventHandlerStore)),
-	  youtubeStore_(std::move(youtubeStore)),
-	  logger_(std::move(logger)),
+	  curl_(curl ? std::move(curl)
+		     : throw std::invalid_argument("CurlIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  youTubeApiClient_(youTubeApiClient ? std::move(youTubeApiClient)
+					     : throw std::invalid_argument(
+						       "YouTubeApiClientIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  runtime_(runtime ? std::move(runtime)
+			   : throw std::invalid_argument("RuntimeIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  authStore_(authStore ? std::move(authStore)
+			       : throw std::invalid_argument("AuthStoreIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  eventHandlerStore_(eventHandlerStore
+				     ? std::move(eventHandlerStore)
+				     : throw std::invalid_argument(
+					       "EventHandlerStoreIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  youtubeStore_(youtubeStore ? std::move(youtubeStore)
+				     : throw std::invalid_argument(
+					       "YouTubeStoreIsNullError(YouTubeStreamSegmenterMainLoop)")),
+	  logger_(logger ? std::move(logger)
+			 : throw std::invalid_argument("LoggerIsNullError(YouTubeStreamSegmenterMainLoop)")),
 	  parent_(parent)
 {
 }
@@ -105,7 +118,7 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(channel_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youtubeStore_,
+	mainLoopTask_ = mainLoop(channel_, curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youtubeStore_,
 				 logger_, parent_);
 	mainLoopTask_.start();
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
@@ -130,7 +143,8 @@ void YouTubeStreamSegmenterMainLoop::segmentCurrentSession()
 }
 
 Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
-	Async::Channel<Message> &channel, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+	Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
+	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
@@ -172,9 +186,9 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 					throw std::runtime_error(
 						"InvalidCurrentLiveStreamIndex(YouTubeStreamSegmenterMainLoop::mainLoop)");
 				}
-				Async::Task<void> task = segmentLiveBroadcastTask(channel, logger, youTubeApiClient,
+				Async::Task<void> task = segmentLiveBroadcastTask(channel, curl, youTubeApiClient,
 										  runtime, authStore, eventHandlerStore,
-										  parent, currentLiveStream,
+										  logger, parent, currentLiveStream,
 										  nextLiveStream);
 				co_await task;
 				currentLiveStreamIndex = 1 - currentLiveStreamIndex;
@@ -205,11 +219,12 @@ YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask([[maybe_unused]] Async
 }
 
 Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
-	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<const Logger::ILogger> logger,
+	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, QWidget *parent,
-	const YouTubeApi::YouTubeLiveStream &currentLiveStream, const YouTubeApi::YouTubeLiveStream &nextLiveStream)
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<const Logger::ILogger> logger,
+	QWidget *parent, const YouTubeApi::YouTubeLiveStream &currentLiveStream,
+	const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
 	if (obs_frontend_streaming_active()) {
 		logger->info("StoppingCurrentStreamBeforeSegmenting");
@@ -235,7 +250,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	nlohmann::json j = nlohmann::json::parse(result);
 	YouTubeApi::YouTubeLiveBroadcastSettings settings = j.template get<YouTubeApi::YouTubeLiveBroadcastSettings>();
 
-	std::string accessToken = getAccessToken(authStore, logger);
+	std::string accessToken = getAccessToken(curl, authStore, logger);
 
 	// --- Complete existing live broadcasts bound to the next live stream ---
 	std::vector<YouTubeApi::YouTubeLiveBroadcast> existingBroadcasts =

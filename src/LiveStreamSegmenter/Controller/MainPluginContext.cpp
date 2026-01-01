@@ -50,17 +50,34 @@ std::shared_ptr<MainPluginContext> MainPluginContext::create(std::shared_ptr<con
 	return self;
 }
 
+namespace {
+
+std::shared_ptr<const Logger::ILogger> composeLogger(std::shared_ptr<const Logger::ILogger> logger,
+						     UI::StreamSegmenterDock *dock)
+{
+	if (!logger) {
+		throw std::invalid_argument("LoggerIsNullError(composeLogger)");
+	}
+	if (!dock) {
+		throw std::invalid_argument("DockIsNullError(composeLogger)");
+	}
+	return std::make_shared<Logger::MultiLogger>(
+		std::vector<std::shared_ptr<const Logger::ILogger>>{std::move(logger), dock->getLoggerAdapter()});
+}
+
+} // anonymous namespace
+
 MainPluginContext::MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-	: logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(MainPluginContext)")),
-	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_.get())),
+	: youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_.get())),
 	  runtime_(std::make_shared<Scripting::ScriptingRuntime>(logger_)),
-	  dock_(new UI::StreamSegmenterDock(runtime_, mainWindow))
+	  dock_(new UI::StreamSegmenterDock(curl_, youTubeApiClient_, runtime_, mainWindow)),
+	  logger_(composeLogger(std::move(logger), dock_))
 {
 	dock_->setLogger(logger_);
 
 	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), dock_);
 
-	profileContext_ = std::make_shared<ProfileContext>(curl_.get(), logger_, dock_);
+	profileContext_ = std::make_shared<ProfileContext>(curl_, youTubeApiClient_, runtime_, logger_, dock_);
 }
 
 void MainPluginContext::registerFrontendEventCallback()
@@ -80,7 +97,9 @@ void MainPluginContext::handleFrontendEvent(enum obs_frontend_event event, void 
 				self->profileContext_.reset();
 			} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
 				std::scoped_lock lock(self->mutex_);
-				self->profileContext_ = std::make_shared<ProfileContext>(self->logger_, self->dock_);
+				self->profileContext_ =
+					std::make_shared<ProfileContext>(self->curl_, self->youTubeApiClient_,
+									 self->runtime_, self->logger_, self->dock_);
 				self->logger_->info("ProfileChanged");
 			}
 		} catch (...) {

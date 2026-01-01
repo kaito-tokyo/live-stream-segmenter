@@ -23,8 +23,6 @@
  * SOFTWARE.
  */
 
-#pragma once
-
 #include "GoogleAuthResponse.hpp"
 
 #include <nlohmann/json.hpp>

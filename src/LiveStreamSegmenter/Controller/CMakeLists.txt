@@ -6,6 +6,12 @@ target_link_libraries(
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Controller
-  PRIVATE MainPluginContext.hpp ProfileContext.hpp YouTubeStreamSegmenterMainLoop.cpp YouTubeStreamSegmenterMainLoop.hpp
+  PRIVATE
+    MainPluginContext.cpp
+    MainPluginContext.hpp
+    ProfileContext.cpp
+    ProfileContext.hpp
+    YouTubeStreamSegmenterMainLoop.cpp
+    YouTubeStreamSegmenterMainLoop.hpp
 )
 set_target_properties(${CMAKE_PROJECT_NAME}_Controller PROPERTIES AUTOMOC ON)

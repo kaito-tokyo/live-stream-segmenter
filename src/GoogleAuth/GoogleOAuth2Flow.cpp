@@ -23,8 +23,6 @@
  * SOFTWARE.
  */
 
-#pragma once
-
 #include "GoogleOAuth2Flow.hpp"
 
 #include <stdexcept>
