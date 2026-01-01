@@ -30,6 +30,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include <CurlHandle.hpp>
 #include <CurlUrlHandle.hpp>
 #include <CurlUrlSearchParams.hpp>
 #include <CurlWriteCallback.hpp>
@@ -38,7 +39,7 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
+GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
 				   std::shared_ptr<const Logger::ILogger> logger)
 	: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(GoogleOAuth2Flow)")),
 	  clientCredentials_(std::move(clientCredentials)),
@@ -47,11 +48,11 @@ GoogleOAuth2Flow::GoogleOAuth2Flow(CURL *curl, GoogleOAuth2ClientCredentials cli
 {
 }
 
-GoogleOAuth2Flow::~GoogleOAuth2Flow() = default;
+GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
 std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 {
-	CurlHelper::CurlUrlSearchParams params(curl_);
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
 	params.append("client_id", clientCredentials_.client_id);
 	params.append("redirect_uri", std::move(redirectUri));
 	params.append("response_type", "code");
@@ -79,7 +80,7 @@ std::optional<GoogleAuthResponse> GoogleOAuth2Flow::exchangeCodeForToken(const s
 
 GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string redirectUri)
 {
-	CurlHelper::CurlUrlSearchParams params(curl_);
+	CurlHelper::CurlUrlSearchParams params(curl_.get());
 
 	params.append("client_id", clientCredentials_.client_id);
 	params.append("client_secret", clientCredentials_.client_secret);
@@ -89,19 +90,19 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 	const std::string postData = params.toString();
 
 	std::vector<char> readBuffer;
-	curl_easy_setopt(curl_, CURLOPT_URL, "https://oauth2.googleapis.com/token");
-	curl_easy_setopt(curl_, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, postData.c_str());
-	curl_easy_setopt(curl_, CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
+	curl_easy_setopt(curl_.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
+	curl_easy_setopt(curl_.get(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl_.get(), CURLOPT_POSTFIELDS, postData.c_str());
+	curl_easy_setopt(curl_.get(), CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
 
-	curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl_.get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl_.get(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl_, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl_, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl_.get(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl_.get(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl_.get(), CURLOPT_NOSIGNAL, 1L);
 
-	const CURLcode res = curl_easy_perform(curl_);
+	const CURLcode res = curl_easy_perform(curl_.get());
 
 	if (res != CURLE_OK) {
 		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});

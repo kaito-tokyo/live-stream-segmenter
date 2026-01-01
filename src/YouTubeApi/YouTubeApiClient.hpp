@@ -33,8 +33,7 @@
 #include <string>
 #include <vector>
 
-#include <curl/curl.h>
-
+#include <CurlHandle.hpp>
 #include <ILogger.hpp>
 
 #include "YouTubeTypes.hpp"
@@ -43,7 +42,7 @@ namespace KaitoTokyo::YouTubeApi {
 
 class YouTubeApiClient {
 public:
-	YouTubeApiClient(CURL *curl);
+	YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl);
 
 	~YouTubeApiClient() noexcept;
 
@@ -68,7 +67,7 @@ public:
 			  const std::filesystem::path &thumbnailPath);
 
 private:
-	CURL *const curl_;
+	std::shared_ptr<CurlHelper::CurlHandle> curl_;
 
 	std::shared_ptr<const Logger::ILogger> logger_;
 };

@@ -29,6 +29,18 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GoogleOAuth2ClientCredentials, ver, client_id, client_secret)
+void to_json(nlohmann::json &j, const GoogleOAuth2ClientCredentials &p) {
+	j = nlohmann::json{
+		{"ver", p.ver},
+		{"client_id", p.client_id},
+		{"client_secret", p.client_secret}
+	};
+}
+
+void from_json(const nlohmann::json &j, GoogleOAuth2ClientCredentials &p) {
+	j.at("ver").get_to(p.ver);
+	j.at("client_id").get_to(p.client_id);
+	j.at("client_secret").get_to(p.client_secret);
+}
 
 } // namespace KaitoTokyo::GoogleAuth

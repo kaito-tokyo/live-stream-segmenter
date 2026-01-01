@@ -29,8 +29,7 @@
 #include <optional>
 #include <string>
 
-#include <curl/curl.h>
-
+#include <CurlHandle.hpp>
 #include <ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
@@ -40,7 +39,7 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleOAuth2Flow {
 public:
-	GoogleOAuth2Flow(CURL *curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
+	GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
 			 std::shared_ptr<const Logger::ILogger> logger);
 
 	~GoogleOAuth2Flow() noexcept;
@@ -60,7 +59,7 @@ private:
 	[[nodiscard]]
 	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
 
-	CURL *const curl_;
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::string scopes_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
