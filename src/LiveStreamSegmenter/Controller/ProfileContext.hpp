@@ -41,9 +41,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
 public:
-	ProfileContext(std::shared_ptr<CurlHelper::CurlHandle> curl,
-		       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-		       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock);
 
 	~ProfileContext() noexcept;
@@ -54,8 +52,6 @@ public:
 	ProfileContext &operator=(ProfileContext &&) = delete;
 
 private:
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	UI::StreamSegmenterDock *const dock_;
 

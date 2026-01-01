@@ -40,14 +40,8 @@ using namespace KaitoTokyo::Logger;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<CurlHelper::CurlHandle> curl,
-					 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-					 std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent)
+StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent)
 	: QWidget(parent),
-	  curl_(curl ? std::move(curl) : throw std::invalid_argument("CurlHandleIsNullError(StreamSegmenterDock)")),
-	  youTubeApiClient_(youTubeApiClient
-				    ? std::move(youTubeApiClient)
-				    : throw std::invalid_argument("YouTubeApiClientIsNullError(StreamSegmenterDock)")),
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeIsNullError(StreamSegmenterDock)")),
 	  loggerAdapter_(std::make_shared<const LoggerAdapter>(this)),
@@ -352,8 +346,7 @@ void StreamSegmenterDock::onSettingsButtonClicked()
 		return logger_;
 	}();
 
-	SettingsDialog settingsDialog(curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_,
-				      logger, this);
+	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger, this);
 	settingsDialog.exec();
 }
 

@@ -53,7 +53,8 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 			   std::shared_ptr<const Logger::ILogger> logger)
 {
 	std::string accessToken;
-	std::shared_ptr<GoogleAuth::GoogleAuthManager> authManager = authStore->createGoogleAuthManager(curl, logger);
+	std::shared_ptr<GoogleAuth::GoogleAuthManager> authManager = std::make_shared<GoogleAuth::GoogleAuthManager>(
+		curl, authStore->getGoogleOAuth2ClientCredentials(), logger);
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
 	if (tokenState.isAuthorized()) {
 		if (tokenState.isAccessTokenFresh()) {
@@ -83,16 +84,10 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 } // anonymous namespace
 
 YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
-	std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QObject(nullptr),
-	  curl_(curl ? std::move(curl)
-		     : throw std::invalid_argument("CurlIsNullError(YouTubeStreamSegmenterMainLoop)")),
-	  youTubeApiClient_(youTubeApiClient ? std::move(youTubeApiClient)
-					     : throw std::invalid_argument(
-						       "YouTubeApiClientIsNullError(YouTubeStreamSegmenterMainLoop)")),
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeIsNullError(YouTubeStreamSegmenterMainLoop)")),
 	  authStore_(authStore ? std::move(authStore)
@@ -106,8 +101,11 @@ YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 					       "YouTubeStoreIsNullError(YouTubeStreamSegmenterMainLoop)")),
 	  logger_(logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerIsNullError(YouTubeStreamSegmenterMainLoop)")),
-	  parent_(parent)
+	  parent_(parent),
+	  curl_(std::make_shared<CurlHelper::CurlHandle>()),
+	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_))
 {
+	youTubeApiClient_->setLogger(logger_);
 }
 
 YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()

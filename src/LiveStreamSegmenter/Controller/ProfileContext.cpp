@@ -38,15 +38,9 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-ProfileContext::ProfileContext(std::shared_ptr<CurlHelper::CurlHandle> curl,
-			       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-			       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
-	: curl_(curl ? std::move(curl) : throw std::invalid_argument("CurlIsNullError(ProfileContext)")),
-	  youTubeApiClient_(youTubeApiClient
-				    ? std::move(youTubeApiClient)
-				    : throw std::invalid_argument("YouTubeApiClientIsNullError(ProfileContext)")),
-	  runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeIsNullError(ProfileContext)")),
+	: runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeIsNullError(ProfileContext)")),
 	  dock_(dock ? dock : throw std::invalid_argument("DockIsNullError(ProfileContext)")),
 	  authStore_(std::make_shared<Store::AuthStore>()),
 	  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
@@ -54,9 +48,8 @@ ProfileContext::ProfileContext(std::shared_ptr<CurlHelper::CurlHandle> curl,
 	  logger_(std::make_shared<Logger::MultiLogger>(
 		  std::vector<std::shared_ptr<const Logger::ILogger>>{logger, dock_->getLoggerAdapter()})),
 	  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
-		  curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
+		  runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 {
-	youTubeApiClient_->setLogger(logger_);
 	authStore_->setLogger(logger_);
 	eventHandlerStore_->setLogger(logger_);
 	youTubeStore_->setLogger(logger_);

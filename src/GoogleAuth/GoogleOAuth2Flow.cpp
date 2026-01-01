@@ -81,6 +81,8 @@ std::optional<GoogleAuthResponse> GoogleOAuth2Flow::exchangeCodeForToken(const s
 
 GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string redirectUri)
 {
+	auto curl_ = std::make_shared<CurlHelper::CurlHandle>();
+
 	CurlHelper::CurlUrlSearchParams params(curl_.get());
 
 	params.append("client_id", clientCredentials_.client_id);

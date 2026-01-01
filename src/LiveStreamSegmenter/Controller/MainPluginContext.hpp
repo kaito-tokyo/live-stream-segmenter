@@ -55,8 +55,6 @@ private:
 
 	static void handleFrontendEvent(enum obs_frontend_event event, void *private_data) noexcept;
 
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	UI::StreamSegmenterDock *const dock_ = nullptr;
 	const std::shared_ptr<const Logger::ILogger> logger_;

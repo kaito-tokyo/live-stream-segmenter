@@ -52,9 +52,7 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	YouTubeStreamSegmenterMainLoop(std::shared_ptr<CurlHelper::CurlHandle> curl,
-				       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				       std::shared_ptr<Store::AuthStore> authStore,
 				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 				       std::shared_ptr<Store::YouTubeStore> youtubeStore,
@@ -75,14 +73,15 @@ public slots:
 	void segmentCurrentSession();
 
 private:
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<Store::YouTubeStore> youtubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	QWidget *const parent_;
+
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 
 	Async::Channel<Message> channel_;
 	Async::Task<void> mainLoopTask_;

@@ -68,10 +68,8 @@ std::shared_ptr<const Logger::ILogger> composeLogger(std::shared_ptr<const Logge
 } // anonymous namespace
 
 MainPluginContext::MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-	: curl_(std::make_shared<CurlHelper::CurlHandle>()),
-	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_)),
-	  runtime_(std::make_shared<Scripting::ScriptingRuntime>()),
-	  dock_(new UI::StreamSegmenterDock(curl_, youTubeApiClient_, runtime_, mainWindow)),
+	: runtime_(std::make_shared<Scripting::ScriptingRuntime>()),
+	  dock_(new UI::StreamSegmenterDock(runtime_, mainWindow)),
 	  logger_(composeLogger(std::move(logger), dock_))
 {
 	runtime_->setLogger(logger_);
@@ -79,7 +77,7 @@ MainPluginContext::MainPluginContext(std::shared_ptr<const Logger::ILogger> logg
 
 	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), dock_);
 
-	profileContext_ = std::make_shared<ProfileContext>(curl_, youTubeApiClient_, runtime_, logger_, dock_);
+	profileContext_ = std::make_shared<ProfileContext>(runtime_, logger_, dock_);
 }
 
 void MainPluginContext::registerFrontendEventCallback()
@@ -100,8 +98,7 @@ void MainPluginContext::handleFrontendEvent(enum obs_frontend_event event, void 
 			} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
 				std::scoped_lock lock(self->mutex_);
 				self->profileContext_ =
-					std::make_shared<ProfileContext>(self->curl_, self->youTubeApiClient_,
-									 self->runtime_, self->logger_, self->dock_);
+					std::make_shared<ProfileContext>(self->runtime_, self->logger_, self->dock_);
 				self->logger_->info("ProfileChanged");
 			}
 		} catch (...) {

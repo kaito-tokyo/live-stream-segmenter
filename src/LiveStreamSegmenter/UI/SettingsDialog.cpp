@@ -93,18 +93,12 @@ struct ResumeOnQtMainThread {
 
 } // anonymous namespace
 
-SettingsDialog::SettingsDialog(std::shared_ptr<CurlHelper::CurlHandle> curl,
-			       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-			       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  curl_(curl ? std::move(curl) : throw std::invalid_argument("CurlIsNullError(SettingsDialog)")),
-	  youTubeApiClient_(youTubeApiClient
-				    ? std::move(youTubeApiClient)
-				    : throw std::invalid_argument("YouTubeApiClientIsNullError(SettingsDialog)")),
 	  runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeIsNullError(SettingsDialog)")),
 	  authStore_(authStore ? std::move(authStore)
 			       : throw std::invalid_argument("AuthStoreIsNullError(SettingsDialog)")),
@@ -114,6 +108,9 @@ SettingsDialog::SettingsDialog(std::shared_ptr<CurlHelper::CurlHandle> curl,
 	  youTubeStore_(youTubeStore ? std::move(youTubeStore)
 				     : throw std::invalid_argument("YouTubeStoreIsNullError(SettingsDialog)")),
 	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(SettingsDialog)")),
+
+	  curl_(std::make_shared<CurlHelper::CurlHandle>()),
+	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_)),
 
 	  // 1. Main Structure
 	  mainLayout_(new QVBoxLayout(this)),
@@ -599,8 +596,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
 	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		std::make_shared<CurlHelper::CurlHandle>(), "https://www.googleapis.com/auth/youtube.force-ssl",
-		clientCredentials, self->logger_);
+		std::make_shared<CurlHelper::CurlHandle>(), clientCredentials,
+		"https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
@@ -647,8 +644,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	if (!self)
 		co_return;
 
-	self->currentCallbackServer_.reset();
-	self->googleOAuth2Flow_.reset();
+	// self->currentCallbackServer_.reset();
+	// self->googleOAuth2Flow_.reset();
 
 	if (result.has_value()) {
 		self->logger_->info("OAuth2AuthSuccess");

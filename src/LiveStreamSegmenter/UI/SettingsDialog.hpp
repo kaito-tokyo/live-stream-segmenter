@@ -65,9 +65,7 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<CurlHelper::CurlHandle> curl,
-		       std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-		       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<Store::AuthStore> authStore,
 		       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 		       std::shared_ptr<Store::YouTubeStore> youTubeStore, std::shared_ptr<const Logger::ILogger> logger,
@@ -106,13 +104,14 @@ private:
 
 	Async::Task<void> fetchStreamKeys();
 
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
+
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 
 	// --- UI Components ---
 
