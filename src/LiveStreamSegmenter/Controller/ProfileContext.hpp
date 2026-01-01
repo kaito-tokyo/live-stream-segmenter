@@ -29,7 +29,6 @@
 #include <AuthStore.hpp>
 #include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
-#include <MultiLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 #include <YouTubeApiClient.hpp>

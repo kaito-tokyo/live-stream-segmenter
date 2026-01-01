@@ -28,10 +28,11 @@
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 
+#include <CurlHandle.hpp>
 #include <ILogger.hpp>
+#include <MultiLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
-#include <CurlHandle.hpp>
 
 #include "ProfileContext.hpp"
 

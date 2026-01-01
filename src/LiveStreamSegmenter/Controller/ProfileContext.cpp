@@ -28,7 +28,6 @@
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
-#include <MultiLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 #include <YouTubeApiClient.hpp>
@@ -45,8 +44,7 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  authStore_(std::make_shared<Store::AuthStore>()),
 	  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
 	  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
-	  logger_(std::make_shared<Logger::MultiLogger>(
-		  std::vector<std::shared_ptr<const Logger::ILogger>>{logger, dock_->getLoggerAdapter()})),
+	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(ProfileContext)")),
 	  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
 		  runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
 {
