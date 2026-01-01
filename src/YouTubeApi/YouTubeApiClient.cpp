@@ -51,6 +51,9 @@ namespace {
 std::vector<char> doGet(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
 			curl_slist *headers = nullptr)
 {
+	if (!logger) {
+		throw std::invalid_argument("LoggerIsNullError(doPost)");
+	}
 	if (!curl) {
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(doGet)");
@@ -88,6 +91,9 @@ std::vector<char> doGet(CURL *curl, const char *url, std::shared_ptr<const Logge
 std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
 			 curl_slist *headers = nullptr)
 {
+	if (!logger) {
+		throw std::invalid_argument("LoggerIsNullError(doPost)");
+	}
 	if (!curl) {
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(doPost)");
@@ -95,10 +101,6 @@ std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logg
 	if (!url) {
 		logger->error("UrlIsNullError");
 		throw std::invalid_argument("UrlIsNullError(doPost)");
-	}
-	if (!logger) {
-		logger->error("LoggerIsNullError");
-		throw std::invalid_argument("LoggerIsNullError(doPost)");
 	}
 
 	std::vector<char> readBuffer;
@@ -131,6 +133,9 @@ std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logg
 std::vector<char> doPost(CURL *curl, const char *url, std::string_view body,
 			 std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
 {
+	if (!logger) {
+		throw std::invalid_argument("LoggerIsNullError(doPost)");
+	}
 	if (!curl) {
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(doPost)");
@@ -142,10 +147,6 @@ std::vector<char> doPost(CURL *curl, const char *url, std::string_view body,
 	if (body.empty()) {
 		logger->error("BodyIsEmptyError");
 		throw std::invalid_argument("BodyIsEmptyError(doPost)");
-	}
-	if (!logger) {
-		logger->error("LoggerIsNullError");
-		throw std::invalid_argument("LoggerIsNullError(doPost)");
 	}
 
 	std::vector<char> readBuffer;
@@ -178,6 +179,9 @@ std::vector<char> doPost(CURL *curl, const char *url, std::string_view body,
 std::vector<char> doPost(CURL *curl, const char *url, std::ifstream &ifs, std::uintmax_t ifsSize,
 			 std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
 {
+	if (!logger) {
+		throw std::invalid_argument("LoggerIsNullError(doPost)");
+	}
 	if (!curl) {
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(doPost)");
@@ -193,10 +197,6 @@ std::vector<char> doPost(CURL *curl, const char *url, std::ifstream &ifs, std::u
 	if (ifsSize == 0) {
 		logger->error("IfstreamSizeIsZeroError");
 		throw std::invalid_argument("IfstreamSizeIsZeroError(doPost)");
-	}
-	if (!logger) {
-		logger->error("LoggerIsNullError");
-		throw std::invalid_argument("LoggerIsNullError(doPost)");
 	}
 
 	std::vector<char> readBuffer;
