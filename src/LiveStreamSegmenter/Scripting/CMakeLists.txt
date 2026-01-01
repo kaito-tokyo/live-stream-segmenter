@@ -1,4 +1,4 @@
-add_library(${CMAKE_PROJECT_NAME}_Scripting STATIC)
+add_library(${CMAKE_PROJECT_NAME}_Scripting OBJECT)
 target_include_directories(${CMAKE_PROJECT_NAME}_Scripting PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${CMAKE_PROJECT_NAME}_Scripting PUBLIC qjs::qjs unofficial::sqlite3::sqlite3 fmt::fmt Logger)
 target_sources(

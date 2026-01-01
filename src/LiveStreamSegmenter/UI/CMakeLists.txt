@@ -1,4 +1,4 @@
-add_library(${CMAKE_PROJECT_NAME}_UI STATIC JsonDropArea.cpp SettingsDialog.cpp StreamSegmenterDock.cpp)
+add_library(${CMAKE_PROJECT_NAME}_UI OBJECT JsonDropArea.cpp SettingsDialog.cpp StreamSegmenterDock.cpp)
 target_include_directories(${CMAKE_PROJECT_NAME}_UI PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI

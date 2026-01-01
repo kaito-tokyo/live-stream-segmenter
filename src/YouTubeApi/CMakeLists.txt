@@ -1,4 +1,4 @@
-add_library(${CMAKE_PROJECT_NAME}_YouTubeApi STATIC)
+add_library(${CMAKE_PROJECT_NAME}_YouTubeApi OBJECT)
 target_include_directories(${CMAKE_PROJECT_NAME}_YouTubeApi PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${CMAKE_PROJECT_NAME}_YouTubeApi PUBLIC ${JTHREAD_LIBRARIES} CurlHelper Logger)
 target_sources(

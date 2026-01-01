@@ -1,4 +1,4 @@
-add_library(GoogleAuth STATIC)
+add_library(GoogleAuth OBJECT)
 target_include_directories(GoogleAuth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(GoogleAuth PUBLIC Async CurlHelper Logger)
 target_sources(
