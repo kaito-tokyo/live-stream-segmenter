@@ -51,32 +51,6 @@ GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
 
 GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(GoogleOAuth2Flow &&other) noexcept
-	: curl_(std::move(other.curl_)),
-	  clientCredentials_(std::move(other.clientCredentials_)),
-	  scopes_(std::move(other.scopes_)),
-	  logger_(std::move(other.logger_))
-{
-	other.curl_ = nullptr;
-	other.logger_ = nullptr;
-	other.scopes_.clear();
-}
-
-GoogleOAuth2Flow &GoogleOAuth2Flow::operator=(GoogleOAuth2Flow &&other) noexcept
-{
-	if (this != &other) {
-		curl_ = std::move(other.curl_);
-		clientCredentials_ = std::move(other.clientCredentials_);
-		scopes_ = std::move(other.scopes_);
-		logger_ = std::move(other.logger_);
-
-		other.curl_ = nullptr;
-		other.logger_ = nullptr;
-		other.scopes_.clear();
-	}
-	return *this;
-}
-
 std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 {
 	CurlHelper::CurlUrlSearchParams params(curl_.get());
@@ -117,6 +91,9 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 	const std::string postData = params.toString();
 
 	std::vector<char> readBuffer;
+
+	curl_easy_reset(curl_.get());
+
 	curl_easy_setopt(curl_.get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
 	curl_easy_setopt(curl_.get(), CURLOPT_POST, 1L);
 	curl_easy_setopt(curl_.get(), CURLOPT_POSTFIELDS, postData.c_str());

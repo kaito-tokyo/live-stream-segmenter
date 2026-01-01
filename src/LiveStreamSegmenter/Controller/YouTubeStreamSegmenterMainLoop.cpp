@@ -53,7 +53,7 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 			   std::shared_ptr<const Logger::ILogger> logger)
 {
 	std::string accessToken;
-	GoogleAuth::GoogleAuthManager authManager = authStore->getGoogleAuthManager(curl);
+	std::shared_ptr<GoogleAuth::GoogleAuthManager> authManager = authStore->createGoogleAuthManager(curl, logger);
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
 	if (tokenState.isAuthorized()) {
 		if (tokenState.isAccessTokenFresh()) {
@@ -62,7 +62,7 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 		} else {
 			logger->info("YouTubeAccessTokenNotFresh");
 			GoogleAuth::GoogleAuthResponse freshAuthResponse =
-				authManager.fetchFreshAuthResponse(tokenState.refresh_token);
+				authManager->fetchFreshAuthResponse(tokenState.refresh_token);
 			GoogleAuth::GoogleTokenState newTokenState;
 			tokenState.loadAuthResponse(freshAuthResponse);
 			authStore->setGoogleTokenState(newTokenState);
