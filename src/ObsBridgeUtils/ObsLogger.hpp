@@ -1,6 +1,8 @@
 /*
- * KaitoTokyo BridgeUtils Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo ObsBridgeUtils Library
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +35,8 @@ namespace BridgeUtils {
 
 class ObsLogger final : public Logger::ILogger {
 public:
-	ObsLogger(std::string_view prefix) : prefix_(prefix) {}
+	ObsLogger(std::string prefix) : prefix_(std::move(prefix)) {}
+
 	~ObsLogger() override = default;
 
 protected:
@@ -56,7 +59,7 @@ protected:
 			break;
 		default:
 			blog(LOG_ERROR, "%s name=UnknownLogLevelError\tlocation=%s:%d\n", prefix_.c_str(),
-			     loc.file_name(), loc.line());
+			     loc.function_name(), loc.line());
 			return;
 		}
 
@@ -64,14 +67,14 @@ protected:
 			fmt::basic_memory_buffer<char, 4096> buffer;
 
 			fmt::format_to(std::back_inserter(buffer), "{} name={}\tlocation={}:{}", prefix_, name,
-				       loc.file_name(), loc.line());
+				       loc.function_name(), loc.line());
 			for (const Logger::LogField &field : context) {
 				fmt::format_to(std::back_inserter(buffer), "\t{}={}", field.key, field.value);
 			}
 
 			blog(blogLevel, "%.*s", static_cast<int>(buffer.size()), buffer.data());
 		} catch (...) {
-			blog(blogLevel, "%s name=LoggerPanic\tlocation=%s:%d", prefix_.c_str(), loc.file_name(),
+			blog(blogLevel, "%s name=LoggerPanic\tlocation=%s:%d", prefix_.c_str(), loc.function_name(),
 			     loc.line());
 		}
 	}

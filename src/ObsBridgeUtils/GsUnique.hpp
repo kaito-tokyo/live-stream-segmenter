@@ -1,6 +1,8 @@
 /*
- * KaitoTokyo BridgeUtils Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo ObsBridgeUtils Library
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
