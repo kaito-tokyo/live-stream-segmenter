@@ -39,8 +39,8 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleOAuth2Flow {
 public:
-	GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
-			 std::shared_ptr<const Logger::ILogger> logger);
+	GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
+			 std::string scopes, std::shared_ptr<const Logger::ILogger> logger);
 
 	~GoogleOAuth2Flow() noexcept;
 

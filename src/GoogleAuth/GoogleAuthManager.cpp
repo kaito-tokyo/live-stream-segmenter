@@ -32,7 +32,8 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
+GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
+				     GoogleOAuth2ClientCredentials clientCredentials,
 				     std::shared_ptr<const Logger::ILogger> logger)
 	: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(GoogleAuthManager)")),
 	  clientCredentials_((clientCredentials.client_id.empty() || clientCredentials.client_secret.empty())

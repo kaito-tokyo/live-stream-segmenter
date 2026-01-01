@@ -25,10 +25,7 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
-ScriptingRuntime::ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger)
-	: logger_(logger ? std::move(logger)
-			 : throw std::invalid_argument("LoggerNullError(ScriptingRuntime::ScriptingRuntime)")),
-	  rt_(std::shared_ptr<JSRuntime>(JS_NewRuntime(), JS_FreeRuntime))
+ScriptingRuntime::ScriptingRuntime() : rt_(std::shared_ptr<JSRuntime>(JS_NewRuntime(), JS_FreeRuntime))
 {
 	JS_SetRuntimeOpaque(rt_.get(), this);
 }

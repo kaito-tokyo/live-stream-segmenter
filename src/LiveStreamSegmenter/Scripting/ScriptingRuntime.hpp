@@ -33,6 +33,7 @@
 #include <quickjs.h>
 
 #include <ILogger.hpp>
+#include <NullLogger.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
@@ -144,13 +145,15 @@ private:
 
 class ScriptingRuntime {
 public:
-	ScriptingRuntime(std::shared_ptr<const Logger::ILogger> logger);
+	ScriptingRuntime();
 	~ScriptingRuntime();
 
 	ScriptingRuntime(const ScriptingRuntime &) = delete;
 	ScriptingRuntime &operator=(const ScriptingRuntime &) = delete;
 	ScriptingRuntime(ScriptingRuntime &&) = delete;
 	ScriptingRuntime &operator=(ScriptingRuntime &&) = delete;
+
+	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
 	std::shared_ptr<JSContext> createContextRaw() const;
 
@@ -182,9 +185,9 @@ public:
 		return it->second;
 	}
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<JSRuntime> rt_;
 
+	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
 	mutable std::unordered_map<std::type_index, JSClassID> registeredClasses_;
 };
 

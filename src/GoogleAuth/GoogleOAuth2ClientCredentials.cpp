@@ -29,15 +29,13 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-void to_json(nlohmann::json &j, const GoogleOAuth2ClientCredentials &p) {
-	j = nlohmann::json{
-		{"ver", p.ver},
-		{"client_id", p.client_id},
-		{"client_secret", p.client_secret}
-	};
+void to_json(nlohmann::json &j, const GoogleOAuth2ClientCredentials &p)
+{
+	j = nlohmann::json{{"ver", p.ver}, {"client_id", p.client_id}, {"client_secret", p.client_secret}};
 }
 
-void from_json(const nlohmann::json &j, GoogleOAuth2ClientCredentials &p) {
+void from_json(const nlohmann::json &j, GoogleOAuth2ClientCredentials &p)
+{
 	j.at("ver").get_to(p.ver);
 	j.at("client_id").get_to(p.client_id);
 	j.at("client_secret").get_to(p.client_secret);

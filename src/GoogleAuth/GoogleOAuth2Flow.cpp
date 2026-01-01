@@ -39,7 +39,8 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
+GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
+				   GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
 				   std::shared_ptr<const Logger::ILogger> logger)
 	: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(GoogleOAuth2Flow)")),
 	  clientCredentials_(std::move(clientCredentials)),

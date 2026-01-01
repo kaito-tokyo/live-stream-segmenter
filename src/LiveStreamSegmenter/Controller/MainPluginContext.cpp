@@ -68,11 +68,13 @@ std::shared_ptr<const Logger::ILogger> composeLogger(std::shared_ptr<const Logge
 } // anonymous namespace
 
 MainPluginContext::MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-	: youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_.get())),
-	  runtime_(std::make_shared<Scripting::ScriptingRuntime>(logger_)),
+	: curl_(std::make_shared<CurlHelper::CurlHandle>()),
+	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_)),
+	  runtime_(std::make_shared<Scripting::ScriptingRuntime>()),
 	  dock_(new UI::StreamSegmenterDock(curl_, youTubeApiClient_, runtime_, mainWindow)),
 	  logger_(composeLogger(std::move(logger), dock_))
 {
+	runtime_->setLogger(logger_);
 	dock_->setLogger(logger_);
 
 	obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"), dock_);

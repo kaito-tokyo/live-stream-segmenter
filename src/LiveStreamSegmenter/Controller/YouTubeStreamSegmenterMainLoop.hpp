@@ -88,7 +88,7 @@ private:
 	Async::Task<void> mainLoopTask_;
 
 	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
-					std::shared_ptr<CurlHelper::CurlHandle> curl,
+					  std::shared_ptr<CurlHelper::CurlHandle> curl,
 					  std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					  std::shared_ptr<Store::AuthStore> authStore,

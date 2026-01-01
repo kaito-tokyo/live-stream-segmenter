@@ -118,8 +118,8 @@ YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
 
 void YouTubeStreamSegmenterMainLoop::startMainLoop()
 {
-	mainLoopTask_ = mainLoop(channel_, curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youtubeStore_,
-				 logger_, parent_);
+	mainLoopTask_ = mainLoop(channel_, curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_,
+				 youtubeStore_, logger_, parent_);
 	mainLoopTask_.start();
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
