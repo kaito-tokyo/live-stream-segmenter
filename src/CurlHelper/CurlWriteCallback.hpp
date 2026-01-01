@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -35,6 +36,9 @@
 namespace KaitoTokyo::CurlHelper {
 
 template<typename T>
+concept SingleByte = sizeof(T) == 1;
+
+template<SingleByte T>
 inline std::size_t CurlVectorWriteCallback(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept {
 	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
 		return CURL_WRITEFUNC_ERROR;
