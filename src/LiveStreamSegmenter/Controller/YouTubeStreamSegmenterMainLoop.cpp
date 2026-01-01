@@ -307,7 +307,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	co_await AsyncQt::ResumeOnQTimerSingleShot{1000, parent};
 
 	if (nextLiveStream.cdn.ingestionType == "rtmp") {
-		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
+		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
 		obs_data_set_string(settings.get(), "service", "YouTube - RTMP");
 
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
@@ -321,7 +321,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 
 		logger->info("YouTubeRTMPServiceCreated");
 	} else if (nextLiveStream.cdn.ingestionType == "hls") {
-		auto settings = BridgeUtils::unique_obs_data_t(obs_data_create());
+		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
 		obs_data_set_string(settings.get(), "service", "YouTube - HLS");
 
 		obs_data_set_string(

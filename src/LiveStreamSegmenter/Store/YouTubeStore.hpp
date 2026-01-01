@@ -52,7 +52,7 @@ public:
 
 	YouTubeApi::YouTubeLiveStream getStreamKeyB() const;
 
-	bool save() const;
+	void save() const;
 
 	void restore();
 

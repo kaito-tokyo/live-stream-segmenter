@@ -62,7 +62,7 @@ private:
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
 	GoogleAuth::GoogleTokenState googleTokenState_;
 
-	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
+	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

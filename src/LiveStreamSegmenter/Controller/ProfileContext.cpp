@@ -54,9 +54,9 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	eventHandlerStore_->setLogger(logger_);
 	youTubeStore_->setLogger(logger_);
 
-	authStore_->restoreAuthStore();
+	authStore_->restore();
 	eventHandlerStore_->restore();
-	youTubeStore_->restoreYouTubeStore();
+	youTubeStore_->restore();
 
 	dock_->setAuthStore(authStore_);
 	dock_->setEventHandlerStore(eventHandlerStore_);

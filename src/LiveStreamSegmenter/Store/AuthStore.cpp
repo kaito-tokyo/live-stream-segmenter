@@ -18,8 +18,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "AuthStore.hpp"
 
 #include <fstream>
@@ -40,7 +38,7 @@ AuthStore::~AuthStore() noexcept = default;
 
 std::filesystem::path AuthStore::getConfigPath()
 {
-	BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
+	ObsBridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 	if (!profilePathRaw) {
 		throw std::runtime_error("GetCurrentProfilePathFailed(getConfigPath)");
 	}

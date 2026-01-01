@@ -510,7 +510,7 @@ void SettingsDialog::saveSettings()
 	googleOAuth2ClientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
 	authStore_->setGoogleOAuth2ClientCredentials(googleOAuth2ClientCredentials);
 
-	authStore_->saveAuthStore();
+	authStore_->save();
 
 	// Save EventHandlerStore
 	eventHandlerStore_->setEventHandlerScript(scriptEditor_->toPlainText().toStdString());
@@ -531,7 +531,7 @@ void SettingsDialog::saveSettings()
 		youTubeStore_->setStreamKeyB({});
 	}
 
-	youTubeStore_->saveYouTubeStore();
+	youTubeStore_->save();
 
 	// Save LocalStorage data
 	saveLocalStorageData();

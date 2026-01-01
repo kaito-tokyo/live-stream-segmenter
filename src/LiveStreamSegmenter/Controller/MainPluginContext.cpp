@@ -26,6 +26,7 @@
 #include <QMainWindow>
 
 #include <obs-frontend-api.h>
+#include <obs-module.h>
 
 #include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>

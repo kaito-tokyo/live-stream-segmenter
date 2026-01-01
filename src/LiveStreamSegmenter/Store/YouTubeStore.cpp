@@ -18,8 +18,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "YouTubeStore.hpp"
 
 #include <fstream>
@@ -40,7 +38,7 @@ YouTubeStore::~YouTubeStore() noexcept = default;
 
 std::filesystem::path YouTubeStore::getConfigPath()
 {
-	BridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
+	ObsBridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
 	if (!profilePathRaw) {
 		return {};
 	}

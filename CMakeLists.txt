@@ -197,12 +197,6 @@ if(NOT unofficial-sqlite3_FOUND)
   message(FATAL_ERROR "unofficial-sqlite3 or sqlite3 not found.")
 endif()
 
-# --- jthread ---
-if(APPLE)
-  set(JTHREAD_LIBRARIES jthread::jthread)
-  add_subdirectory(vendor/josuttis-jthread)
-endif()
-
 add_subdirectory(src)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)

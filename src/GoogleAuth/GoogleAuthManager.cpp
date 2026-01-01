@@ -36,7 +36,7 @@ GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> cur
 				     GoogleOAuth2ClientCredentials clientCredentials,
 				     std::shared_ptr<const Logger::ILogger> logger)
 	: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(GoogleAuthManager)")),
-	  clientCredentials_((clientCredentials.client_id.empty() || clientCredentials.client_secret.empty())
+	  clientCredentials_((!clientCredentials.client_id.empty() && !clientCredentials.client_secret.empty())
 				     ? std::move(clientCredentials)
 				     : throw std::runtime_error("CredentialsMissingError(GoogleAuthManager)")),
 	  logger_(std::move(logger))

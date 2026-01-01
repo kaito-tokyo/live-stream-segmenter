@@ -39,7 +39,7 @@ static std::shared_ptr<Controller::MainPluginContext> g_mainPluginContext;
 
 bool obs_module_load(void)
 {
-	g_logger = std::make_shared<BridgeUtils::ObsLogger>("[" PLUGIN_NAME "]");
+	g_logger = std::make_shared<ObsBridgeUtils::ObsLogger>("[" PLUGIN_NAME "]");
 
 	if (QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window())) {
 		g_mainPluginContext = Controller::MainPluginContext::create(g_logger, mainWindow);

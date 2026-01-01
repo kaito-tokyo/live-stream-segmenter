@@ -33,7 +33,7 @@
 #include "GsUnique.hpp"
 
 namespace KaitoTokyo {
-namespace BridgeUtils {
+namespace ObsBridgeUtils {
 
 /**
  * @brief Internal implementation details for AsyncTextureReader.
@@ -197,8 +197,8 @@ public:
 		  bufferLinesize_(width_ * getBytesPerPixel(format)),
 		  cpuBuffers_{std::vector<std::uint8_t>(static_cast<std::size_t>(height_) * bufferLinesize_),
 			      std::vector<std::uint8_t>(static_cast<std::size_t>(height_) * bufferLinesize_)},
-		  stagesurfs_{BridgeUtils::make_unique_gs_stagesurf(width, height, format),
-			      BridgeUtils::make_unique_gs_stagesurf(width, height, format)}
+		  stagesurfs_{ObsBridgeUtils::make_unique_gs_stagesurf(width, height, format),
+			      ObsBridgeUtils::make_unique_gs_stagesurf(width, height, format)}
 	{
 		if (!stagesurfs_[0] || !stagesurfs_[1]) {
 			throw std::runtime_error("Failed to create staging surfaces");
@@ -337,7 +337,7 @@ private:
 	/**
 	 * @brief Double-buffered GPU staging surfaces.
 	 */
-	const std::array<BridgeUtils::unique_gs_stagesurf_t, 2> stagesurfs_;
+	const std::array<ObsBridgeUtils::unique_gs_stagesurf_t, 2> stagesurfs_;
 
 	/**
 	 * @brief Index of the GPU write buffer.
@@ -350,5 +350,5 @@ private:
 	std::mutex gpuMutex_;
 };
 
-} // namespace BridgeUtils
+} // namespace ObsBridgeUtils
 } // namespace KaitoTokyo
