@@ -33,7 +33,4 @@ target_compile_options(
   ${CMAKE_PROJECT_NAME}_UI
   PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
 )
-set_target_properties(
-  ${CMAKE_PROJECT_NAME}_UI
-  PROPERTIES AUTOMOC ON AUTORCC ON
-)
+set_target_properties(${CMAKE_PROJECT_NAME}_UI PROPERTIES AUTOMOC ON AUTORCC ON)
