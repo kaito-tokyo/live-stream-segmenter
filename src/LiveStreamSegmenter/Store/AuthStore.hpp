@@ -33,6 +33,7 @@
 #include <CurlHandle.hpp>
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
+#include <GoogleOAuth2Flow.hpp>
 #include <GoogleTokenState.hpp>
 #include <ILogger.hpp>
 #include <NullLogger.hpp>
@@ -76,10 +77,20 @@ public:
 		return googleTokenState_;
 	}
 
-	GoogleAuth::GoogleAuthManager getGoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl) const
+	GoogleAuth::GoogleAuthManager createGoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
+							      std::shared_ptr<const Logger::ILogger> logger) const
 	{
 		std::scoped_lock lock(mutex_);
-		return GoogleAuth::GoogleAuthManager(curl, googleOAuth2ClientCredentials_, logger_);
+		return GoogleAuth::GoogleAuthManager(curl, googleOAuth2ClientCredentials_, logger);
+	}
+
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow>
+	createGoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, std::string scopes,
+			       std::shared_ptr<const Logger::ILogger> logger) const
+	{
+		std::scoped_lock lock(mutex_);
+		return std::make_shared<GoogleAuth::GoogleOAuth2Flow>(curl, googleOAuth2ClientCredentials_,
+								      std::move(scopes), logger);
 	}
 
 	bool saveAuthStore() const noexcept

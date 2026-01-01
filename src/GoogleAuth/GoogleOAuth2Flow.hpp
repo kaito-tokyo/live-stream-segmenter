@@ -46,8 +46,8 @@ public:
 
 	GoogleOAuth2Flow(const GoogleOAuth2Flow &) = delete;
 	GoogleOAuth2Flow &operator=(const GoogleOAuth2Flow &) = delete;
-	GoogleOAuth2Flow(GoogleOAuth2Flow &&) = delete;
-	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
+	GoogleOAuth2Flow(GoogleOAuth2Flow &&) noexcept;
+	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) noexcept;
 
 	[[nodiscard]]
 	std::string getAuthorizationUrl(std::string redirectUri) const;
@@ -59,10 +59,10 @@ private:
 	[[nodiscard]]
 	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
 
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::string scopes_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
+	std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	GoogleOAuth2ClientCredentials clientCredentials_;
+	std::string scopes_;
+	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

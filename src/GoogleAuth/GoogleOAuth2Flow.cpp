@@ -51,6 +51,32 @@ GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
 
 GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
+GoogleOAuth2Flow::GoogleOAuth2Flow(GoogleOAuth2Flow &&other) noexcept
+	: curl_(std::move(other.curl_)),
+	  clientCredentials_(std::move(other.clientCredentials_)),
+	  scopes_(std::move(other.scopes_)),
+	  logger_(std::move(other.logger_))
+{
+	other.curl_ = nullptr;
+	other.logger_ = nullptr;
+	other.scopes_.clear();
+}
+
+GoogleOAuth2Flow &GoogleOAuth2Flow::operator=(GoogleOAuth2Flow &&other) noexcept
+{
+	if (this != &other) {
+		curl_ = std::move(other.curl_);
+		clientCredentials_ = std::move(other.clientCredentials_);
+		scopes_ = std::move(other.scopes_);
+		logger_ = std::move(other.logger_);
+
+		other.curl_ = nullptr;
+		other.logger_ = nullptr;
+		other.scopes_.clear();
+	}
+	return *this;
+}
+
 std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 {
 	CurlHelper::CurlUrlSearchParams params(curl_.get());

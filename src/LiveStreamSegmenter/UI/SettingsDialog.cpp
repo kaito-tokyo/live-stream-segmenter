@@ -598,10 +598,8 @@ Async::Task<void> SettingsDialog::runAuthFlow(QPointer<SettingsDialog> self)
 	clientCredentials.client_id = self->clientIdDisplay_->text().toStdString();
 	clientCredentials.client_secret = self->clientSecretDisplay_->text().toStdString();
 
-	auto curl = std::make_shared<CurlHelper::CurlHandle>();
-
-	self->googleOAuth2Flow_ = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		curl, clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
+	self->googleOAuth2Flow_ = self->authStore_->createGoogleOAuth2Flow(
+		self->curl_, "https://www.googleapis.com/auth/youtube.force-ssl", self->logger_);
 
 	auto flow = self->googleOAuth2Flow_;
 	std::optional<GoogleAuth::GoogleAuthResponse> result = std::nullopt;
@@ -674,8 +672,7 @@ Async::Task<void> SettingsDialog::fetchStreamKeys()
 {
 	co_await ResumeOnGlobalQThreadPool{};
 	try {
-		CurlHelper::CurlHandle curl;
-		const GoogleAuth::GoogleAuthManager authManager(authStore_->getGoogleAuthManager(curl_));
+		const GoogleAuth::GoogleAuthManager authManager(authStore_->createGoogleAuthManager(curl_, logger_));
 		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
