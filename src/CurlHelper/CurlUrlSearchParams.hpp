@@ -39,8 +39,7 @@ namespace KaitoTokyo::CurlHelper {
 class CurlUrlSearchParams {
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
-		: curl_(curl ? curl
-			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams)"))
+		: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams)"))
 	{
 	}
 

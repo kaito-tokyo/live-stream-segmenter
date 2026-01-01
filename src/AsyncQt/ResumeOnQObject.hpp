@@ -62,7 +62,8 @@ public:
 	 * @param context The QObject whose thread will execute the continuation.
 	 * @throws std::invalid_argument if \p context is nullptr. This check exists solely to catch obvious bugs early.
 	 */
-	explicit ResumeOnQObject(QObject *context) : context_(context ? context : throw std::invalid_argument("ContextIsNullError(ResumeOnQObject)"))
+	explicit ResumeOnQObject(QObject *context)
+		: context_(context ? context : throw std::invalid_argument("ContextIsNullError(ResumeOnQObject)"))
 	{
 	}
 

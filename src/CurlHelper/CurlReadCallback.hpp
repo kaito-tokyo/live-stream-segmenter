@@ -72,15 +72,18 @@ inline std::size_t CurlStreamReadCallback(char *buffer, std::size_t size, std::s
 	}
 }
 
-inline std::size_t CurlIfstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+inline std::size_t CurlIfstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept
+{
 	return CurlStreamReadCallback<std::ifstream>(buffer, size, nmemb, userp);
 }
 
-inline std::size_t CurlIstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+inline std::size_t CurlIstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept
+{
 	return CurlStreamReadCallback<std::istream>(buffer, size, nmemb, userp);
 }
 
-inline std::size_t CurlStringStreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+inline std::size_t CurlStringStreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept
+{
 	return CurlStreamReadCallback<std::istringstream>(buffer, size, nmemb, userp);
 }
 

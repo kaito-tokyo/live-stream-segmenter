@@ -40,13 +40,10 @@ class CurlUrlHandle {
 		if (!handle)
 			throw std::runtime_error("CurlUrlInitError(CurlUrlHandle)");
 		return std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>(handle, &curl_url_cleanup);
-
 	}
 
 public:
-	CurlUrlHandle() : handle_(initCurlUrl())
-	{
-	}
+	CurlUrlHandle() : handle_(initCurlUrl()) {}
 
 	~CurlUrlHandle() noexcept = default;
 
