@@ -27,12 +27,11 @@
 
 #include <obs-frontend-api.h>
 
-#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-AuthStore::AuthStore() : logger_{Logger::NullLogger::instance()} {}
+AuthStore::AuthStore() = default;
 
 AuthStore::~AuthStore() noexcept = default;
 
@@ -109,7 +108,9 @@ void AuthStore::save() const
 	std::filesystem::path bakConfigPath = configPath;
 	bakConfigPath += ".bak";
 
-	std::filesystem::rename(configPath, bakConfigPath);
+	if (std::filesystem::is_regular_file(configPath)) {
+		std::filesystem::rename(configPath, bakConfigPath);
+	}
 	std::filesystem::rename(tmpConfigPath, configPath);
 }
 
@@ -133,11 +134,11 @@ void AuthStore::restore()
 	std::scoped_lock lock(mutex_);
 	try {
 		if (j.contains("googleOAuth2ClientCredentials")) {
-			j.get_to(googleOAuth2ClientCredentials_);
+			j.at("googleOAuth2ClientCredentials").get_to(googleOAuth2ClientCredentials_);
 			logger_->info("RestoredGoogleOAuth2ClientCredentials");
 		}
 		if (j.contains("googleTokenState")) {
-			j.get_to(googleTokenState_);
+			j.at("googleTokenState").get_to(googleTokenState_);
 			logger_->info("RestoredGoogleTokenState");
 		}
 	} catch (...) {

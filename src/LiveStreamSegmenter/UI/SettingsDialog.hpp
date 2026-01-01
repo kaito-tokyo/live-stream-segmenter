@@ -73,6 +73,11 @@ public:
 
 	~SettingsDialog() override;
 
+	void fetchStreamKeys();
+
+	void loadLocalStorageData();
+	void saveLocalStorageData();
+
 public slots:
 	void accept() override;
 
@@ -95,16 +100,11 @@ private:
 	void saveSettings();
 	void restoreSettings();
 
-	void loadLocalStorageData();
-	void saveLocalStorageData();
-
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
 	void startGoogleOAuth2Flow();
 	void runAuthFlow();
-
-	void fetchStreamKeys();
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;

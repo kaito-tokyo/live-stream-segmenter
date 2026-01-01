@@ -27,12 +27,11 @@
 
 #include <obs-frontend-api.h>
 
-#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-EventHandlerStore::EventHandlerStore() : logger_{Logger::NullLogger::instance()} {}
+EventHandlerStore::EventHandlerStore() = default;
 
 EventHandlerStore::~EventHandlerStore() noexcept = default;
 
@@ -106,7 +105,9 @@ void EventHandlerStore::save() const
 	std::filesystem::path bakConfigPath = configPath;
 	bakConfigPath += ".bak";
 
-	std::filesystem::rename(configPath, bakConfigPath);
+	if (std::filesystem::is_regular_file(configPath)) {
+		std::filesystem::rename(configPath, bakConfigPath);
+	}
 	std::filesystem::rename(tmpConfigPath, configPath);
 }
 
@@ -130,7 +131,7 @@ void EventHandlerStore::restore()
 	std::scoped_lock lock(mutex_);
 	try {
 		if (j.contains("eventHandlerScript")) {
-			j.get_to(eventHandlerScript_);
+			j.at("eventHandlerScript").get_to(eventHandlerScript_);
 			logger_->info("RestoredEventHandlerScript");
 		}
 	} catch (...) {

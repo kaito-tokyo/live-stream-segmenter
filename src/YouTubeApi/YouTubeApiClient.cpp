@@ -300,7 +300,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 		throw std::invalid_argument("AccessTokenIsEmptyError(listLiveStreams)");
 	}
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("part", "id,snippet,cdn,status");
 	if (ids.empty()) {
 		params.append("mine", "true");
@@ -318,7 +318,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string_vie
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<nlohmann::json> items = performList(curl_->get(), url.get(), logger_, headers.get());
+	std::vector<nlohmann::json> items = performList(curl_->getRaw(), url.get(), logger_, headers.getRaw());
 
 	std::vector<YouTubeLiveStream> liveStreams;
 	for (const nlohmann::json &item : items) {
@@ -340,7 +340,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 		throw std::invalid_argument("BroadcastStatusIsEmptyError(listLiveBroadcastsByStatus)");
 	}
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("part", "id,snippet,contentDetails,status");
 	params.append("broadcastStatus", std::move(broadcastStatus));
 	std::string qs = params.toString();
@@ -354,7 +354,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	headers.append(authHeader.c_str());
 
 	auto url = urlHandle.c_str();
-	std::vector<nlohmann::json> items = performList(curl_->get(), url.get(), logger_, headers.get());
+	std::vector<nlohmann::json> items = performList(curl_->getRaw(), url.get(), logger_, headers.getRaw());
 
 	std::vector<YouTubeLiveBroadcast> broadcasts;
 	for (const nlohmann::json &item : items) {
@@ -372,7 +372,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view acce
 		throw std::invalid_argument("AccessTokenIsEmptyError(insertLiveBroadcast)");
 	}
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("part", "id,snippet,contentDetails,status");
 	std::string qs = params.toString();
 
@@ -389,7 +389,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view acce
 	nlohmann::json requestBody = settings;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody = doPost(curl_->get(), url.get(), bodyStr, logger_, headers.get());
+	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), bodyStr, logger_, headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	return j.get<YouTubeLiveBroadcast>();
@@ -407,7 +407,7 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view access
 		throw std::invalid_argument("BroadcastIdIsEmptyError(bindLiveBroadcast)");
 	}
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("id", std::move(broadcastId));
 	params.append("part", "id,snippet,contentDetails,status");
 	if (streamId.has_value()) {
@@ -424,7 +424,7 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view access
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<char> responseBody = doPost(curl_->get(), url.get(), logger_, headers.get());
+	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), logger_, headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	return j.get<YouTubeLiveBroadcast>();
@@ -446,7 +446,7 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string_view 
 		throw std::invalid_argument("BroadcastStatusIsEmptyError(transitionLiveBroadcast)");
 	}
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("id", std::move(broadcastId));
 	params.append("broadcastStatus", std::move(broadcastStatus));
 	params.append("part", "id,snippet,contentDetails,status");
@@ -463,7 +463,7 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string_view 
 
 	logger_->info("TransitioningLiveBroadcast",
 		      {{"broadcastId", broadcastId}, {"broadcastStatus", broadcastStatus}});
-	std::vector<char> responseBody = doPost(curl_->get(), url.get(), logger_, headers.get());
+	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), logger_, headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	return j.get<YouTubeLiveBroadcast>();
@@ -505,7 +505,7 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string vi
 	}
 	// FIXME: Path whitelist will be implemented later.
 
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("videoId", std::move(videoId));
 	std::string qs = params.toString();
 
@@ -534,7 +534,7 @@ void YouTubeApiClient::setThumbnail(std::string_view accessToken, std::string vi
 		throw std::runtime_error("ThumbnailFileOpenError(setThumbnail)");
 	}
 
-	std::vector<char> responseBody = doPost(curl_->get(), url.get(), ifs, size, logger_, headers.get());
+	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), ifs, size, logger_, headers.getRaw());
 	ifs.close();
 }
 

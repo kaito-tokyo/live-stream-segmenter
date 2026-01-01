@@ -347,6 +347,8 @@ void StreamSegmenterDock::onSettingsButtonClicked()
 	}();
 
 	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger, this);
+	settingsDialog.fetchStreamKeys();
+	settingsDialog.loadLocalStorageData();
 	settingsDialog.exec();
 }
 

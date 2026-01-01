@@ -81,10 +81,7 @@ void GoogleTokenState::loadAuthResponse(const GoogleAuthResponse &response)
 
 void from_json(const nlohmann::json &j, GoogleTokenState &p)
 {
-	if (auto it = j.find("ver"); it != j.end()) {
-		it->get_to(p.ver);
-	}
-
+	j.at("ver").get_to(p.ver);
 	j.at("access_token").get_to(p.access_token);
 	j.at("refresh_token").get_to(p.refresh_token);
 	j.at("email").get_to(p.email);

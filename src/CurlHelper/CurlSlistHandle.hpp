@@ -49,14 +49,20 @@ public:
 
 	void append(const char *str)
 	{
-		curl_slist *newSlist = curl_slist_append(slist_.get(), str);
-		if (!newSlist)
-			throw std::runtime_error("SlistAppendError(CurlSlistHandle::append)");
-		slist_.reset(newSlist);
+		curl_slist *current = slist_.release();
+
+		curl_slist *newSlist = curl_slist_append(current, str);
+
+		if (newSlist) {
+			slist_.reset(newSlist);
+		} else {
+			slist_.reset(current);
+			throw std::runtime_error("SlistAppendError(append)");
+		}
 	}
 
 	[[nodiscard]]
-	curl_slist *get() const noexcept
+	curl_slist *getRaw() const noexcept
 	{
 		return slist_.get();
 	}

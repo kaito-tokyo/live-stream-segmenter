@@ -54,7 +54,7 @@ public:
 	CurlHandle &operator=(CurlHandle &&) = delete;
 
 	[[nodiscard]]
-	CURL *get() const
+	CURL *getRaw() const
 	{
 		return curl_.get();
 	}

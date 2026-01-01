@@ -33,7 +33,6 @@
 #include <quickjs.h>
 
 #include <ILogger.hpp>
-#include <NullLogger.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
@@ -187,7 +186,7 @@ public:
 
 	const std::shared_ptr<JSRuntime> rt_;
 
-	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
+	std::shared_ptr<const Logger::ILogger> logger_;
 	mutable std::unordered_map<std::type_index, JSClassID> registeredClasses_;
 };
 

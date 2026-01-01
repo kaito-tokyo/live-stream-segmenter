@@ -27,12 +27,11 @@
 
 #include <obs-frontend-api.h>
 
-#include <NullLogger.hpp>
 #include <ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-YouTubeStore::YouTubeStore() : logger_{Logger::NullLogger::instance()} {}
+YouTubeStore::YouTubeStore() = default;
 
 YouTubeStore::~YouTubeStore() noexcept = default;
 
@@ -108,7 +107,9 @@ void YouTubeStore::save() const
 	std::filesystem::path bakConfigPath = configPath;
 	bakConfigPath += ".bak";
 
-	std::filesystem::rename(configPath, bakConfigPath);
+	if (std::filesystem::is_regular_file(configPath)) {
+		std::filesystem::rename(configPath, bakConfigPath);
+	}
 	std::filesystem::rename(tmpConfigPath, configPath);
 }
 
@@ -132,11 +133,11 @@ void YouTubeStore::restore()
 	std::scoped_lock lock(mutex_);
 	try {
 		if (j.contains("streamKeyA")) {
-			j.get_to(streamKeyA_);
+			j.at("streamKeyA").get_to(streamKeyA_);
 			logger_->info("RestoredStreamKeyA");
 		}
 		if (j.contains("streamKeyB")) {
-			j.get_to(streamKeyB_);
+			j.at("streamKeyB").get_to(streamKeyB_);
 			logger_->info("RestoredStreamKeyB");
 		}
 	} catch (...) {

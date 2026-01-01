@@ -53,7 +53,7 @@ GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
 std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 {
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("client_id", clientCredentials_.client_id);
 	params.append("redirect_uri", std::move(redirectUri));
 	params.append("response_type", "code");
@@ -72,7 +72,7 @@ std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 
 GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string redirectUri)
 {
-	CurlHelper::CurlUrlSearchParams params(curl_->get());
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 
 	params.append("client_id", clientCredentials_.client_id);
 	params.append("client_secret", clientCredentials_.client_secret);
@@ -83,22 +83,21 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl_->get());
+	curl_easy_reset(curl_->getRaw());
 
-	curl_easy_setopt(curl_->get(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
-	curl_easy_setopt(curl_->get(), CURLOPT_POST, 1L);
-	curl_easy_setopt(curl_->get(), CURLOPT_POSTFIELDS, postData.c_str());
-	curl_easy_setopt(curl_->get(), CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_URL, "https://oauth2.googleapis.com/token");
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_POSTFIELDS, postData.c_str());
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(postData.length()));
 
-	curl_easy_setopt(curl_->get(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl_->get(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl_->get(), CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl_->get(), CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl_->get(), CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_NOSIGNAL, 1L);
 
-	const CURLcode res = curl_easy_perform(curl_->get());
-
+	const CURLcode res = curl_easy_perform(curl_->getRaw());
 	if (res != CURLE_OK) {
 		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
 		throw std::runtime_error("CurlPerformError(exchangeCode)");

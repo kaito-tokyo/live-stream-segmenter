@@ -66,33 +66,6 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
-namespace {
-
-struct ResumeOnGlobalQThreadPool {
-	bool await_ready() { return false; }
-	void await_suspend(std::coroutine_handle<> h)
-	{
-		QThreadPool::globalInstance()->start([h]() { h.resume(); });
-	}
-	void await_resume() {}
-};
-
-struct ResumeOnQtMainThread {
-	QPointer<QObject> context;
-	explicit ResumeOnQtMainThread(QObject *c) : context(c) {}
-
-	bool await_ready() { return false; }
-	void await_suspend(std::coroutine_handle<> h)
-	{
-		if (context) {
-			QMetaObject::invokeMethod(context, [h]() { h.resume(); }, Qt::QueuedConnection);
-		}
-	}
-	void await_resume() {}
-};
-
-} // anonymous namespace
-
 SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
@@ -171,6 +144,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 					  this)),
 	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
 {
+	youTubeApiClient_->setLogger(logger_);
+
 	setupUi();
 
 	connect(dropArea_, &JsonDropArea::jsonFileDropped, this, &SettingsDialog::onCredentialsFileDropped);
@@ -192,10 +167,6 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	connect(buttonBox_, &QDialogButtonBox::accepted, this, &SettingsDialog::accept);
 	connect(buttonBox_, &QDialogButtonBox::rejected, this, &SettingsDialog::reject);
 	connect(buttonBox_->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &SettingsDialog::onApply);
-
-	fetchStreamKeys();
-
-	loadLocalStorageData();
 }
 
 SettingsDialog::~SettingsDialog() {}

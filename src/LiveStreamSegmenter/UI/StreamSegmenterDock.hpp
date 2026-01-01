@@ -28,7 +28,6 @@
 #include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
 #include <ILogger.hpp>
-#include <NullLogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
@@ -178,7 +177,7 @@ private:
 	QPushButton *const segmentNowButton_;
 
 	mutable std::mutex mutex_;
-	std::shared_ptr<const Logger::ILogger> logger_{Logger::NullLogger::instance()};
+	std::shared_ptr<const Logger::ILogger> logger_;
 	std::shared_ptr<Store::AuthStore> authStore_;
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	std::shared_ptr<Store::YouTubeStore> youTubeStore_;
