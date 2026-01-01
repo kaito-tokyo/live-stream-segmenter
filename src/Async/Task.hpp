@@ -181,7 +181,7 @@ struct [[nodiscard("Task objects own the running coroutine. Do not discard witho
 	explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
 
 	// Destructor: Automatically destroys the coroutine frame (cancellation).
-	~Task()
+	~Task() noexcept
 	{
 		if (handle)
 			handle.destroy();

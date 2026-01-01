@@ -25,6 +25,9 @@
 
 #pragma once
 
+#include <memory>
+#include <stdexcept>
+
 #include <curl/curl.h>
 
 namespace KaitoTokyo::CurlHelper {
@@ -32,7 +35,7 @@ namespace KaitoTokyo::CurlHelper {
 class CurlSlistHandle {
 public:
 	CurlSlistHandle() = default;
-	~CurlSlistHandle() noexcept { curl_slist_free_all(slist_); }
+	~CurlSlistHandle() noexcept = default;
 
 	CurlSlistHandle(const CurlSlistHandle &) = delete;
 	CurlSlistHandle &operator=(const CurlSlistHandle &) = delete;
@@ -41,16 +44,16 @@ public:
 
 	void append(const char *str)
 	{
-		curl_slist *newSlist = curl_slist_append(slist_, str);
+		curl_slist *newSlist = curl_slist_append(slist_.get(), str);
 		if (!newSlist)
 			throw std::runtime_error("SlistAppendError(CurlSlistHandle::append)");
-		slist_ = newSlist;
+		slist_.reset(newSlist);
 	}
 
-	curl_slist *get() const noexcept { return slist_; }
+	curl_slist *get() const noexcept { return slist_.get(); }
 
 private:
-	curl_slist *slist_ = nullptr;
+	std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)> slist_{nullptr, &curl_slist_free_all};
 };
 
 } // namespace KaitoTokyo::CurlHelper

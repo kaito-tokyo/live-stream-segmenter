@@ -40,11 +40,11 @@ class CurlUrlSearchParams {
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
 		: curl_(curl ? curl
-			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
+			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams)"))
 	{
 	}
 
-	~CurlUrlSearchParams() = default;
+	~CurlUrlSearchParams() noexcept = default;
 
 	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
 	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
@@ -71,12 +71,12 @@ public:
 
 			auto escapedKey = curlEasyEscape(key);
 			if (!escapedKey) {
-				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams::toString)");
+				throw std::runtime_error("KeyEncodeError(toString)");
 			}
 
 			auto escapedValue = curlEasyEscape(value);
 			if (!escapedValue) {
-				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams::toString)");
+				throw std::runtime_error("ValueEncodeError(toString)");
 			}
 
 			oss << escapedKey.get() << "=" << escapedValue.get();

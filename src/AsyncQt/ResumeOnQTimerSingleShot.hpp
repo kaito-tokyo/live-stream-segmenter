@@ -27,8 +27,8 @@
 
 #include <coroutine>
 
-#include <QTimer>
 #include <QObject>
+#include <QTimer>
 
 namespace KaitoTokyo::AsyncQt {
 

@@ -26,11 +26,12 @@
 #pragma once
 
 #include <concepts>
-#include <curl/curl.h>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
+
+#include <curl/curl.h>
 
 namespace KaitoTokyo::CurlHelper {
 
@@ -71,8 +72,16 @@ inline std::size_t CurlStreamReadCallback(char *buffer, std::size_t size, std::s
 	}
 }
 
-constexpr auto CurlIfstreamReadCallback = CurlStreamReadCallback<std::ifstream>;
-constexpr auto CurlStringStreamReadCallback = CurlStreamReadCallback<std::istringstream>;
-constexpr auto CurlIstreamReadCallback = CurlStreamReadCallback<std::istream>;
+inline std::size_t CurlIfstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+	return CurlStreamReadCallback<std::ifstream>(buffer, size, nmemb, userp);
+}
+
+inline std::size_t CurlIstreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+	return CurlStreamReadCallback<std::istream>(buffer, size, nmemb, userp);
+}
+
+inline std::size_t CurlStringStreamReadCallback(char *buffer, std::size_t size, std::size_t nmemb, void *userp) noexcept {
+	return CurlStreamReadCallback<std::istringstream>(buffer, size, nmemb, userp);
+}
 
 } // namespace KaitoTokyo::CurlHelper
