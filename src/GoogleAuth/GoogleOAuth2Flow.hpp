@@ -58,7 +58,7 @@ public:
 
 private:
 	[[nodiscard]]
-	GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string redirectUri);
+	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
 
 	CURL *const curl_;
 	const GoogleOAuth2ClientCredentials clientCredentials_;

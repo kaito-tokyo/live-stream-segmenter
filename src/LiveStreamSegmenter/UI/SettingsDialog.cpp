@@ -43,7 +43,6 @@
 #include <GoogleAuthManager.hpp>
 #include <GoogleOAuth2ClientCredentials.hpp>
 #include <GoogleTokenState.hpp>
-#include <Task.hpp>
 #include <YouTubeApiClient.hpp>
 
 #include "fmt_qstring_formatter.hpp"
@@ -77,25 +76,25 @@ struct ResumeOnQtMainThread {
 
 } // anonymous namespace
 
-SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+SettingsDialog::SettingsDialog(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+			       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			       std::shared_ptr<Store::AuthStore> authStore,
 			       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 			       std::shared_ptr<Store::YouTubeStore> youTubeStore,
 			       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
 	: QDialog(parent),
-	  runtime_(runtime ? std::move(runtime)
-			   : throw std::invalid_argument("RuntimeIsNullError(SettingsDialog::SettingsDialog)")),
+	  youTubeApiClient_(youTubeApiClient
+				    ? std::move(youTubeApiClient)
+				    : throw std::invalid_argument("YouTubeApiClientIsNullError(SettingsDialog)")),
+	  runtime_(runtime ? std::move(runtime) : throw std::invalid_argument("RuntimeIsNullError(SettingsDialog)")),
 	  authStore_(authStore ? std::move(authStore)
-			       : throw std::invalid_argument("AuthStoreIsNullError(SettingsDialog::SettingsDialog)")),
+			       : throw std::invalid_argument("AuthStoreIsNullError(SettingsDialog)")),
 	  eventHandlerStore_(eventHandlerStore
 				     ? std::move(eventHandlerStore)
-				     : throw std::invalid_argument(
-					       "EventHandlerStoreIsNullError(SettingsDialog::SettingsDialog)")),
+				     : throw std::invalid_argument("EventHandlerStoreIsNullError(SettingsDialog)")),
 	  youTubeStore_(youTubeStore ? std::move(youTubeStore)
-				     : throw std::invalid_argument(
-					       "YouTubeStoreIsNullError(SettingsDialog::SettingsDialog)")),
-	  logger_(logger ? std::move(logger)
-			 : throw std::invalid_argument("LoggerIsNullError(SettingsDialog::SettingsDialog)")),
+				     : throw std::invalid_argument("YouTubeStoreIsNullError(SettingsDialog)")),
+	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(SettingsDialog)")),
 
 	  // 1. Main Structure
 	  mainLayout_(new QVBoxLayout(this)),

@@ -22,22 +22,7 @@
 
 #include <memory>
 
-#include <QAbstractItemView>
-#include <QComboBox>
-#include <QDialog>
-#include <QDialogButtonBox>
-#include <QGroupBox>
-#include <QHeaderView>
-#include <QLabel>
-#include <QLineEdit>
-#include <QPlainTextEdit>
 #include <QPointer>
-#include <QPushButton>
-#include <QTabWidget>
-#include <QTableWidget>
-#include <QThreadPool>
-#include <QVBoxLayout>
-#include <QWidget>
 
 #include <ILogger.hpp>
 
@@ -47,9 +32,26 @@
 #include <ScriptingRuntime.hpp>
 #include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
+#include <Task.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"
+
+class QAbstractItemView;
+class QComboBox;
+class QDialog;
+class QDialogButtonBox;
+class QGroupBox;
+class QHeaderView;
+class QLabel;
+class QLineEdit;
+class QPlainTextEdit;
+class QPushButton;
+class QTableWidget;
+class QTabWidget;
+class QThreadPool;
+class QVBoxLayout;
+class QWidget;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -62,11 +64,13 @@ class SettingsDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	SettingsDialog(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<Store::AuthStore> authStore,
 		       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 		       std::shared_ptr<Store::YouTubeStore> youTubeStore, std::shared_ptr<const Logger::ILogger> logger,
 		       QWidget *parent = nullptr);
+
 	~SettingsDialog() override;
 
 public slots:
@@ -100,6 +104,7 @@ private:
 
 	Async::Task<void> fetchStreamKeys();
 
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;

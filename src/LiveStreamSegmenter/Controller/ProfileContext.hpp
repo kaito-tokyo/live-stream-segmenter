@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <curl/curl.h>
+
 #include <obs-frontend-api.h>
 
 #include <ILogger.hpp>
@@ -38,50 +40,9 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
 public:
-	ProfileContext(std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
-		: ProfileContext(std::make_shared<Scripting::ScriptingRuntime>(logger), logger, dock)
-	{
-	}
-
-	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock)
-		: youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>()),
-		  runtime_(std::move(runtime)),
-		  authStore_(std::make_shared<Store::AuthStore>()),
-		  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
-		  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
-		  dock_(dock),
-		  logger_(std::make_shared<Logger::MultiLogger>(
-			  std::vector<std::shared_ptr<const Logger::ILogger>>{logger, dock_->getLoggerAdapter()})),
-		  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
-			  youTubeApiClient_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger_, dock_))
-	{
-		youTubeApiClient_->setLogger(logger_);
-		authStore_->setLogger(logger_);
-		eventHandlerStore_->setLogger(logger_);
-		youTubeStore_->setLogger(logger_);
-
-		authStore_->restoreAuthStore();
-		eventHandlerStore_->restore();
-		youTubeStore_->restoreYouTubeStore();
-
-		dock_->setAuthStore(authStore_);
-		dock_->setEventHandlerStore(eventHandlerStore_);
-		dock_->setYouTubeStore(youTubeStore_);
-
-		QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked,
-				 youTubeStreamSegmenterMainLoop_.get(),
-				 &YouTubeStreamSegmenterMainLoop::startContinuousSession);
-
-		QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked,
-				 youTubeStreamSegmenterMainLoop_.get(),
-				 &YouTubeStreamSegmenterMainLoop::stopContinuousSession);
-		QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-				 youTubeStreamSegmenterMainLoop_.get(),
-				 &YouTubeStreamSegmenterMainLoop::segmentCurrentSession);
-
-		youTubeStreamSegmenterMainLoop_->startMainLoop();
-	}
+	ProfileContext(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock);
 
 	~ProfileContext() noexcept = default;
 

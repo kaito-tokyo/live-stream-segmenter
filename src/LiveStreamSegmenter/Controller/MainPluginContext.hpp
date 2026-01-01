@@ -30,6 +30,7 @@
 #include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
+#include <CurlHandle.hpp>
 
 #include "ProfileContext.hpp"
 
@@ -37,13 +38,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class MainPluginContext : public std::enable_shared_from_this<MainPluginContext> {
 public:
-	~MainPluginContext() noexcept
-	{
-		if (handleFrontendEventWeakSelfPtr_) {
-			obs_frontend_remove_event_callback(handleFrontendEvent, handleFrontendEventWeakSelfPtr_);
-			delete handleFrontendEventWeakSelfPtr_;
-		}
-	};
+	~MainPluginContext() noexcept;
 
 	MainPluginContext(const MainPluginContext &) = delete;
 	MainPluginContext &operator=(const MainPluginContext &) = delete;
@@ -51,57 +46,24 @@ public:
 	MainPluginContext &operator=(MainPluginContext &&) = delete;
 
 	static std::shared_ptr<MainPluginContext> create(std::shared_ptr<const Logger::ILogger> logger,
-							 QMainWindow *mainWindow)
-	{
-		auto self = std::shared_ptr<MainPluginContext>(new MainPluginContext(std::move(logger), mainWindow));
-		self->registerFrontendEventCallback();
-		return self;
-	}
+							 QMainWindow *mainWindow);
 
 private:
-	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow)
-		: logger_(logger ? std::move(logger)
-				 : throw std::invalid_argument(
-					   "LoggerIsNullError(MainPluginContext::MainPluginContext)")),
-		  runtime_(std::make_shared<Scripting::ScriptingRuntime>(logger_)),
-		  dock_(new UI::StreamSegmenterDock(runtime_, mainWindow))
-	{
-		dock_->setLogger(logger_);
+	MainPluginContext(std::shared_ptr<const Logger::ILogger> logger, QMainWindow *mainWindow);
 
-		obs_frontend_add_dock_by_id("live_stream_segmenter_dock", obs_module_text("LiveStreamSegmenterDock"),
-					    dock_);
+	void registerFrontendEventCallback();
 
-		profileContext_ = std::make_shared<ProfileContext>(logger_, dock_);
-	}
-
-	void registerFrontendEventCallback()
-	{
-		handleFrontendEventWeakSelfPtr_ = new std::weak_ptr<MainPluginContext>(shared_from_this());
-		obs_frontend_add_event_callback(handleFrontendEvent, handleFrontendEventWeakSelfPtr_);
-	}
-
-	static void handleFrontendEvent(enum obs_frontend_event event, void *private_data) noexcept
-	{
-		auto *weakSelfPtr = static_cast<std::weak_ptr<MainPluginContext> *>(private_data);
-
-		if (auto self = weakSelfPtr->lock()) {
-			if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGING) {
-				std::scoped_lock lock(self->profileContextMutex_);
-				self->profileContext_.reset();
-			} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
-				std::scoped_lock lock(self->profileContextMutex_);
-				self->profileContext_ = std::make_shared<ProfileContext>(self->logger_, self->dock_);
-				self->logger_->info("ProfileChanged");
-			}
-		}
-	}
+	static void handleFrontendEvent(enum obs_frontend_event event, void *private_data) noexcept;
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
-	UI::StreamSegmenterDock *const dock_;
 
-	std::shared_ptr<ProfileContext> profileContext_ = nullptr;
-	mutable std::mutex profileContextMutex_;
+	const CurlHelper::CurlHandle curl_;
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
+	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
+	UI::StreamSegmenterDock *const dock_ = nullptr;
+
+	mutable std::mutex mutex_;
+	std::shared_ptr<ProfileContext> profileContext_;
 	std::weak_ptr<MainPluginContext> *handleFrontendEventWeakSelfPtr_ = nullptr;
 };
 
