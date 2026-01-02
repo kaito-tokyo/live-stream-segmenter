@@ -105,10 +105,7 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 		startButton_->setEnabled(false);
 		startButtonClicked();
 	});
-	connect(stopButton_, &QPushButton::clicked, this, [this]() {
-		stopButton_->setEnabled(false);
-		stopButtonClicked();
-	});
+	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
 	connect(createBroadcastButton_, &QPushButton::clicked, this, [this]() {
 		createBroadcastButton_->setEnabled(false);
 		emit createBroadcastButtonClicked();
@@ -126,7 +123,6 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->setSpacing(6);
 
 	// --- 1. Top Controls ---
-	stopButton_->setEnabled(false);
 	topControlLayout_->addWidget(startButton_, 1);
 	topControlLayout_->addWidget(stopButton_, 1);
 	mainLayout_->addLayout(topControlLayout_);
@@ -276,52 +272,114 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	};
 
 	// --- Progress for startContinuousSessionTask ---
-	static const QStringList progressLogNames = {"ContinuousYouTubeSessionStarting",
-						     "OBSStreamingEnsuringStopped",
-						     "OBSStreamingEnsuredStopped",
-						     "YouTubeLiveBroadcastCompletingActive",
-						     "YouTubeLiveBroadcastCompletedActive",
-						     "YouTubeLiveBroadcastCreatingInitial",
-						     "YouTubeLiveBroadcastCreatedInitial",
-						     "YouTubeLiveBroadcastCreatingNext",
-						     "YouTubeLiveBroadcastCreatedNext",
-						     "StreamingStarting",
-						     "StreamingStarted",
-						     "ContinuousYouTubeSessionStarted"};
+	static const QStringList startProgressLogNames = {"ContinuousYouTubeSessionStarting",
+							  "OBSStreamingEnsuringStopped",
+							  "OBSStreamingEnsuredStopped",
+							  "YouTubeLiveBroadcastCompletingActive",
+							  "YouTubeLiveBroadcastCompletedActive",
+							  "YouTubeLiveBroadcastCreatingInitial",
+							  "YouTubeLiveBroadcastCreatedInitial",
+							  "YouTubeLiveBroadcastCreatingNext",
+							  "YouTubeLiveBroadcastCreatedNext",
+							  "YouTubeLiveStreamGettingNext",
+							  "YouTubeLiveStreamGottenNext",
+							  "StreamingStarting",
+							  "StreamingStarted",
+							  "ContinuousYouTubeSessionStarted"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
-		int idx = progressLogNames.indexOf(name);
+		int idx = startProgressLogNames.indexOf(name);
 		if (name == "ContinuousYouTubeSessionStarting") {
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(0);
+			monitorLabel_->setText(tr("Starting up..."));
 		} else if (name == "ContinuousYouTubeSessionStarted") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
 			progressBar_->setValue(100);
 			progressBar_->setVisible(false);
+			monitorLabel_->setText(tr("LIVE"));
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
 				progressBar_->setMaximum(100);
 			}
-			int progress = (idx * 100) / (progressLogNames.size() - 1);
+			int progress = (idx * 100) / (startProgressLogNames.size() - 1);
 			progressBar_->setValue(progress);
 			progressBar_->setVisible(true);
+		}
+	}
+
+	// --- Progress for StopContinuousYouTubeSessionTask ---
+	static const QStringList stopProgressLogNames = {
+		"ContinuousYouTubeSessionStopping",    "OBSStreamingEnsuringStopped",
+		"OBSStreamingEnsuredStopped",          "YouTubeLiveBroadcastCompletingActive",
+		"YouTubeLiveBroadcastCompletedActive", "ContinuousYouTubeSessionStopped"};
+	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask") {
+		int idx = stopProgressLogNames.indexOf(name);
+		if (name == "ContinuousYouTubeSessionStopping") {
+			progressBar_->setVisible(true);
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(0);
+			monitorLabel_->setText(tr("Stopping..."));
+		} else if (name == "ContinuousYouTubeSessionStopped") {
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(100);
+			progressBar_->setValue(100);
+			progressBar_->setVisible(false);
+			monitorLabel_->setText(tr("IDLE"));
+		} else if (idx >= 0) {
+			if (progressBar_->maximum() == 0) {
+				progressBar_->setMinimum(0);
+				progressBar_->setMaximum(100);
+			}
+			int progress = (idx * 100) / (stopProgressLogNames.size() - 1);
+			progressBar_->setValue(progress);
+			progressBar_->setVisible(true);
+		}
+	}
+
+	if (name == "YouTubeLiveBroadcastCreatedInitial") {
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		currentStatusLabel_->setText(tr("READY"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://studio.youtube.com/video/%1/livestreaming").arg(broadcastId);
+			currentLinkButton_->setToolTip(tr("Open in Browser"));
+			currentLinkButton_->setProperty("url", url);
+			currentLinkButton_->show();
+			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			currentLinkButton_->hide();
+		}
+	} else if (name == "YouTubeLiveBroadcastCreatedNext") {
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		nextTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		nextStatusLabel_->setText(tr("READY"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://studio.youtube.com/video/%1/livestreaming").arg(broadcastId);
+			nextLinkButton_->setToolTip(tr("Open in Browser"));
+			nextLinkButton_->setProperty("url", url);
+			nextLinkButton_->show();
+			QObject::disconnect(nextLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(nextLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			nextLinkButton_->hide();
 		}
 	}
 
 	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
-		monitorLabel_->setText(tr("Streaming"));
-	} else if (name == "LiveBroadcastPreparationStarted") {
-		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
 		logWithTimestamp(tr("Stopping the current stream for segment switching. Please wait..."), "#D7BA7D");
-		monitorLabel_->setText(tr("Switching"));
 	} else if (name == "YouTubeLiveStreamStatusChecking" || name == "YouTubeLiveBroadcastTransitioningToTesting" ||
 		   name == "YouTubeLiveBroadcastTransitioningToLive") {
-		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "YouTubeLiveStreamStatusChecking") {
 		QString nextLiveStreamId = context.value("nextLiveStreamId");
 		if (!nextLiveStreamId.isEmpty()) {
@@ -412,34 +470,13 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		logWithTimestamp(msg, "#4EC9B0");
 	} else if (name == "ContinuousSessionStarted") {
 		logWithTimestamp(tr("Continuous session started."), "#4EC9B0");
-		stopButton_->setEnabled(true);
 	} else if (name == "StoppingContinuousYouTubeSession") {
-		monitorLabel_->setText(tr("Stopping"));
 	} else if (name == "StoppedContinuousYouTubeSession") {
 		logWithTimestamp(tr("Continuous session stopped."), "#4EC9B0");
-		monitorLabel_->setText(tr("Idle"));
 
 		startButton_->setEnabled(true);
 	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
 		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
-		monitorLabel_->setText(tr("Streaming"));
-
-		// --- Show current broadcast info in current pane ---
-		QString title = context.value("title");
-		QString broadcastId = context.value("broadcastId");
-		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
-		currentStatusLabel_->setText(tr("LIVE"));
-		if (!broadcastId.isEmpty()) {
-			QString url = QString("https://www.youtube.com/live/%1").arg(broadcastId);
-			currentLinkButton_->setToolTip(tr("Open in Browser"));
-			currentLinkButton_->setProperty("url", url);
-			currentLinkButton_->show();
-			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
-			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
-					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
-		} else {
-			currentLinkButton_->hide();
-		}
 	}
 }
 

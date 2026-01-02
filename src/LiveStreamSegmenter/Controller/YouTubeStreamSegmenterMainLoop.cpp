@@ -201,8 +201,6 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 
 		authStore->setGoogleTokenState(tokenState);
 
-		authStore->save();
-
 		accessToken = freshAuthResponse.access_token;
 
 		logger->info("YouTubeAccessTokenRefreshed");
@@ -557,8 +555,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 	std::shared_ptr<Store::YouTubeStore> youtubeStore, std::shared_ptr<const Logger::ILogger> baseLogger)
 {
 	// on the main thread
-	const std::shared_ptr<const Logger::ILogger> logger =
-		std::make_shared<TaskBoundLogger>(baseLogger, "StopContinuousYouTubeSessionTask");
+	const std::shared_ptr<const Logger::ILogger> logger = std::make_shared<TaskBoundLogger>(
+		baseLogger, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
 
 	logger->info("ContinuousYouTubeSessionStopping");
 
