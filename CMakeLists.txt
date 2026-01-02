@@ -33,6 +33,8 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(BUILD_SHARED_LIBS OFF)
+
 if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
   set(PLUGIN_COMPILE_OPTIONS /experimental:deterministic "/pathmap:${CMAKE_SOURCE_DIR}=.")
@@ -199,39 +201,39 @@ if(NOT unofficial-sqlite3_FOUND)
 endif()
 
 # --- qtkeychain ---
-# find_package(Qt6Keychain CONFIG QUIET)
+find_package(Qt6Keychain CONFIG QUIET)
 
-# if(NOT QT6KEYCHAIN_FOUND)
-#   pkg_check_modules(PC_QT6KEYCHAIN libqt6keychain)
-#   if(PC_QT6KEYCHAIN_FOUND)
-#     add_library(Qt6Keychain::Qt6Keychain INTERFACE IMPORTED)
-#     target_link_libraries(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARIES})
-#     target_include_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_INCLUDE_DIRS})
-#     target_compile_definitions(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_CFLAGS_OTHER})
-#     target_link_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARY_DIRS})
-#     set(QT6KEYCHAIN_FOUND TRUE)
-#   endif()
-# endif()
+if(NOT QT6KEYCHAIN_FOUND)
+  pkg_check_modules(PC_QT6KEYCHAIN libqt6keychain)
+  if(PC_QT6KEYCHAIN_FOUND)
+    add_library(Qt6Keychain::Qt6Keychain INTERFACE IMPORTED)
+    target_link_libraries(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARIES})
+    target_include_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_INCLUDE_DIRS})
+    target_compile_definitions(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_CFLAGS_OTHER})
+    target_link_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARY_DIRS})
+    set(QT6KEYCHAIN_FOUND TRUE)
+  endif()
+endif()
 
-# if(NOT QT6KEYCHAIN_FOUND)
-#   block()
-#     set(BUILD_WITH_QT6 ON)
-#     set(BUILD_TRANSLATIONS OFF)
-#     set(BUILD_TESTING OFF)
-#     add_subdirectory(vendor/qtkeychain EXCLUDE_FROM_ALL)
-#   endblock()
-# endif()
+if(NOT QT6KEYCHAIN_FOUND)
+  block()
+    set(BUILD_WITH_QT6 ON)
+    set(BUILD_TRANSLATIONS OFF)
+    set(BUILD_TESTING OFF)
+    add_subdirectory(vendor/qtkeychain EXCLUDE_FROM_ALL)
+  endblock()
+endif()
 
-# if(TARGET qt6keychain)
-#   if(APPLE)
-#     target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
-#   elseif(MSVC)
-#   else()
-#     target_compile_options(qt6keychain PRIVATE -Wno-cast-function-type)
-#   endif()
+if(TARGET qt6keychain)
+  if(APPLE)
+    target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
+  elseif(MSVC)
+  else()
+    target_compile_options(qt6keychain PRIVATE -Wno-cast-function-type)
+  endif()
 
-#   add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
-# endif()
+  add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
+endif()
 
 add_subdirectory(src)
 
@@ -243,23 +245,6 @@ target_link_libraries(
   PUBLIC OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
 )
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
-
-foreach(
-  target
-  GoogleAuth
-  YouTubeApi
-  ${CMAKE_PROJECT_NAME}_Controller
-  ${CMAKE_PROJECT_NAME}_Scripting
-  ${CMAKE_PROJECT_NAME}_Store
-  ${CMAKE_PROJECT_NAME}_UI
-  ${CMAKE_PROJECT_NAME}
-)
-  if(MSVC)
-    set(${target} PRIVATE /experimental:deterministic "/pathmap:${CMAKE_SOURCE_DIR}=.")
-  else()
-    set(${target} PRIVATE "-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=.")
-  endif()
-endforeach()
 
 if(APPLE)
   target_link_options(
