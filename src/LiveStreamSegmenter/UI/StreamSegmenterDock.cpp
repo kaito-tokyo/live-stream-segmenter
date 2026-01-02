@@ -290,7 +290,16 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 						     "ContinuousYouTubeSessionStarted"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
 		int idx = progressLogNames.indexOf(name);
-		if (idx >= 0) {
+		if (name == "ContinuousYouTubeSessionStarting") {
+			progressBar_->setVisible(true);
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(0);
+		} else if (name == "ContinuousYouTubeSessionStarted") {
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(100);
+			progressBar_->setValue(100);
+			progressBar_->setVisible(false);
+		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
 				progressBar_->setMaximum(100);
@@ -298,19 +307,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			int progress = (idx * 100) / (progressLogNames.size() - 1);
 			progressBar_->setValue(progress);
 			progressBar_->setVisible(true);
-		}
-		// Show indeterminate progress bar at start
-		if (name == "ContinuousYouTubeSessionStarting") {
-			progressBar_->setVisible(true);
-			progressBar_->setMinimum(0);
-			progressBar_->setMaximum(0); // Indeterminate
-		}
-		// Hide progress bar at end
-		if (name == "ContinuousYouTubeSessionStarted") {
-			progressBar_->setMinimum(0);
-			progressBar_->setMaximum(100);
-			progressBar_->setValue(100);
-			progressBar_->setVisible(false);
 		}
 	}
 
