@@ -23,6 +23,9 @@
 #include <fstream>
 #include <stdexcept>
 
+#include <QString>
+
+#include <qtkeychain/keychain.h>
 #include <nlohmann/json.hpp>
 
 #include <obs-frontend-api.h>
@@ -31,20 +34,15 @@
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-AuthStore::AuthStore() = default;
+namespace {
+
+const QString kKeychainService = "tokyo.kaito.live-stream-segmenter";
+
+} // anonymous namespace
+
+AuthStore::AuthStore(QObject *parent) : QObject(parent) {}
 
 AuthStore::~AuthStore() noexcept = default;
-
-std::filesystem::path AuthStore::getConfigPath()
-{
-	ObsBridgeUtils::unique_bfree_char_t profilePathRaw(obs_frontend_get_current_profile_path());
-	if (!profilePathRaw) {
-		throw std::runtime_error("GetCurrentProfilePathFailed(getConfigPath)");
-	}
-
-	std::filesystem::path profilePath(reinterpret_cast<const char8_t *>(profilePathRaw.get()));
-	return profilePath / "live-stream-segmenter_AuthStore.json";
-}
 
 void AuthStore::setLogger(std::shared_ptr<const Logger::ILogger> logger)
 {
@@ -76,10 +74,8 @@ GoogleAuth::GoogleTokenState AuthStore::getGoogleTokenState() const
 	return googleTokenState_;
 }
 
-void AuthStore::save() const
+void AuthStore::save()
 {
-	const std::filesystem::path configPath = getConfigPath();
-
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials;
 	GoogleAuth::GoogleTokenState googleTokenState;
 	{
@@ -88,64 +84,174 @@ void AuthStore::save() const
 		googleTokenState = googleTokenState_;
 	}
 
-	nlohmann::json j{
-		{"googleOAuth2ClientCredentials", googleOAuth2ClientCredentials},
-		{"googleTokenState", googleTokenState},
-	};
+	googleTokenState.access_token.clear();
 
-	std::filesystem::path tmpConfigPath = configPath;
-	tmpConfigPath += ".tmp";
-	std::ofstream ofs(tmpConfigPath, std::ios::out);
-	if (!ofs.is_open()) {
-		logger_->error("FileOpenError", {{"path", configPath.string()}});
-		throw std::runtime_error("FileOpenError(save)");
+	nlohmann::json jGoogleOAuth2ClientCredentials = googleOAuth2ClientCredentials;
+	nlohmann::json jGoogleTokenState = googleTokenState;
+
+	auto writeGoogleOAuth2ClientCredentialsJob = new QKeychain::WritePasswordJob(kKeychainService, this);
+	writeGoogleOAuth2ClientCredentialsJob->setAutoDelete(true);
+	writeGoogleOAuth2ClientCredentialsJob->setKey("googleOAuth2ClientCredentials");
+	writeGoogleOAuth2ClientCredentialsJob->setTextData(
+		QString::fromStdString(jGoogleOAuth2ClientCredentials.dump()));
+	connect(writeGoogleOAuth2ClientCredentialsJob, &QKeychain::Job::finished, this, &AuthStore::onWriteFinished);
+	writeGoogleOAuth2ClientCredentialsJob->start();
+
+	auto writeGoogleTokenStateJob = new QKeychain::WritePasswordJob(kKeychainService, this);
+	writeGoogleTokenStateJob->setAutoDelete(true);
+	writeGoogleTokenStateJob->setKey("googleTokenState");
+	writeGoogleTokenStateJob->setTextData(QString::fromStdString(jGoogleTokenState.dump()));
+	connect(writeGoogleTokenStateJob, &QKeychain::Job::finished, this, &AuthStore::onWriteFinished);
+	writeGoogleTokenStateJob->start();
+}
+
+void AuthStore::onWriteFinished(QKeychain::Job *job)
+{
+	std::shared_ptr<const Logger::ILogger> logger;
+	{
+		std::scoped_lock lock(mutex_);
+		logger = logger_;
 	}
 
-	ofs << j;
-
-	ofs.close();
-
-	std::filesystem::path bakConfigPath = configPath;
-	bakConfigPath += ".bak";
-
-	if (std::filesystem::is_regular_file(configPath)) {
-		std::filesystem::rename(configPath, bakConfigPath);
+	if (logger) {
+		std::string key = job->key().toStdString();
+		if (job->error()) {
+			std::string error = job->errorString().toStdString();
+			logger->error("KeychainWriteError(AuthStore::onWriteFinished)",
+				      {{"key", key}, {"error", error}});
+		} else {
+			logger->info("KeychainWriteSuccess", {{"key", key}});
+		}
 	}
-	std::filesystem::rename(tmpConfigPath, configPath);
 }
 
 void AuthStore::restore()
 {
-	const std::filesystem::path configPath = getConfigPath();
-	if (!std::filesystem::is_regular_file(configPath)) {
-		logger_->info("AuthStoreConfigFileNotExist", {{"path", configPath.string()}});
+	auto readGoogleOAuth2ClientCredentialsJob = new QKeychain::ReadPasswordJob(kKeychainService, this);
+	readGoogleOAuth2ClientCredentialsJob->setAutoDelete(true);
+	readGoogleOAuth2ClientCredentialsJob->setKey("googleOAuth2ClientCredentials");
+	connect(readGoogleOAuth2ClientCredentialsJob, &QKeychain::Job::finished, this,
+		&AuthStore::onReadGoogleOAuth2ClientCredentialsFinished);
+	readGoogleOAuth2ClientCredentialsJob->start();
+
+	auto readGoogleTokenStateJob = new QKeychain::ReadPasswordJob(kKeychainService, this);
+	readGoogleTokenStateJob->setAutoDelete(true);
+	readGoogleTokenStateJob->setKey("googleTokenState");
+	connect(readGoogleTokenStateJob, &QKeychain::Job::finished, this, &AuthStore::onReadGoogleTokenStateFinished);
+	readGoogleTokenStateJob->start();
+}
+
+void AuthStore::onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job)
+try {
+	auto readJob = static_cast<QKeychain::ReadPasswordJob *>(job);
+
+	if (readJob->error() == QKeychain::Error::EntryNotFound) {
+		std::scoped_lock lock(mutex_);
+		if (logger_) {
+			logger_->info("NoGoogleOAuth2ClientCredentialsInKeychain");
+		}
+		return;
+	} else if (readJob->error()) {
+		std::scoped_lock lock(mutex_);
+		if (logger_) {
+			std::string error = readJob->errorString().toStdString();
+			logger_->error("KeychainReadError", {{"error", error}});
+		}
 		return;
 	}
 
-	std::ifstream ifs(configPath, std::ios::in);
-	if (!ifs.is_open()) {
-		logger_->error("FileOpenError", {{"path", configPath.string()}});
-		throw std::runtime_error("FileOpenError(restore)");
-	}
-
-	nlohmann::json j;
-	ifs >> j;
+	std::string jsonStr = readJob->textData().toStdString();
+	nlohmann::json j = nlohmann::json::parse(jsonStr);
 
 	std::scoped_lock lock(mutex_);
 	try {
-		if (j.contains("googleOAuth2ClientCredentials")) {
-			j.at("googleOAuth2ClientCredentials").get_to(googleOAuth2ClientCredentials_);
+		j.get_to(googleOAuth2ClientCredentials_);
+
+		if (logger_) {
 			logger_->info("RestoredGoogleOAuth2ClientCredentials");
 		}
-		if (j.contains("googleTokenState")) {
-			j.at("googleTokenState").get_to(googleTokenState_);
+	} catch (const std::exception &e) {
+		if (logger_) {
+			logger_->error("KeychainJsonContentError", {{"what", e.what()}});
+		}
+		googleOAuth2ClientCredentials_ = {};
+	} catch (...) {
+		if (logger_) {
+			logger_->error("KeychainUnknownError");
+		}
+		googleOAuth2ClientCredentials_ = {};
+	}
+} catch (const std::exception &e) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+	}
+	googleOAuth2ClientCredentials_ = {};
+	return;
+} catch (...) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainUnknownError");
+	}
+	googleOAuth2ClientCredentials_ = {};
+	return;
+}
+
+void AuthStore::onReadGoogleTokenStateFinished(QKeychain::Job *job)
+try {
+	auto readJob = static_cast<QKeychain::ReadPasswordJob *>(job);
+
+	if (readJob->error() == QKeychain::Error::EntryNotFound) {
+		std::scoped_lock lock(mutex_);
+		if (logger_) {
+			logger_->info("NoGoogleTokenStateInKeychain");
+		}
+		return;
+	} else if (readJob->error()) {
+		std::scoped_lock lock(mutex_);
+		if (logger_) {
+			std::string error = readJob->errorString().toStdString();
+			logger_->error("KeychainReadError", {{"error", error}});
+		}
+		return;
+	}
+
+	std::string jsonStr = readJob->textData().toStdString();
+	nlohmann::json j = nlohmann::json::parse(jsonStr);
+
+	std::scoped_lock lock(mutex_);
+	try {
+		j.get_to(googleTokenState_);
+		googleTokenState_.access_token.clear();
+
+		if (logger_) {
 			logger_->info("RestoredGoogleTokenState");
 		}
-	} catch (...) {
-		googleOAuth2ClientCredentials_ = {};
+	} catch (const std::exception &e) {
+		if (logger_) {
+			logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+		}
 		googleTokenState_ = {};
-		throw;
+	} catch (...) {
+		if (logger_) {
+			logger_->error("KeychainUnknownError");
+		}
+		googleTokenState_ = {};
 	}
+} catch (const std::exception &e) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+	}
+	googleTokenState_ = {};
+	return;
+} catch (...) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainUnknownError");
+	}
+	googleTokenState_ = {};
+	return;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

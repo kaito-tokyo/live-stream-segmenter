@@ -33,7 +33,7 @@
   },
   "platformConfig": {
     "macos": {
-      "bundleId": "com.example.plugintemplate-for-obs"
+      "bundleId": "tokyo.kaito.live-stream-segmenter"
     }
   },
   "name": "live-stream-segmenter",

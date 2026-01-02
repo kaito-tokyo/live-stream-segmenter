@@ -24,15 +24,23 @@
 #include <memory>
 #include <mutex>
 
+#include <QObject>
+
 #include <KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleTokenState.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 
+namespace QKeychain {
+class Job;
+}
+
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
-class AuthStore {
+class AuthStore : public QObject {
+	Q_OBJECT
+
 public:
-	AuthStore();
+	explicit AuthStore(QObject *parent = nullptr);
 
 	~AuthStore() noexcept;
 
@@ -41,28 +49,28 @@ public:
 	AuthStore(AuthStore &&) = delete;
 	AuthStore &operator=(AuthStore &&) = delete;
 
-	static std::filesystem::path getConfigPath();
-
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger);
 
 	void setGoogleOAuth2ClientCredentials(GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials);
-
 	GoogleAuth::GoogleOAuth2ClientCredentials getGoogleOAuth2ClientCredentials() const;
 
 	void setGoogleTokenState(GoogleAuth::GoogleTokenState tokenState);
-
 	GoogleAuth::GoogleTokenState getGoogleTokenState() const;
 
-	void save() const;
-
+	void save();
 	void restore();
+
+private slots:
+	void onWriteFinished(QKeychain::Job *job);
+	void onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job);
+	void onReadGoogleTokenStateFinished(QKeychain::Job *job);
 
 private:
 	mutable std::mutex mutex_;
+	std::shared_ptr<const Logger::ILogger> logger_;
+
 	GoogleAuth::GoogleOAuth2ClientCredentials googleOAuth2ClientCredentials_;
 	GoogleAuth::GoogleTokenState googleTokenState_;
-
-	std::shared_ptr<const Logger::ILogger> logger_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store
