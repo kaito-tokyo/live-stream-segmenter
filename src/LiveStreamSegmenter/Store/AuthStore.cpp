@@ -107,6 +107,12 @@ void AuthStore::save()
 
 void AuthStore::onWriteFinished(QKeychain::Job *job)
 {
+	std::shared_ptr<const Logger::ILogger> logger;
+	{
+		std::scoped_lock lock(mutex_);
+		logger = logger_;
+	}
+
 	if (logger_) {
 		std::string key = job->key().toStdString();
 		if (job->error()) {
@@ -136,14 +142,17 @@ void AuthStore::restore()
 }
 
 void AuthStore::onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job)
-{
+try {
 	auto readJob = static_cast<QKeychain::ReadPasswordJob *>(job);
 
 	if (readJob->error() == QKeychain::Error::EntryNotFound) {
+		std::scoped_lock lock(mutex_);
 		if (logger_) {
 			logger_->info("NoGoogleOAuth2ClientCredentialsInKeychain");
 		}
+		return;
 	} else if (readJob->error()) {
+		std::scoped_lock lock(mutex_);
 		if (logger_) {
 			std::string error = readJob->errorString().toStdString();
 			logger_->error("KeychainReadError", {{"error", error}});
@@ -151,11 +160,11 @@ void AuthStore::onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job)
 		return;
 	}
 
-	try {
-		std::string jsonStr = readJob->textData().toStdString();
-		nlohmann::json j = nlohmann::json::parse(jsonStr);
+	std::string jsonStr = readJob->textData().toStdString();
+	nlohmann::json j = nlohmann::json::parse(jsonStr);
 
-		std::scoped_lock lock(mutex_);
+	std::scoped_lock lock(mutex_);
+	try {
 		j.get_to(googleOAuth2ClientCredentials_);
 
 		if (logger_) {
@@ -163,7 +172,7 @@ void AuthStore::onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job)
 		}
 	} catch (const std::exception &e) {
 		if (logger_) {
-			logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+			logger_->error("KeychainJsonContentError", {{"what", e.what()}});
 		}
 		googleOAuth2ClientCredentials_ = {};
 	} catch (...) {
@@ -172,17 +181,34 @@ void AuthStore::onReadGoogleOAuth2ClientCredentialsFinished(QKeychain::Job *job)
 		}
 		googleOAuth2ClientCredentials_ = {};
 	}
+} catch (const std::exception &e) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+	}
+	googleOAuth2ClientCredentials_ = {};
+	return;
+} catch (...) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainUnknownError");
+	}
+	googleOAuth2ClientCredentials_ = {};
+	return;
 }
 
 void AuthStore::onReadGoogleTokenStateFinished(QKeychain::Job *job)
-{
+try {
 	auto readJob = static_cast<QKeychain::ReadPasswordJob *>(job);
 
 	if (readJob->error() == QKeychain::Error::EntryNotFound) {
+		std::scoped_lock lock(mutex_);
 		if (logger_) {
 			logger_->info("NoGoogleTokenStateInKeychain");
 		}
+		return;
 	} else if (readJob->error()) {
+		std::scoped_lock lock(mutex_);
 		if (logger_) {
 			std::string error = readJob->errorString().toStdString();
 			logger_->error("KeychainReadError", {{"error", error}});
@@ -190,11 +216,11 @@ void AuthStore::onReadGoogleTokenStateFinished(QKeychain::Job *job)
 		return;
 	}
 
-	try {
-		std::string jsonStr = readJob->textData().toStdString();
-		nlohmann::json j = nlohmann::json::parse(jsonStr);
+	std::string jsonStr = readJob->textData().toStdString();
+	nlohmann::json j = nlohmann::json::parse(jsonStr);
 
-		std::scoped_lock lock(mutex_);
+	std::scoped_lock lock(mutex_);
+	try {
 		j.get_to(googleTokenState_);
 		googleTokenState_.access_token.clear();
 
@@ -212,6 +238,20 @@ void AuthStore::onReadGoogleTokenStateFinished(QKeychain::Job *job)
 		}
 		googleTokenState_ = {};
 	}
+} catch (const std::exception &e) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainJsonParseError", {{"what", e.what()}});
+	}
+	googleTokenState_ = {};
+	return;
+} catch (...) {
+	std::scoped_lock lock(mutex_);
+	if (logger_) {
+		logger_->error("KeychainUnknownError");
+	}
+	googleTokenState_ = {};
+	return;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store
