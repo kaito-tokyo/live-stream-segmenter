@@ -219,7 +219,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
 	// --- Complete all existing live broadcasts managed by this plugin ---
-		std::string accessToken = getAccessToken(curl, authStore, logger);
+	std::string accessToken = getAccessToken(curl, authStore, logger);
 	std::vector<YouTubeApi::YouTubeLiveBroadcast> existingBroadcasts =
 		youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
 	for (const auto &broadcast : existingBroadcasts) {

@@ -352,8 +352,8 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			msg = tr("YouTube live broadcast created.");
 		}
 		consoleView_->append(msg);
-    } else if (name == "ContinuousSessionStarted") {
-        stopButton_->setEnabled(true);
+	} else if (name == "ContinuousSessionStarted") {
+		stopButton_->setEnabled(true);
 	}
 }
 
