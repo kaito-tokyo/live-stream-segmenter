@@ -3,9 +3,10 @@
 #include <memory>
 #include <optional>
 
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/Logger/NullLogger.hpp>
+
 #include <EventScriptingContext.hpp>
-#include <ILogger.hpp>
-#include <NullLogger.hpp>
 #include <ScriptingDatabase.hpp>
 #include <ScriptingRuntime.hpp>
 

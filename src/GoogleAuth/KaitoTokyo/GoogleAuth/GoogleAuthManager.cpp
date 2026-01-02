@@ -27,8 +27,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include <CurlUrlSearchParams.hpp>
-#include <CurlWriteCallback.hpp>
+#include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
+#include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 

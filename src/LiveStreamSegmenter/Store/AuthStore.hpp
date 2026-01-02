@@ -24,9 +24,9 @@
 #include <memory>
 #include <mutex>
 
-#include <GoogleOAuth2ClientCredentials.hpp>
-#include <GoogleTokenState.hpp>
-#include <ILogger.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleTokenState.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 

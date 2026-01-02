@@ -28,8 +28,9 @@
 #include <random>
 #include <string_view>
 
+#include <KaitoTokyo/Logger/PrintLogger.hpp>
+
 #include <EventScriptingContext.hpp>
-#include <PrintLogger.hpp>
 
 using namespace KaitoTokyo;
 using namespace KaitoTokyo::LiveStreamSegmenter;

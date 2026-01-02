@@ -54,13 +54,13 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include <CurlHandle.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleTokenState.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
 
 #include <EventScriptingContext.hpp>
-#include <GoogleAuthManager.hpp>
-#include <GoogleOAuth2ClientCredentials.hpp>
-#include <GoogleTokenState.hpp>
-#include <YouTubeApiClient.hpp>
 
 #include "fmt_qstring_formatter.hpp"
 

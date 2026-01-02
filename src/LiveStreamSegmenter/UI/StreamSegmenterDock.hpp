@@ -25,12 +25,13 @@
 #include <QWidget>
 #include <QLabel>
 
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
+
 #include <AuthStore.hpp>
-#include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
-#include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
-#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 
 #include <QGroupBox>

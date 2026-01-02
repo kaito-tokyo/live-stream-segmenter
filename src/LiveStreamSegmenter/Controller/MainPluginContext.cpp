@@ -28,9 +28,10 @@
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 
-#include <CurlHandle.hpp>
-#include <ILogger.hpp>
-#include <MultiLogger.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/Logger/MultiLogger.hpp>
+
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 

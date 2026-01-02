@@ -37,12 +37,12 @@
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
-#include <CurlReadCallback.hpp>
-#include <CurlSlistHandle.hpp>
-#include <CurlUrlHandle.hpp>
-#include <CurlUrlSearchParams.hpp>
-#include <CurlWriteCallback.hpp>
-#include <ILogger.hpp>
+#include <KaitoTokyo/CurlHelper/CurlReadCallback.hpp>
+#include <KaitoTokyo/CurlHelper/CurlSlistHandle.hpp>
+#include <KaitoTokyo/CurlHelper/CurlUrlHandle.hpp>
+#include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
+#include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 namespace KaitoTokyo::YouTubeApi {
 

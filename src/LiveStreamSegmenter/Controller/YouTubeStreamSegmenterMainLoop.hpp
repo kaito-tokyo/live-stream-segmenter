@@ -26,14 +26,15 @@
 #include <QObject>
 #include <QWidget>
 
+#include <KaitoTokyo/Async/Channel.hpp>
+#include <KaitoTokyo/Async/Task.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
+
 #include <AuthStore.hpp>
-#include <Channel.hpp>
-#include <CurlHandle.hpp>
 #include <EventHandlerStore.hpp>
-#include <ILogger.hpp>
 #include <ScriptingRuntime.hpp>
-#include <Task.hpp>
-#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {

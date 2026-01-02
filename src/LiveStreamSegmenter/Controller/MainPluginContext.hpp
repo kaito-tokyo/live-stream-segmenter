@@ -27,10 +27,11 @@
 
 #include <obs-frontend-api.h>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
-#include <CurlHandle.hpp>
 
 #include "ProfileContext.hpp"
 

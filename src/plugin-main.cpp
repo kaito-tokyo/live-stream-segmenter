@@ -17,8 +17,8 @@
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
-#include <ILogger.hpp>
-#include <ObsLogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/ObsBridgeUtils/ObsLogger.hpp>
 
 #include <MainPluginContext.hpp>
 

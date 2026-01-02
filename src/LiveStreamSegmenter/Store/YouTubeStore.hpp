@@ -24,8 +24,8 @@
 #include <memory>
 #include <mutex>
 
-#include <ILogger.hpp>
-#include <YouTubeTypes.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeTypes.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 

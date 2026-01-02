@@ -27,7 +27,7 @@
 
 #include <obs-frontend-api.h>
 
-#include <ObsUnique.hpp>
+#include <KaitoTokyo/ObsBridgeUtils/ObsUnique.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 
