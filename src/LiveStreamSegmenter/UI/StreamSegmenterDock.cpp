@@ -274,6 +274,40 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	auto logWithTimestamp = [&](const QString &msg, const QString &color = "#e0e0e0") {
 		consoleView_->append(QString("<span style=\"color:%1;\">[%2] %3</span>").arg(color, timestamp, msg));
 	};
+
+	// --- Progress for startContinuousSessionTask ---
+	static const QStringList progressLogNames = {"ContinuousYouTubeSessionStarting",
+						     "OBSStreamingEnsuringStopped",
+						     "OBSStreamingEnsuredStopped",
+						     "YouTubeLiveBroadcastCompletingActive",
+						     "YouTubeLiveBroadcastCompletedActive",
+						     "YouTubeLiveBroadcastCreatingInitial",
+						     "YouTubeLiveBroadcastCreatedInitial",
+						     "YouTubeLiveBroadcastCreatingNext",
+						     "YouTubeLiveBroadcastCreatedNext",
+						     "StreamingStarting",
+						     "StreamingStarted",
+						     "ContinuousYouTubeSessionStarted"};
+	if (context.value("taskName") == "startContinuousSessionTask") {
+		int idx = progressLogNames.indexOf(name);
+		if (idx >= 0) {
+			int progress = (idx * 100) / (progressLogNames.size() - 1);
+			setProgress(progress);
+		}
+		// Show indeterminate progress bar at start
+		if (name == "ContinuousYouTubeSessionStarting") {
+			progressBar_->setVisible(true);
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(0); // Indeterminate
+		}
+		// Hide progress bar at end
+		if (name == "ContinuousYouTubeSessionStarted") {
+			setProgress(100, false);
+			progressBar_->setVisible(false);
+		}
+	}
+
+	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
 		monitorLabel_->setText(tr("Streaming"));
