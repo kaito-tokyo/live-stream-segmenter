@@ -97,8 +97,14 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 {
 	setupUi();
 
-	connect(startButton_, &QPushButton::clicked, this, &StreamSegmenterDock::startButtonClicked);
-	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
+	connect(startButton_, &QPushButton::clicked, this, [this]() {
+		startButton_->setEnabled(false);
+		startButtonClicked();
+	});
+	connect(stopButton_, &QPushButton::clicked, this, [this]() {
+		stopButton_->setEnabled(false);
+		stopButtonClicked();
+	});
 	connect(segmentNowButton_, &QPushButton::clicked, this, &StreamSegmenterDock::segmentNowButtonClicked);
 	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
@@ -109,7 +115,7 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->setSpacing(6);
 
 	// --- 1. Top Controls ---
-	startButton_->setStyleSheet("font-weight: bold;");
+	stopButton_->setEnabled(false);
 	topControlLayout_->addWidget(startButton_, 1);
 	topControlLayout_->addWidget(stopButton_, 1);
 	mainLayout_->addLayout(topControlLayout_);
@@ -346,6 +352,8 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			msg = tr("YouTube live broadcast created.");
 		}
 		consoleView_->append(msg);
+    } else if (name == "ContinuousSessionStarted") {
+        stopButton_->setEnabled(true);
 	}
 }
 

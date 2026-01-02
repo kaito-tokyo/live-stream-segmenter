@@ -398,6 +398,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	logger->info("YouTubeLiveBroadcastTransitioningToLive");
 	youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcast.id, "live");
 	logger->info("YouTubeLiveBroadcastTransitionedToLive");
+
+	logger->info("ContinuousSessionStarted");
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
