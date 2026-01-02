@@ -199,9 +199,6 @@ endif()
 
 # --- qtkeychain ---
 find_package(Qt6Keychain CONFIG QUIET)
-if(NOT QT6KEYCHAIN_FOUND)
-  find_package(Qt6Keychain QUIET)
-endif()
 
 if(NOT QT6KEYCHAIN_FOUND)
   pkg_check_modules(PC_QT6KEYCHAIN libqt6keychain)
@@ -225,7 +222,10 @@ if(NOT QT6KEYCHAIN_FOUND)
 endif()
 
 if(TARGET qt6keychain)
-  target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
+  if(APPLE)
+    target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
+  endif()
+
   add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
 endif()
 
