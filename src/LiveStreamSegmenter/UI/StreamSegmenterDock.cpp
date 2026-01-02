@@ -273,20 +273,20 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	};
 
 	// --- Progress for startContinuousSessionTask ---
-	static const QStringList progressLogNames = {"ContinuousYouTubeSessionStarting",
-						     "OBSStreamingEnsuringStopped",
-						     "OBSStreamingEnsuredStopped",
-						     "YouTubeLiveBroadcastCompletingActive",
-						     "YouTubeLiveBroadcastCompletedActive",
-						     "YouTubeLiveBroadcastCreatingInitial",
-						     "YouTubeLiveBroadcastCreatedInitial",
-						     "YouTubeLiveBroadcastCreatingNext",
-						     "YouTubeLiveBroadcastCreatedNext",
-						     "StreamingStarting",
-						     "StreamingStarted",
-						     "ContinuousYouTubeSessionStarted"};
+	static const QStringList startProgressLogNames = {"ContinuousYouTubeSessionStarting",
+					     "OBSStreamingEnsuringStopped",
+					     "OBSStreamingEnsuredStopped",
+					     "YouTubeLiveBroadcastCompletingActive",
+					     "YouTubeLiveBroadcastCompletedActive",
+					     "YouTubeLiveBroadcastCreatingInitial",
+					     "YouTubeLiveBroadcastCreatedInitial",
+					     "YouTubeLiveBroadcastCreatingNext",
+					     "YouTubeLiveBroadcastCreatedNext",
+					     "StreamingStarting",
+					     "StreamingStarted",
+					     "ContinuousYouTubeSessionStarted"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
-		int idx = progressLogNames.indexOf(name);
+		int idx = startProgressLogNames.indexOf(name);
 		if (name == "ContinuousYouTubeSessionStarting") {
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
@@ -301,7 +301,36 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 				progressBar_->setMinimum(0);
 				progressBar_->setMaximum(100);
 			}
-			int progress = (idx * 100) / (progressLogNames.size() - 1);
+			int progress = (idx * 100) / (startProgressLogNames.size() - 1);
+			progressBar_->setValue(progress);
+			progressBar_->setVisible(true);
+		}
+	}
+
+	// --- Progress for StopContinuousYouTubeSessionTask ---
+	static const QStringList stopProgressLogNames = {"StoppingContinuousYouTubeSession",
+					     "OBSStreamingEnsuringStopped",
+					     "OBSStreamingEnsuredStopped",
+					     "YouTubeLiveBroadcastCompletingActive",
+					     "YouTubeLiveBroadcastCompletedActive",
+					     "StoppedContinuousYouTubeSession"};
+	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask") {
+		int idx = stopProgressLogNames.indexOf(name);
+		if (name == "StoppingContinuousYouTubeSession") {
+			progressBar_->setVisible(true);
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(0);
+		} else if (name == "StoppedContinuousYouTubeSession") {
+			progressBar_->setMinimum(0);
+			progressBar_->setMaximum(100);
+			progressBar_->setValue(100);
+			progressBar_->setVisible(false);
+		} else if (idx >= 0) {
+			if (progressBar_->maximum() == 0) {
+				progressBar_->setMinimum(0);
+				progressBar_->setMaximum(100);
+			}
+			int progress = (idx * 100) / (stopProgressLogNames.size() - 1);
 			progressBar_->setValue(progress);
 			progressBar_->setVisible(true);
 		}
