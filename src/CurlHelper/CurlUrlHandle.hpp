@@ -34,18 +34,19 @@
 namespace KaitoTokyo::CurlHelper {
 
 class CurlUrlHandle {
-public:
-	CurlUrlHandle()
-		: handle_([]() {
-			  CURLU *ptr = curl_url();
-			  if (!ptr)
-				  throw std::runtime_error("InitError(CurlUrlHandle::CurlUrlHandle)");
-			  return ptr;
-		  }())
-	{
-	}
+	struct CurlUrlDeleter {
+		void operator()(CURLU *ptr) const { curl_url_cleanup(ptr); }
+	};
 
-	~CurlUrlHandle() noexcept { curl_url_cleanup(handle_); }
+public:
+	CurlUrlHandle() : handle_(curl_url())
+	{
+		if (!handle_) {
+			throw std::runtime_error("CurlUrlInitError(CurlUrlHandle)");
+		}
+	};
+
+	~CurlUrlHandle() noexcept = default;
 
 	CurlUrlHandle(const CurlUrlHandle &) = delete;
 	CurlUrlHandle &operator=(const CurlUrlHandle &) = delete;
@@ -54,30 +55,31 @@ public:
 
 	void setUrl(const char *url)
 	{
-		CURLUcode uc = curl_url_set(handle_, CURLUPART_URL, url, 0);
+		CURLUcode uc = curl_url_set(handle_.get(), CURLUPART_URL, url, 0);
 		if (uc != CURLUE_OK)
-			throw std::runtime_error("URLParseError(CurlUrlHandle::setUrl)");
+			throw std::runtime_error("URLParseError(setUrl)");
 	}
 
 	void appendQuery(const char *query)
 	{
-		CURLUcode uc = curl_url_set(handle_, CURLUPART_QUERY, query, CURLU_APPENDQUERY);
+		CURLUcode uc = curl_url_set(handle_.get(), CURLUPART_QUERY, query, CURLU_APPENDQUERY);
 		if (uc != CURLUE_OK)
-			throw std::runtime_error("QueryAppendError(CurlUrlHandle::appendQuery)");
+			throw std::runtime_error("QueryAppendError(appendQuery)");
 	}
 
-	std::unique_ptr<char, decltype(&curl_free)> c_str() const
+	[[nodiscard]]
+	auto c_str() const
 	{
 		char *urlStr = nullptr;
-		CURLUcode uc = curl_url_get(handle_, CURLUPART_URL, &urlStr, 0);
+		CURLUcode uc = curl_url_get(handle_.get(), CURLUPART_URL, &urlStr, 0);
 		if (uc != CURLUE_OK || !urlStr) {
-			throw std::runtime_error("GetUrlError(CurlUrlHandle::c_str)");
+			throw std::runtime_error("GetUrlError(c_str)");
 		}
 		return std::unique_ptr<char, decltype(&curl_free)>(urlStr, curl_free);
 	}
 
 private:
-	CURLU *const handle_;
+	std::unique_ptr<CURLU, CurlUrlDeleter> handle_;
 };
 
 } // namespace KaitoTokyo::CurlHelper

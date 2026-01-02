@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  * SPDX-License-Identifier: MIT
  *
- * KaitoTokyo CurlHelper Library
+ * KaitoTokyo GoogleAuth Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,52 @@
  * SOFTWARE.
  */
 
-#pragma once
+#include "GoogleAuthResponse.hpp"
 
-#include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
-#include <cstddef>
-#include <limits>
-#include <vector>
+namespace KaitoTokyo::GoogleAuth {
 
-namespace KaitoTokyo::CurlHelper {
-
-using CurlVectorWriterBuffer = std::vector<char>;
-
-inline std::size_t CurlVectorWriter(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
+void from_json(const nlohmann::json &j, GoogleAuthResponse &p)
 {
-	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
-		return 0; // Signal error
+	if (auto it = j.find("ver"); it != j.end()) {
+		it->get_to(p.ver);
 	}
 
-	std::size_t totalSize = size * nmemb;
-	try {
-		auto *vec = static_cast<CurlVectorWriterBuffer *>(userp);
-		vec->insert(vec->end(), static_cast<char *>(contents), static_cast<char *>(contents) + totalSize);
-	} catch (...) {
-		return 0; // Signal error
-	}
-	return totalSize;
+	j.at("access_token").get_to(p.access_token);
+
+	const auto set_optional = [&j](const char *key, auto &field) {
+		if (auto it = j.find(key); it != j.end() && !it->is_null()) {
+			it->get_to(field.emplace());
+		} else {
+			field = std::nullopt;
+		}
+	};
+
+	set_optional("expires_in", p.expires_in);
+	set_optional("token_type", p.token_type);
+	set_optional("refresh_token", p.refresh_token);
+	set_optional("scope", p.scope);
 }
 
-} // namespace KaitoTokyo::CurlHelper
+void to_json(nlohmann::json &j, const GoogleAuthResponse &p)
+{
+	j = nlohmann::json{
+		{"ver", p.ver},
+		{"access_token", p.access_token},
+	};
+
+	if (p.expires_in.has_value())
+		j["expires_in"] = *p.expires_in;
+
+	if (p.token_type.has_value())
+		j["token_type"] = *p.token_type;
+
+	if (p.refresh_token.has_value())
+		j["refresh_token"] = *p.refresh_token;
+
+	if (p.scope.has_value())
+		j["scope"] = *p.scope;
+}
+
+} // namespace KaitoTokyo::GoogleAuth

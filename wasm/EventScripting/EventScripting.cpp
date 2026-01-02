@@ -14,7 +14,8 @@ using namespace KaitoTokyo::LiveStreamSegmenter;
 
 std::string evaluateFunction(const std::string& script, const std::string& functionName, const std::string& eventObject) {
 	std::shared_ptr<const Logger::ILogger> logger = std::make_shared<Logger::NullLogger>();
-	auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+	auto runtime = std::make_shared<Scripting::ScriptingRuntime>();
+	runtime->setLogger(logger);
 	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
 	Scripting::EventScriptingContext context(runtime, ctx, logger);
 	Scripting::ScriptingDatabase database(runtime, ctx, logger, "database.sqlite3", true);

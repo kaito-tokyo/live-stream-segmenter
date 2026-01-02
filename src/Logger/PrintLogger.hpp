@@ -38,6 +38,7 @@ namespace KaitoTokyo::Logger {
 class PrintLogger : public ILogger {
 public:
 	PrintLogger() = default;
+
 	~PrintLogger() override = default;
 
 	void log(LogLevel level, std::string_view name, std::source_location loc,

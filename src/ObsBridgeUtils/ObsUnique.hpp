@@ -1,6 +1,8 @@
 /*
- * KaitoTokyo BridgeUtils Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo ObsBridgeUtils Library
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +27,7 @@
 #include <obs-module.h>
 
 namespace KaitoTokyo {
-namespace BridgeUtils {
+namespace ObsBridgeUtils {
 
 /**
  * @brief Contains custom deleters for managing OBS-specific resource pointers
@@ -141,5 +143,5 @@ inline unique_bfree_char_t unique_obs_module_config_path(const char *file)
 	return unique_bfree_char_t(rawPath);
 }
 
-} // namespace BridgeUtils
+} // namespace ObsBridgeUtils
 } // namespace KaitoTokyo

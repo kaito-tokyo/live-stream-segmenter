@@ -1,6 +1,8 @@
 /*
- * KaitoTokyo BridgeUtils Library
- * Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
+ * SPDX-License-Identifier: MIT
+ *
+ * KaitoTokyo ObsBridgeUtils Library
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +32,7 @@
 #include "ObsUnique.hpp"
 
 namespace KaitoTokyo {
-namespace BridgeUtils {
+namespace ObsBridgeUtils {
 
 /**
  * @brief Internal helpers for managing Graphics Suite (GS) resources
@@ -255,5 +257,5 @@ inline unique_gs_stagesurf_t make_unique_gs_stagesurf(std::uint32_t width, std::
 	return unique_gs_stagesurf_t(rawSurface);
 }
 
-} // namespace BridgeUtils
+} // namespace ObsBridgeUtils
 } // namespace KaitoTokyo

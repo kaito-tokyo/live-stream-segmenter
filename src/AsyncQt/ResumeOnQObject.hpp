@@ -29,7 +29,6 @@
 #include <stdexcept>
 
 #include <QMetaObject>
-#include <QThread>
 
 namespace KaitoTokyo::AsyncQt {
 
@@ -58,39 +57,37 @@ namespace KaitoTokyo::AsyncQt {
 class ResumeOnQObject {
 public:
 	/**
-     * @brief Constructs the awaiter with a target context.
-     *
-     * @param context The QObject whose thread will execute the continuation.
-     * @throws std::invalid_argument if \p context is nullptr. This check exists solely to catch obvious bugs early.
-     */
-	explicit ResumeOnQObject(QObject *context) : context_(context)
+	 * @brief Constructs the awaiter with a target context.
+	 *
+	 * @param context The QObject whose thread will execute the continuation.
+	 * @throws std::invalid_argument if \p context is nullptr. This check exists solely to catch obvious bugs early.
+	 */
+	explicit ResumeOnQObject(QObject *context)
+		: context_(context ? context : throw std::invalid_argument("ContextIsNullError(ResumeOnQObject)"))
 	{
-		if (context_ == nullptr) {
-			throw std::invalid_argument("ContextIsNullError(ResumeOnQObject)");
-		}
 	}
 
 	/**
-     * @brief Always returns false to force a yield.
-     *
-     * @details Optimization for the "same thread" case (returning true) is intentionally omitted
-     * to avoid the overhead of `QThread::currentThread()` checks and to ensure consistent
-     * event loop processing behavior (post/yield).
-     *
-     * @return Always false.
-     */
+	 * @brief Always returns false to force a yield.
+	 *
+	 * @details Optimization for the "same thread" case (returning true) is intentionally omitted
+	 * to avoid the overhead of `QThread::currentThread()` checks and to ensure consistent
+	 * event loop processing behavior (post/yield).
+	 *
+	 * @return Always false.
+	 */
 	bool await_ready() const noexcept { return false; }
 
 	/**
-     * @brief Suspends the coroutine and posts the continuation to the target context's event loop.
-     *
-     * @details This method uses `Qt::QueuedConnection` to schedule `h.resume()`.
-     * If `context_` is destroyed after this call but before execution, Qt's `invokeMethod` mechanism
-     * ensures the callback is simply discarded. In that case, the coroutine will never resume (leak),
-     * which is the intended behavior for this edge case.
-     *
-     * @param h The handle to the suspended coroutine.
-     */
+	 * @brief Suspends the coroutine and posts the continuation to the target context's event loop.
+	 *
+	 * @details This method uses `Qt::QueuedConnection` to schedule `h.resume()`.
+	 * If `context_` is destroyed after this call but before execution, Qt's `invokeMethod` mechanism
+	 * ensures the callback is simply discarded. In that case, the coroutine will never resume (leak),
+	 * which is the intended behavior for this edge case.
+	 *
+	 * @param h The handle to the suspended coroutine.
+	 */
 	void await_suspend(std::coroutine_handle<> h) const
 	{
 		// Use invokeMethod with context_ as the context object.
@@ -99,12 +96,12 @@ public:
 	}
 
 	/**
-     * @brief Resumes execution. No checks are performed.
-     *
-     * @details If the context was destroyed immediately before this call, accessing it in the
-     * subsequent user code will result in Undefined Behavior (likely a crash).
-     * This "Fail Fast" behavior is intentional.
-     */
+	 * @brief Resumes execution. No checks are performed.
+	 *
+	 * @details If the context was destroyed immediately before this call, accessing it in the
+	 * subsequent user code will result in Undefined Behavior (likely a crash).
+	 * This "Fail Fast" behavior is intentional.
+	 */
 	void await_resume() const noexcept {}
 
 private:

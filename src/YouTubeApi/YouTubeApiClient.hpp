@@ -33,8 +33,7 @@
 #include <string>
 #include <vector>
 
-#include <curl/curl.h>
-
+#include <CurlHandle.hpp>
 #include <ILogger.hpp>
 
 #include "YouTubeTypes.hpp"
@@ -43,7 +42,8 @@ namespace KaitoTokyo::YouTubeApi {
 
 class YouTubeApiClient {
 public:
-	YouTubeApiClient();
+	YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl);
+
 	~YouTubeApiClient() noexcept;
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
@@ -52,22 +52,22 @@ public:
 						       std::span<std::string_view> ids = {});
 
 	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(std::string_view accessToken,
-								     std::string_view broadcastStatus);
+								     std::string broadcastStatus);
 
 	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);
 
-	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
-					       std::optional<std::string_view> streamId);
+	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string broadcastId,
+					       std::optional<std::string> streamId);
 
-	YouTubeLiveBroadcast transitionLiveBroadcast(std::string_view accessToken, std::string_view broadcastId,
-						     std::string_view broadcastStatus);
+	YouTubeLiveBroadcast transitionLiveBroadcast(std::string_view accessToken, std::string broadcastId,
+						     std::string broadcastStatus);
 
-	void setThumbnail(std::string_view accessToken, std::string_view videoId,
+	void setThumbnail(std::string_view accessToken, std::string videoId,
 			  const std::filesystem::path &thumbnailPath);
 
 private:
-	const std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl_;
+	std::shared_ptr<CurlHelper::CurlHandle> curl_;
 
 	std::shared_ptr<const Logger::ILogger> logger_;
 };

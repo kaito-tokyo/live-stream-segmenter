@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  * SPDX-License-Identifier: MIT
  *
- * KaitoTokyo GoogleAuth Library
+ * KaitoTokyo CurlHelper Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,39 +26,41 @@
 #pragma once
 
 #include <memory>
-#include <optional>
+#include <stdexcept>
 #include <string>
 
-#include <CurlHandle.hpp>
-#include <ILogger.hpp>
+#include <curl/curl.h>
 
-#include "GoogleAuthResponse.hpp"
-#include "GoogleOAuth2ClientCredentials.hpp"
+namespace KaitoTokyo::CurlHelper {
 
-namespace KaitoTokyo::GoogleAuth {
+class CurlHandle {
+	struct CurlDeleter {
+		void operator()(CURL *ptr) const { curl_easy_cleanup(ptr); }
+	};
 
-class GoogleOAuth2Flow {
 public:
-	GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
-			 std::string scopes, std::shared_ptr<const Logger::ILogger> logger);
+	CurlHandle() : curl_(curl_easy_init())
+	{
+		if (!curl_) {
+			throw std::runtime_error("CurlEasyInitError(CurlHandle)");
+		}
+	}
 
-	~GoogleOAuth2Flow() noexcept;
+	~CurlHandle() noexcept = default;
 
-	GoogleOAuth2Flow(const GoogleOAuth2Flow &) = delete;
-	GoogleOAuth2Flow &operator=(const GoogleOAuth2Flow &) = delete;
-	GoogleOAuth2Flow(GoogleOAuth2Flow &&) = delete;
-	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
+	CurlHandle(const CurlHandle &) = delete;
+	CurlHandle &operator=(const CurlHandle &) = delete;
+	CurlHandle(CurlHandle &&) = delete;
+	CurlHandle &operator=(CurlHandle &&) = delete;
 
 	[[nodiscard]]
-	std::string getAuthorizationUrl(std::string redirectUri) const;
+	CURL *getRaw() const
+	{
+		return curl_.get();
+	}
 
-	[[nodiscard]]
-	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
-
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::string scopes_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
+private:
+	const std::unique_ptr<CURL, CurlDeleter> curl_;
 };
 
-} // namespace KaitoTokyo::GoogleAuth
+} // namespace KaitoTokyo::CurlHelper

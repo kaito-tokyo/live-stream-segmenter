@@ -90,7 +90,8 @@ protected:
 	void SetUp() override
 	{
 		logger = std::make_shared<Logger::PrintLogger>();
-		runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+		runtime = std::make_shared<Scripting::ScriptingRuntime>();
+		runtime->setLogger(logger);
 		ctx = runtime->createContextRaw();
 		context = std::make_unique<Scripting::EventScriptingContext>(runtime, ctx, logger);
 		context->setupContext();
@@ -335,7 +336,8 @@ TEST(EventScriptingContextTest_NoFixture, LocalStorage_Persistence)
 	TemporaryFile tempFile("test_localstorage_persist.sqlite3");
 
 	auto createEnv = [&](auto &context_out, auto &db_out) {
-		auto runtime = std::make_shared<Scripting::ScriptingRuntime>(logger);
+		auto runtime = std::make_shared<Scripting::ScriptingRuntime>();
+		runtime->setLogger(logger);
 		std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
 		context_out = std::make_unique<Scripting::EventScriptingContext>(runtime, ctx, logger);
 		db_out = std::make_unique<Scripting::ScriptingDatabase>(runtime, ctx, logger, tempFile.path, true);

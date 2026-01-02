@@ -22,22 +22,8 @@
 
 #include <memory>
 
-#include <QAbstractItemView>
-#include <QComboBox>
 #include <QDialog>
-#include <QDialogButtonBox>
-#include <QGroupBox>
-#include <QHeaderView>
-#include <QLabel>
-#include <QLineEdit>
-#include <QPlainTextEdit>
 #include <QPointer>
-#include <QPushButton>
-#include <QTabWidget>
-#include <QTableWidget>
-#include <QThreadPool>
-#include <QVBoxLayout>
-#include <QWidget>
 
 #include <ILogger.hpp>
 
@@ -45,11 +31,28 @@
 #include <EventHandlerStore.hpp>
 #include <GoogleOAuth2Flow.hpp>
 #include <ScriptingRuntime.hpp>
+#include <Task.hpp>
+#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 #include <YouTubeTypes.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"
+
+class QAbstractItemView;
+class QComboBox;
+class QDialogButtonBox;
+class QGroupBox;
+class QHeaderView;
+class QLabel;
+class QLineEdit;
+class QPlainTextEdit;
+class QPushButton;
+class QTableWidget;
+class QTabWidget;
+class QThreadPool;
+class QVBoxLayout;
+class QWidget;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
 
@@ -67,7 +70,13 @@ public:
 		       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 		       std::shared_ptr<Store::YouTubeStore> youTubeStore, std::shared_ptr<const Logger::ILogger> logger,
 		       QWidget *parent = nullptr);
+
 	~SettingsDialog() override;
+
+	void fetchStreamKeys();
+
+	void loadLocalStorageData();
+	void saveLocalStorageData();
 
 public slots:
 	void accept() override;
@@ -83,6 +92,7 @@ private slots:
 	void onEditLocalStorageItem();
 	void onDeleteLocalStorageItem();
 	void onLocalStorageTableDoubleClicked(int row, int column);
+	void onCodeReceived(const QString &code, const QUrl &redirectUri);
 
 private:
 	void setupUi();
@@ -90,21 +100,20 @@ private:
 	void saveSettings();
 	void restoreSettings();
 
-	void loadLocalStorageData();
-	void saveLocalStorageData();
-
 	SettingsDialogGoogleOAuth2ClientCredentials
 	parseGoogleOAuth2ClientCredentialsFromLocalFile(const QString &localFile);
 
-	static Async::Task<void> runAuthFlow(QPointer<SettingsDialog> self);
-
-	Async::Task<void> fetchStreamKeys();
+	void startGoogleOAuth2Flow();
+	void runAuthFlow();
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<Store::AuthStore> authStore_;
 	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
+
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
 
 	// --- UI Components ---
 
@@ -168,10 +177,8 @@ private:
 
 	std::vector<YouTubeApi::YouTubeLiveStream> streamKeys_;
 
-	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_{};
+	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_;
 	Async::Task<void> currentAuthFlowTask_ = {};
-	std::shared_ptr<GoogleOAuth2FlowCallbackServer> currentCallbackServer_{};
-
 	Async::Task<void> currentFetchStreamKeysTask_ = {};
 };
 

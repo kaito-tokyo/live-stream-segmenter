@@ -25,50 +25,58 @@
 
 #pragma once
 
-#include <memory>
-#include <stdexcept>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <vector>
 
 #include <curl/curl.h>
 
 namespace KaitoTokyo::CurlHelper {
 
-class CurlSlistHandle {
-	struct CurlSlistDeleter {
-		void operator()(curl_slist *ptr) const { curl_slist_free_all(ptr); }
-	};
+template<typename T>
+concept SingleByte = sizeof(T) == 1;
 
-public:
-	CurlSlistHandle() = default;
-
-	~CurlSlistHandle() noexcept = default;
-
-	CurlSlistHandle(const CurlSlistHandle &) = delete;
-	CurlSlistHandle &operator=(const CurlSlistHandle &) = delete;
-	CurlSlistHandle(CurlSlistHandle &&) = delete;
-	CurlSlistHandle &operator=(CurlSlistHandle &&) = delete;
-
-	void append(const char *str)
-	{
-		curl_slist *current = slist_.release();
-
-		curl_slist *newSlist = curl_slist_append(current, str);
-
-		if (newSlist) {
-			slist_.reset(newSlist);
-		} else {
-			slist_.reset(current);
-			throw std::runtime_error("SlistAppendError(append)");
-		}
+template<SingleByte T>
+inline std::size_t CurlVectorWriteCallback(void *contents, std::size_t size, std::size_t nmemb, void *userp) noexcept
+{
+	if (size != 0 && nmemb > (std::numeric_limits<std::size_t>::max() / size)) {
+		return CURL_WRITEFUNC_ERROR;
 	}
 
-	[[nodiscard]]
-	curl_slist *getRaw() const noexcept
-	{
-		return slist_.get();
+	std::size_t totalSize = size * nmemb;
+
+	try {
+		auto *vec = static_cast<std::vector<T> *>(userp);
+
+		const auto *start = static_cast<const T *>(contents);
+		const auto *end = start + totalSize;
+
+		vec->insert(vec->end(), start, end);
+	} catch (...) {
+		return CURL_WRITEFUNC_ERROR;
 	}
 
-private:
-	std::unique_ptr<curl_slist, CurlSlistDeleter> slist_{nullptr};
-};
+	return totalSize;
+}
+
+inline std::size_t CurlByteVectorWriteCallback(void *contents, std::size_t size, std::size_t nmemb,
+					       void *userp) noexcept
+{
+	return CurlVectorWriteCallback<std::byte>(contents, size, nmemb, userp);
+}
+
+inline std::size_t CurlCharVectorWriteCallback(void *contents, std::size_t size, std::size_t nmemb,
+					       void *userp) noexcept
+{
+	return CurlVectorWriteCallback<char>(contents, size, nmemb, userp);
+}
+
+inline std::size_t CurlUint8VectorWriteCallback(void *contents, std::size_t size, std::size_t nmemb,
+						void *userp) noexcept
+{
+	return CurlVectorWriteCallback<std::uint8_t>(contents, size, nmemb, userp);
+}
 
 } // namespace KaitoTokyo::CurlHelper

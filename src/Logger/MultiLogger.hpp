@@ -31,7 +31,6 @@
 #include <string_view>
 #include <vector>
 #include <memory>
-#include <iostream>
 
 #include "ILogger.hpp"
 
@@ -40,6 +39,7 @@ namespace KaitoTokyo::Logger {
 class MultiLogger : public ILogger {
 public:
 	explicit MultiLogger(std::vector<std::shared_ptr<const ILogger>> loggers) : loggers_(std::move(loggers)) {}
+
 	virtual ~MultiLogger() noexcept = default;
 
 	MultiLogger(const MultiLogger &) = delete;
@@ -50,7 +50,6 @@ public:
 	void log(LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const LogField> context) const noexcept override
 	{
-		std::cout << "MultiLogger " << loggers_.size() << " loggers" << std::endl;
 		for (const std::shared_ptr<const ILogger> &logger : loggers_) {
 			logger->log(level, name, loc, context);
 		}

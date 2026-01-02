@@ -34,10 +34,6 @@
 #include <QTextEdit>
 #include <QToolButton>
 
-#include <fmt/format.h>
-
-#include <MultiLogger.hpp>
-
 #include "SettingsDialog.hpp"
 
 using namespace KaitoTokyo::Logger;
@@ -47,8 +43,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::UI {
 StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRuntime> runtime, QWidget *parent)
 	: QWidget(parent),
 	  runtime_(runtime ? std::move(runtime)
-			   : throw std::invalid_argument(
-				     "RuntimeIsNullError(StreamSegmenterDock::StreamSegmenterDock)")),
+			   : throw std::invalid_argument("RuntimeIsNullError(StreamSegmenterDock)")),
 	  loggerAdapter_(std::make_shared<const LoggerAdapter>(this)),
 	  mainLayout_(new QVBoxLayout(this)),
 
@@ -352,6 +347,8 @@ void StreamSegmenterDock::onSettingsButtonClicked()
 	}();
 
 	SettingsDialog settingsDialog(runtime_, authStore_, eventHandlerStore_, youTubeStore_, logger, this);
+	settingsDialog.fetchStreamKeys();
+	settingsDialog.loadLocalStorageData();
 	settingsDialog.exec();
 }
 

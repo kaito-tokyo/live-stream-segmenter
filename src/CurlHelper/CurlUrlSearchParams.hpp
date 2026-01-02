@@ -39,20 +39,20 @@ namespace KaitoTokyo::CurlHelper {
 class CurlUrlSearchParams {
 public:
 	explicit CurlUrlSearchParams(CURL *curl)
-		: curl_(curl ? curl
-			     : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams::CurlUrlSearchParams)"))
+		: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(CurlUrlSearchParams)"))
 	{
 	}
 
-	~CurlUrlSearchParams() = default;
+	~CurlUrlSearchParams() noexcept = default;
 
 	CurlUrlSearchParams(const CurlUrlSearchParams &) = delete;
 	CurlUrlSearchParams &operator=(const CurlUrlSearchParams &) = delete;
 	CurlUrlSearchParams(CurlUrlSearchParams &&) = delete;
 	CurlUrlSearchParams &operator=(CurlUrlSearchParams &&) = delete;
 
-	void append(std::string_view name, std::string_view value) { params_.emplace_back(name, value); }
+	void append(std::string name, std::string value) { params_.emplace_back(name, value); }
 
+	[[nodiscard]]
 	std::string toString() const
 	{
 		auto curlEasyEscape = [curl = curl_](const std::string &str) {
@@ -71,12 +71,12 @@ public:
 
 			auto escapedKey = curlEasyEscape(key);
 			if (!escapedKey) {
-				throw std::runtime_error("KeyEncodeError(CurlUrlSearchParams::toString)");
+				throw std::runtime_error("KeyEncodeError(toString)");
 			}
 
 			auto escapedValue = curlEasyEscape(value);
 			if (!escapedValue) {
-				throw std::runtime_error("ValueEncodeError(CurlUrlSearchParams::toString)");
+				throw std::runtime_error("ValueEncodeError(toString)");
 			}
 
 			oss << escapedKey.get() << "=" << escapedValue.get();
