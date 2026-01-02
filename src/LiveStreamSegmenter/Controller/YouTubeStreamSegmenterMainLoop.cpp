@@ -201,8 +201,6 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 
 		authStore->setGoogleTokenState(tokenState);
 
-		authStore->save();
-
 		accessToken = freshAuthResponse.access_token;
 
 		logger->info("YouTubeAccessTokenRefreshed");
