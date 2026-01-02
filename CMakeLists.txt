@@ -279,6 +279,8 @@ set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUG
 
 if(BUILD_TESTING)
   enable_testing()
-  add_subdirectory(vendor/googletest EXCLUDE_FROM_ALL)
-  add_subdirectory(tests)
+  block()
+    add_subdirectory(vendor/googletest EXCLUDE_FROM_ALL)
+    add_subdirectory(tests)
+  endblock()
 endif()
