@@ -402,6 +402,64 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view acce
 	return j.get<YouTubeLiveBroadcast>();
 }
 
+YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(std::string_view accessToken,
+							   const YouTubeLiveBroadcast &broadcast)
+{
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(updateLiveBroadcast)");
+	}
+	if (part.empty()) {
+		logger_->error("PartIsEmptyError");
+		throw std::invalid_argument("PartIsEmptyError(updateLiveBroadcast)");
+	}
+
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
+	params.append("part", std::string(part));
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveBroadcasts");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
+
+	CurlHelper::CurlSlistHandle headers;
+	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+	headers.append("Content-Type: application/json");
+
+	nlohmann::json requestBody = broadcast;
+	std::string bodyStr = requestBody.dump();
+
+	std::vector<char> readBuffer;
+	CURL *curl = curl_->getRaw();
+	curl_easy_reset(curl);
+	curl_easy_setopt(curl, CURLOPT_URL, url.get());
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers.getRaw());
+	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, bodyStr.data());
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(bodyStr.size()));
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl);
+	if (res != CURLE_OK) {
+		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::updateLiveBroadcast)");
+	}
+
+	nlohmann::json j = nlohmann::json::parse(readBuffer);
+	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
+		throw std::runtime_error("APIError(YouTubeApiClient::updateLiveBroadcast)");
+	}
+
+	return j.get<YouTubeLiveBroadcast>();
+}
+
 YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string_view accessToken, std::string broadcastId,
 							 std::optional<std::string> streamId)
 {

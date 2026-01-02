@@ -182,4 +182,40 @@ struct YouTubeLiveBroadcastSettings {
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p);
 
+struct YouTubeLiveBroadcastUpdatingBody {
+	std::string id;
+	struct Snippet {
+		std::optional<std::string> title;
+		std::optional<std::string> description;
+		std::string scheduledStartTime;
+		std::optional<std::string> scheduledEndTime;
+	} snippet;
+
+	struct Status {
+		std::optional<std::string> privacyStatus;
+	} status;
+
+	struct ContentDetails {
+		struct MonitorStream {
+			bool enableMonitorStream = false;
+			std::optional<uint32_t> broadcastStreamDelayMs;
+		} monitorStream;
+		std::optional<bool> enableAutoStart;
+		std::optional<bool> enableAutoStop;
+		std::optional<bool> enableClosedCaptions;
+		std::optional<bool> enableDvr;
+		std::optional<bool> enableEmbed;
+		std::optional<bool> recordFromStart;
+	} contentDetails;
+
+	struct MonetizationDetails {
+		struct CuepointSchedule {
+			std::optional<std::string> pauseAdsUntil;
+		} cuepointSchedule;
+	} monetizationDetails;
+};
+
+void to_json(nlohmann::json &j, const YouTubeLiveBroadcastUpdatingBody &p);
+void from_json(const nlohmann::json &j, YouTubeLiveBroadcastUpdatingBody &p);
+
 } // namespace KaitoTokyo::YouTubeApi
