@@ -105,10 +105,7 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 		startButton_->setEnabled(false);
 		startButtonClicked();
 	});
-	connect(stopButton_, &QPushButton::clicked, this, [this]() {
-		stopButton_->setEnabled(false);
-		stopButtonClicked();
-	});
+	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
 	connect(createBroadcastButton_, &QPushButton::clicked, this, [this]() {
 		createBroadcastButton_->setEnabled(false);
 		emit createBroadcastButtonClicked();
@@ -310,6 +307,40 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		}
 	}
 
+	if (name == "YouTubeLiveBroadcastCreatedInitial") {
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		currentStatusLabel_->setText(tr("READY"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://studio.youtube.com/video/%1/livestreaming").arg(broadcastId);
+			currentLinkButton_->setToolTip(tr("Open in Browser"));
+			currentLinkButton_->setProperty("url", url);
+			currentLinkButton_->show();
+			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			currentLinkButton_->hide();
+		}
+	} else if (name == "YouTubeLiveBroadcastCreatedNext") {
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		nextTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		nextStatusLabel_->setText(tr("READY"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://studio.youtube.com/video/%1/livestreaming").arg(broadcastId);
+			nextLinkButton_->setToolTip(tr("Open in Browser"));
+			nextLinkButton_->setProperty("url", url);
+			nextLinkButton_->show();
+			QObject::disconnect(nextLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(nextLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			nextLinkButton_->hide();
+		}
+	}
+
 	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
@@ -423,23 +454,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
 		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
 		monitorLabel_->setText(tr("Streaming"));
-
-		// --- Show current broadcast info in current pane ---
-		QString title = context.value("title");
-		QString broadcastId = context.value("broadcastId");
-		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
-		currentStatusLabel_->setText(tr("LIVE"));
-		if (!broadcastId.isEmpty()) {
-			QString url = QString("https://www.youtube.com/live/%1").arg(broadcastId);
-			currentLinkButton_->setToolTip(tr("Open in Browser"));
-			currentLinkButton_->setProperty("url", url);
-			currentLinkButton_->show();
-			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
-			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
-					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
-		} else {
-			currentLinkButton_->hide();
-		}
 	}
 }
 
