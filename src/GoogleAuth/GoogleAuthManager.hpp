@@ -40,7 +40,8 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
+	GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
+			  const GoogleOAuth2ClientCredentials &clientCredentials,
 			  std::shared_ptr<const Logger::ILogger> logger);
 
 	~GoogleAuthManager() noexcept;
@@ -54,10 +55,9 @@ public:
 	GoogleAuthResponse fetchFreshAuthResponse(std::string refreshToken) const;
 
 private:
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
-
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

@@ -44,7 +44,6 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	enum class MessageType {
 		StartContinuousSession,
 		StopContinuousSession,
-		SegmentLiveBroadcast,
 	};
 
 	struct Message {
@@ -68,9 +67,8 @@ public:
 	void startMainLoop();
 
 public slots:
-	void startContinuousSession();
-	void stopContinuousSession();
-	void segmentCurrentSession();
+	void onStartContinuousSession();
+	void onStopContinuousSession();
 
 private:
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
@@ -95,23 +93,19 @@ private:
 					  std::shared_ptr<Store::YouTubeStore> youtubeStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 
-	static Async::Task<void> startContinuousSessionTask(Async::Channel<Message> &channel);
+	static Async::Task<void> startContinuousSessionTask(
+		std::shared_ptr<CurlHelper::CurlHandle> curl,
+		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
+		std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::size_t currentLiveStreamIndex, QObject *parent,
+		std::shared_ptr<const Logger::ILogger> baseLogger);
 
 	static Async::Task<void> stopContinuousSessionTask(
 		[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 		std::shared_ptr<const Logger::ILogger> logger);
-
-	static Async::Task<void>
-	segmentLiveBroadcastTask(Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
-				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-				 std::shared_ptr<Store::AuthStore> authStore,
-				 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-				 std::shared_ptr<const Logger::ILogger> logger, QWidget *parent,
-				 const YouTubeApi::YouTubeLiveStream &currentLiveStream,
-				 const YouTubeApi::YouTubeLiveStream &nextLiveStream);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

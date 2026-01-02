@@ -61,12 +61,10 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	dock_->setYouTubeStore(youTubeStore_);
 
 	QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::startContinuousSession);
+			 &YouTubeStreamSegmenterMainLoop::onStartContinuousSession);
 
 	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::stopContinuousSession);
-	QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-			 youTubeStreamSegmenterMainLoop_.get(), &YouTubeStreamSegmenterMainLoop::segmentCurrentSession);
+			 &YouTubeStreamSegmenterMainLoop::onStopContinuousSession);
 
 	youTubeStreamSegmenterMainLoop_->startMainLoop();
 }

@@ -49,7 +49,7 @@ public:
 
 	GoogleAuth::GoogleOAuth2ClientCredentials getGoogleOAuth2ClientCredentials() const;
 
-	void setGoogleTokenState(const GoogleAuth::GoogleTokenState &tokenState);
+	void setGoogleTokenState(GoogleAuth::GoogleTokenState tokenState);
 
 	GoogleAuth::GoogleTokenState getGoogleTokenState() const;
 

@@ -623,9 +623,11 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 void SettingsDialog::fetchStreamKeys()
 {
 	try {
-		const auto authManager = std::make_shared<GoogleAuth::GoogleAuthManager>(
-			std::make_shared<CurlHelper::CurlHandle>(), authStore_->getGoogleOAuth2ClientCredentials(),
-			logger_);
+		auto curl = std::make_shared<CurlHelper::CurlHandle>();
+		GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials =
+			authStore_->getGoogleOAuth2ClientCredentials();
+		const auto authManager =
+			std::make_shared<GoogleAuth::GoogleAuthManager>(curl, clientCredentials, logger_);
 		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
