@@ -195,7 +195,6 @@ std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::sh
 		GoogleAuth::GoogleAuthResponse freshAuthResponse =
 			authManager.fetchFreshAuthResponse(tokenState.refresh_token);
 
-		GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
 		tokenState.loadAuthResponse(freshAuthResponse);
 
 		authStore->setGoogleTokenState(tokenState);
