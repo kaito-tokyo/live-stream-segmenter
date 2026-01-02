@@ -44,13 +44,9 @@ public:
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger);
 
-	void setStreamKeyA(const YouTubeApi::YouTubeLiveStream &streamKey);
+	void setLiveStreamId(std::size_t index, std::string liveStreamId);
 
-	void setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey);
-
-	YouTubeApi::YouTubeLiveStream getLiveStreamA() const;
-
-	YouTubeApi::YouTubeLiveStream getLiveStreamB() const;
+	std::string getLiveStreamId(std::size_t index) const;
 
 	void save() const;
 
@@ -58,8 +54,7 @@ public:
 
 private:
 	mutable std::mutex mutex_;
-	YouTubeApi::YouTubeLiveStream streamKeyA_;
-	YouTubeApi::YouTubeLiveStream streamKeyB_;
+	std::vector<std::string> liveStreamIds_;
 
 	std::shared_ptr<const Logger::ILogger> logger_;
 };

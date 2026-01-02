@@ -48,48 +48,41 @@ std::filesystem::path YouTubeStore::getConfigPath()
 
 void YouTubeStore::setLogger(std::shared_ptr<const Logger::ILogger> logger)
 {
+	std::scoped_lock lock(mutex_);
 	logger_ = std::move(logger);
 }
 
-void YouTubeStore::setStreamKeyA(const YouTubeApi::YouTubeLiveStream &streamKey)
+void YouTubeStore::setLiveStreamId(std::size_t index, std::string liveStreamId)
 {
 	std::scoped_lock lock(mutex_);
-	streamKeyA_ = streamKey;
+	if (index >= liveStreamIds_.size()) {
+		liveStreamIds_.resize(index + 1);
+	}
+	liveStreamIds_[index] = std::move(liveStreamId);
 }
 
-void YouTubeStore::setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey)
+std::string YouTubeStore::getLiveStreamId(std::size_t index) const
 {
 	std::scoped_lock lock(mutex_);
-	streamKeyB_ = streamKey;
-}
-
-YouTubeApi::YouTubeLiveStream YouTubeStore::getLiveStreamA() const
-{
-	std::scoped_lock lock(mutex_);
-	return streamKeyA_;
-}
-
-YouTubeApi::YouTubeLiveStream YouTubeStore::getLiveStreamB() const
-{
-	std::scoped_lock lock(mutex_);
-	return streamKeyB_;
+	if (index < liveStreamIds_.size()) {
+		return liveStreamIds_[index];
+	} else {
+		return {};
+	}
 }
 
 void YouTubeStore::save() const
 {
 	const std::filesystem::path configPath = getConfigPath();
 
-	YouTubeApi::YouTubeLiveStream streamKeyA;
-	YouTubeApi::YouTubeLiveStream streamKeyB;
+	std::vector<std::string> liveStreamIds;
 	{
 		std::scoped_lock lock(mutex_);
-		streamKeyA = streamKeyA_;
-		streamKeyB = streamKeyB_;
+		liveStreamIds = liveStreamIds_;
 	}
 
 	nlohmann::json j{
-		{"streamKeyA", streamKeyA},
-		{"streamKeyB", streamKeyB},
+		{"liveStreamIds", liveStreamIds},
 	};
 
 	std::filesystem::path tmpConfigPath = configPath;
@@ -132,17 +125,11 @@ void YouTubeStore::restore()
 
 	std::scoped_lock lock(mutex_);
 	try {
-		if (j.contains("streamKeyA")) {
-			j.at("streamKeyA").get_to(streamKeyA_);
-			logger_->info("RestoredStreamKeyA");
-		}
-		if (j.contains("streamKeyB")) {
-			j.at("streamKeyB").get_to(streamKeyB_);
-			logger_->info("RestoredStreamKeyB");
+		if (j.contains("liveStreamIds")) {
+			j.at("liveStreamIds").get_to(liveStreamIds_);
 		}
 	} catch (...) {
-		streamKeyA_ = {};
-		streamKeyB_ = {};
+		liveStreamIds_.clear();
 		throw;
 	}
 }

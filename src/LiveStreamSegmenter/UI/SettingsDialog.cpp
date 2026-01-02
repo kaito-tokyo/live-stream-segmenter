@@ -490,16 +490,16 @@ void SettingsDialog::saveSettings()
 	// Save YouTubeStore
 	int streamKeyAIndex = streamKeyComboA_->currentIndex();
 	if (streamKeyAIndex >= 0) {
-		youTubeStore_->setStreamKeyA(streamKeys_[streamKeyAIndex]);
+		youTubeStore_->setLiveStreamId(0, streamKeys_[streamKeyAIndex].id);
 	} else {
-		youTubeStore_->setStreamKeyA({});
+		youTubeStore_->setLiveStreamId(0, {});
 	}
 
 	int streamKeyBIndex = streamKeyComboB_->currentIndex();
 	if (streamKeyBIndex >= 0) {
-		youTubeStore_->setStreamKeyB(streamKeys_[streamKeyBIndex]);
+		youTubeStore_->setLiveStreamId(1, streamKeys_[streamKeyBIndex].id);
 	} else {
-		youTubeStore_->setStreamKeyB({});
+		youTubeStore_->setLiveStreamId(1, {});
 	}
 
 	youTubeStore_->save();
@@ -653,11 +653,11 @@ void SettingsDialog::fetchStreamKeys()
 
 		streamKeys_ = std::move(streamKeys);
 
-		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getLiveStreamA();
-		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getLiveStreamB();
+		std::string currentStreamKeyAId = youTubeStore_->getLiveStreamId(0);
+		std::string currentStreamKeyBId = youTubeStore_->getLiveStreamId(1);
 
 		logger_->info("CurrentStreamKeys",
-			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});
+			      {{"streamKeyA_id", currentStreamKeyAId}, {"streamKeyB_id", currentStreamKeyBId}});
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
 			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
 
@@ -670,11 +670,11 @@ void SettingsDialog::fetchStreamKeys()
 							  {"title", key.snippet.title},
 							  {"resolution", key.cdn.resolution},
 							  {"frameRate", key.cdn.frameRate}});
-			if (currentStreamKeyA.id == key.id) {
+			if (key.id == currentStreamKeyAId) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
 
-			if (currentStreamKeyB.id == key.id) {
+			if (key.id == currentStreamKeyBId) {
 				streamKeyComboB_->setCurrentIndex(i);
 			}
 		}
