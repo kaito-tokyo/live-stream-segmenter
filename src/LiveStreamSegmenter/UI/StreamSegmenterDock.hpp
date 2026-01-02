@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - UI Module
  *
@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include <QWidget>
+#include <QLabel>
 
 #include <AuthStore.hpp>
 #include <CurlHandle.hpp>
@@ -32,13 +33,14 @@
 #include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 
-class QGroupBox;
-class QHBoxLayout;
-class QLabel;
-class QPushButton;
-class QTextEdit;
-class QToolButton;
-class QVBoxLayout;
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QToolButton>
+#include <QVBoxLayout>
+#include <QProgressBar>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -46,7 +48,7 @@ namespace UI {
 
 class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
-
+public:
 	class LoggerAdapter : public Logger::ILogger {
 	public:
 		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
@@ -107,10 +109,13 @@ public:
 		youTubeStore_ = std::move(youTubeStore);
 	}
 
+	void setSystemMonitorStatus(const QString &status) { monitorLabel_->setText(status); }
+
 signals:
 	void startButtonClicked();
 	void stopButtonClicked();
-	void segmentNowButtonClicked();
+	void createBroadcastButtonClicked();
+	void switchStreamButtonClicked();
 
 public slots:
 	void logMessage(int level, const QString &name, const QMap<QString, QString> &context);
@@ -120,6 +125,14 @@ private slots:
 
 private:
 	void setupUi();
+
+	void setProgress(int value, bool visible = true)
+	{
+		if (progressBar_) {
+			progressBar_->setValue(value);
+			progressBar_->setVisible(visible);
+		}
+	}
 
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<const Logger::ILogger> loggerAdapter_;
@@ -143,6 +156,7 @@ private:
 	QGroupBox *const statusGroup_;
 	QVBoxLayout *const statusLayout_;
 	QLabel *const monitorLabel_;
+	QProgressBar *progressBar_ = nullptr;
 
 	// 3. Schedule Section
 	QGroupBox *const scheduleGroup_;
@@ -174,7 +188,8 @@ private:
 	// 5. Bottom Controls
 	QVBoxLayout *const bottomControlLayout_;
 	QPushButton *const settingsButton_;
-	QPushButton *const segmentNowButton_;
+	QPushButton *const createBroadcastButton_;
+	QPushButton *const switchStreamButton_;
 
 	mutable std::mutex mutex_;
 	std::shared_ptr<const Logger::ILogger> logger_;

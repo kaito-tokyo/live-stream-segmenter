@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - Controller Module
  *
@@ -61,12 +61,10 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	dock_->setYouTubeStore(youTubeStore_);
 
 	QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::startContinuousSession);
+			 &YouTubeStreamSegmenterMainLoop::onStartContinuousSession);
 
 	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::stopContinuousSession);
-	QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-			 youTubeStreamSegmenterMainLoop_.get(), &YouTubeStreamSegmenterMainLoop::segmentCurrentSession);
+			 &YouTubeStreamSegmenterMainLoop::onStopContinuousSession);
 
 	youTubeStreamSegmenterMainLoop_->startMainLoop();
 }

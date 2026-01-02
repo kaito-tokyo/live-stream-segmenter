@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - UI Module
  *
@@ -36,6 +36,8 @@
 
 #include "SettingsDialog.hpp"
 
+#include <QProgressBar>
+
 using namespace KaitoTokyo::Logger;
 
 namespace KaitoTokyo::LiveStreamSegmenter::UI {
@@ -56,6 +58,7 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	  statusGroup_(new QGroupBox(tr("System Monitor"), this)),
 	  statusLayout_(new QVBoxLayout(statusGroup_)),
 	  monitorLabel_(new QLabel(statusGroup_)),
+	  progressBar_(nullptr),
 
 	  // Schedule
 	  scheduleGroup_(new QGroupBox(tr("Broadcast Schedule"), this)),
@@ -87,7 +90,8 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	  // Bottom Controls
 	  bottomControlLayout_(new QVBoxLayout(this)),
 	  settingsButton_(new QPushButton(tr("Settings"), this)),
-	  segmentNowButton_(new QPushButton(tr("Segment Now..."), this)),
+	  createBroadcastButton_(new QPushButton(tr("Create Broadcast"), this)),
+	  switchStreamButton_(new QPushButton(tr("Switch Stream"), this)),
 
 	  // Cache Initialization
 	  currentStatusText_(tr("IDLE")),
@@ -97,9 +101,22 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 {
 	setupUi();
 
-	connect(startButton_, &QPushButton::clicked, this, &StreamSegmenterDock::startButtonClicked);
-	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
-	connect(segmentNowButton_, &QPushButton::clicked, this, &StreamSegmenterDock::segmentNowButtonClicked);
+	connect(startButton_, &QPushButton::clicked, this, [this]() {
+		startButton_->setEnabled(false);
+		startButtonClicked();
+	});
+	connect(stopButton_, &QPushButton::clicked, this, [this]() {
+		stopButton_->setEnabled(false);
+		stopButtonClicked();
+	});
+	connect(createBroadcastButton_, &QPushButton::clicked, this, [this]() {
+		createBroadcastButton_->setEnabled(false);
+		emit createBroadcastButtonClicked();
+	});
+	connect(switchStreamButton_, &QPushButton::clicked, this, [this]() {
+		switchStreamButton_->setEnabled(false);
+		emit switchStreamButtonClicked();
+	});
 	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
 
@@ -109,7 +126,7 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->setSpacing(6);
 
 	// --- 1. Top Controls ---
-	startButton_->setStyleSheet("font-weight: bold;");
+	stopButton_->setEnabled(false);
 	topControlLayout_->addWidget(startButton_, 1);
 	topControlLayout_->addWidget(stopButton_, 1);
 	mainLayout_->addLayout(topControlLayout_);
@@ -122,7 +139,15 @@ void StreamSegmenterDock::setupUi()
 	monitorLabel_->setFont(monitorFont);
 	monitorLabel_->setWordWrap(true);
 	monitorLabel_->setAlignment(Qt::AlignCenter);
+	monitorLabel_->setText(tr("Ready"));
 	statusLayout_->addWidget(monitorLabel_);
+	progressBar_ = new QProgressBar(statusGroup_);
+	progressBar_->setRange(0, 100);
+	progressBar_->setValue(0);
+	progressBar_->setTextVisible(false);
+	progressBar_->setFixedHeight(6);
+	progressBar_->setVisible(false);
+	statusLayout_->addWidget(progressBar_);
 	mainLayout_->addWidget(statusGroup_);
 
 	// --- 3. Schedule ---
@@ -237,85 +262,106 @@ void StreamSegmenterDock::setupUi()
 	// --- 5. Bottom Controls ---
 	bottomControlLayout_->setSpacing(4);
 	bottomControlLayout_->addWidget(settingsButton_);
-	bottomControlLayout_->addWidget(segmentNowButton_);
+	bottomControlLayout_->addWidget(createBroadcastButton_);
+	bottomControlLayout_->addWidget(switchStreamButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
 }
 
 void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &name,
 				     const QMap<QString, QString> &context)
 {
+	const QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+	auto logWithTimestamp = [&](const QString &msg, const QString &color = "#e0e0e0") {
+		consoleView_->append(QString("<span style=\"color:%1;\">[%2] %3</span>").arg(color, timestamp, msg));
+	};
 	if (name == "OBSStreamingStarted") {
-		consoleView_->append(tr("OBS streaming started."));
+		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
+		monitorLabel_->setText(tr("Streaming"));
+	} else if (name == "LiveBroadcastPreparationStarted") {
+		monitorLabel_->setText(tr("Preparing"));
+	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
+		logWithTimestamp(tr("Stopping the current stream for segment switching. Please wait..."), "#D7BA7D");
+		monitorLabel_->setText(tr("Switching"));
+	} else if (name == "YouTubeLiveStreamStatusChecking" || name == "YouTubeLiveBroadcastTransitioningToTesting" ||
+		   name == "YouTubeLiveBroadcastTransitioningToLive") {
+		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "YouTubeLiveStreamStatusChecking") {
 		QString nextLiveStreamId = context.value("nextLiveStreamId");
 		if (!nextLiveStreamId.isEmpty()) {
-			consoleView_->append(
-				tr("Checking YouTube live stream status (ID: %1)...").arg(nextLiveStreamId));
+			logWithTimestamp(tr("Checking YouTube live stream status (ID: %1)...").arg(nextLiveStreamId));
 		} else {
-			consoleView_->append(tr("Checking YouTube live stream status..."));
+			logWithTimestamp(tr("Checking YouTube live stream status..."));
 		}
 	} else if (name == "YouTubeLiveStreamActive") {
-		consoleView_->append(tr("YouTube live stream is active."));
+		logWithTimestamp(tr("YouTube live stream is active."), "#4EC9B0");
 	} else if (name == "YouTubeLiveStreamNotActiveYet") {
 		QString remainingAttempts = context.value("remainingAttempts");
 		if (!remainingAttempts.isEmpty()) {
-			consoleView_->append(tr("YouTube live stream is not active yet. Remaining attempts: %1")
-						     .arg(remainingAttempts));
+			logWithTimestamp(tr("YouTube live stream is not active yet. Remaining attempts: %1")
+						 .arg(remainingAttempts),
+					 "#D7BA7D");
 		} else {
-			consoleView_->append(tr("YouTube live stream is not active yet."));
+			logWithTimestamp(tr("YouTube live stream is not active yet."), "#D7BA7D");
 		}
 	} else if (name == "YouTubeLiveStreamStartTimeout") {
-		consoleView_->append(tr("Timeout: YouTube live stream did not become active in time."));
+		logWithTimestamp(tr("Timeout: YouTube live stream did not become active in time."), "#F44747");
 	} else if (name == "YouTubeLiveBroadcastTransitioningToTesting") {
-		consoleView_->append(tr("Transitioning YouTube live broadcast to 'testing' state..."));
+		logWithTimestamp(tr("Transitioning YouTube live broadcast to 'testing' state..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastTransitionedToTesting") {
-		consoleView_->append(tr("YouTube live broadcast transitioned to 'testing' state."));
+		logWithTimestamp(tr("YouTube live broadcast transitioned to 'testing' state."), "#4EC9B0");
 	} else if (name == "YouTubeLiveBroadcastTransitioningToLive") {
-		consoleView_->append(tr("Transitioning YouTube live broadcast to 'live' state..."));
-	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
-		consoleView_->append(tr("YouTube live broadcast transitioned to 'live' state."));
+		logWithTimestamp(tr("Transitioning YouTube live broadcast to 'live' state..."), "#D7BA7D");
 	} else if (name == "UnsupportedIngestionTypeError") {
 		QString msg;
 		if (context.contains("type")) {
 			msg = tr("Unsupported ingestion type: %1").arg(context["type"]);
 		} else {
+			setProgress(100, false);
 			msg = tr("Unsupported ingestion type: %1").arg(context["type"]);
 		}
-		consoleView_->append(msg);
+		setProgress(10);
+		logWithTimestamp(msg, "#F44747");
 	} else if (name == "YouTubeRTMPServiceCreated") {
-		consoleView_->append(tr("YouTube RTMP service created."));
+		logWithTimestamp(tr("YouTube RTMP service created."), "#4EC9B0");
+		setProgress(20);
 	} else if (name == "YouTubeHLSServiceCreated") {
-		consoleView_->append(tr("YouTube HLS service created."));
-	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
-		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+		logWithTimestamp(tr("YouTube HLS service created."), "#4EC9B0");
+		// ...existing code...
+		setProgress(30);
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
 		if (context.contains("title")) {
 			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
 		} else {
-			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
+			msg = tr("Completing existing live broadcast.");
 		}
-		consoleView_->append(msg);
+		setProgress(40);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSetting") {
+		setProgress(50);
 		QString msg;
 		if (context.contains("thumbnailFile")) {
 			msg = tr("Setting YouTube live broadcast thumbnail: %1").arg(context["thumbnailFile"]);
 		} else {
 			msg = tr("Setting YouTube live broadcast thumbnail.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastBinding") {
-		consoleView_->append(tr("Binding YouTube live broadcast to stream..."));
+		setProgress(45);
+		logWithTimestamp(tr("Binding YouTube live broadcast to stream..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastBound") {
-		consoleView_->append(tr("YouTube live broadcast bound to stream."));
+		setProgress(0, false);
+		logWithTimestamp(tr("YouTube live broadcast bound to stream."), "#4EC9B0");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSet") {
+		setProgress(60);
 		QString msg;
 		if (context.contains("thumbnailFile")) {
 			msg = tr("YouTube live broadcast thumbnail set: %1").arg(context["thumbnailFile"]);
 		} else {
 			msg = tr("YouTube live broadcast thumbnail set.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#4EC9B0");
+		setProgress(100, false);
 	} else if (name == "YouTubeLiveBroadcastThumbnailMissing") {
 		QString msg;
 		if (context.contains("thumbnailFile")) {
@@ -323,11 +369,12 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("YouTube live broadcast thumbnail missing.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId") {
-		consoleView_->append(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."));
+		logWithTimestamp(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."),
+				 "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastInserting") {
-		consoleView_->append(tr("Creating new YouTube live broadcast..."));
+		logWithTimestamp(tr("Creating new YouTube live broadcast..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastInserted") {
 		QString msg;
 		if (context.contains("title")) {
@@ -335,7 +382,40 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("YouTube live broadcast created.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#4EC9B0");
+	} else if (name == "ContinuousSessionStarted") {
+		logWithTimestamp(tr("Continuous session started."), "#4EC9B0");
+		stopButton_->setEnabled(true);
+		setProgress(0, false);
+	} else if (name == "StoppingContinuousYouTubeSession") {
+		monitorLabel_->setText(tr("Stopping"));
+	} else if (name == "StoppedContinuousYouTubeSession") {
+		setProgress(0, false);
+		logWithTimestamp(tr("Continuous session stopped."), "#4EC9B0");
+		monitorLabel_->setText(tr("Idle"));
+
+		startButton_->setEnabled(true);
+	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
+		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
+		monitorLabel_->setText(tr("Streaming"));
+		setProgress(0, false);
+
+		// --- Show current broadcast info in current pane ---
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		currentStatusLabel_->setText(tr("LIVE"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://www.youtube.com/live/%1").arg(broadcastId);
+			currentLinkButton_->setToolTip(tr("Open in Browser"));
+			currentLinkButton_->setProperty("url", url);
+			currentLinkButton_->show();
+			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			currentLinkButton_->hide();
+		}
 	}
 }
 

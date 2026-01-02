@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - UI Module
  *
@@ -623,9 +623,11 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 void SettingsDialog::fetchStreamKeys()
 {
 	try {
-		const auto authManager = std::make_shared<GoogleAuth::GoogleAuthManager>(
-			std::make_shared<CurlHelper::CurlHandle>(), authStore_->getGoogleOAuth2ClientCredentials(),
-			logger_);
+		auto curl = std::make_shared<CurlHelper::CurlHandle>();
+		GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials =
+			authStore_->getGoogleOAuth2ClientCredentials();
+		const auto authManager =
+			std::make_shared<GoogleAuth::GoogleAuthManager>(curl, clientCredentials, logger_);
 		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
@@ -652,8 +654,8 @@ void SettingsDialog::fetchStreamKeys()
 
 		streamKeys_ = std::move(streamKeys);
 
-		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
-		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getLiveStreamA();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getLiveStreamB();
 
 		logger_->info("CurrentStreamKeys",
 			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});

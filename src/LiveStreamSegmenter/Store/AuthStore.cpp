@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - Store Module
  *
@@ -64,10 +64,10 @@ GoogleAuth::GoogleOAuth2ClientCredentials AuthStore::getGoogleOAuth2ClientCreden
 	return googleOAuth2ClientCredentials_;
 }
 
-void AuthStore::setGoogleTokenState(const GoogleAuth::GoogleTokenState &tokenState)
+void AuthStore::setGoogleTokenState(GoogleAuth::GoogleTokenState tokenState)
 {
 	std::scoped_lock lock(mutex_);
-	googleTokenState_ = tokenState;
+	googleTokenState_ = std::move(tokenState);
 }
 
 GoogleAuth::GoogleTokenState AuthStore::getGoogleTokenState() const

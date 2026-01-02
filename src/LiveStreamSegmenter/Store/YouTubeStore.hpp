@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Live Stream Segmenter - Store Module
  *
@@ -48,9 +48,9 @@ public:
 
 	void setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey);
 
-	YouTubeApi::YouTubeLiveStream getStreamKeyA() const;
+	YouTubeApi::YouTubeLiveStream getLiveStreamA() const;
 
-	YouTubeApi::YouTubeLiveStream getStreamKeyB() const;
+	YouTubeApi::YouTubeLiveStream getLiveStreamB() const;
 
 	void save() const;
 
