@@ -55,7 +55,9 @@ void YouTubeStore::setLogger(std::shared_ptr<const Logger::ILogger> logger)
 void YouTubeStore::setLiveStreamId(std::size_t index, std::string liveStreamId)
 {
 	std::scoped_lock lock(mutex_);
-	liveStreamIds_.resize(index + 1);
+	if (index >= liveStreamIds_.size()) {
+		liveStreamIds_.resize(index + 1);
+	}
 	liveStreamIds_[index] = std::move(liveStreamId);
 }
 
