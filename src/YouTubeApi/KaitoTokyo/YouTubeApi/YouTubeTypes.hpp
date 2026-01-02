@@ -154,33 +154,36 @@ struct YouTubeLiveBroadcast {
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p);
 
-struct YouTubeLiveBroadcastSettings {
-	struct Snippet {
-		std::string title;
-		std::string scheduledStartTime;
-		std::string description;
-	} snippet;
+struct InsertingYouTubeLiveBroadcast {
+       struct Snippet {
+	       std::string title; // required
+	       std::optional<std::string> description;
+	       std::string scheduledStartTime; // required
+	       std::optional<std::string> scheduledEndTime;
+       } snippet;
 
-	struct Status {
-		std::string privacyStatus = "private";
-		bool selfDeclaredMadeForKids = false;
-	} status;
+       struct Status {
+	       std::string privacyStatus = "private"; // required
+	       std::optional<bool> selfDeclaredMadeForKids;
+       } status;
 
-	struct ContentDetails {
-		bool enableAutoStart = false;
-		bool enableAutoStop = false;
-		bool enableDvr = true;
-		bool enableEmbed = true;
-		bool recordFromStart = true;
-		std::string latencyPreference = "normal"; // "normal", "low", "ultraLow"
-		struct MonitorStream {
-			bool enableMonitorStream = false;
-		} monitorStream;
-	} contentDetails;
+       struct ContentDetails {
+	       std::optional<bool> enableAutoStart;
+	       std::optional<bool> enableAutoStop;
+	       std::optional<bool> enableClosedCaptions;
+	       std::optional<bool> enableDvr;
+	       std::optional<bool> enableEmbed;
+	       std::optional<bool> recordFromStart;
+	       std::optional<std::string> latencyPreference;
+	       struct MonitorStream {
+		       std::optional<bool> enableMonitorStream;
+		       std::optional<uint32_t> broadcastStreamDelayMs;
+	       } monitorStream;
+       } contentDetails;
 };
 
-void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
-void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p);
+void to_json(nlohmann::json &j, const InsertingYouTubeLiveBroadcast &p);
+void from_json(const nlohmann::json &j, InsertingYouTubeLiveBroadcast &p);
 
 struct UpdatingYouTubeLiveBroadcast {
 	std::string id;

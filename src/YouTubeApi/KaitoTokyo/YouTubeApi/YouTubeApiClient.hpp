@@ -55,7 +55,7 @@ public:
 								     std::string broadcastStatus);
 
 	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
-						 const YouTubeLiveBroadcastSettings &settings);
+						 const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
 
 	YouTubeLiveBroadcast updateLiveBroadcast(std::string_view accessToken, const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 

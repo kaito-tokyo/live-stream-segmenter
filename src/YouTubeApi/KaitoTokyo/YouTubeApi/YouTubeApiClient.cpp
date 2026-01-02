@@ -416,7 +416,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 }
 
 YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view accessToken,
-							   const YouTubeLiveBroadcastSettings &settings)
+							   const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -437,7 +437,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string_view acce
 	headers.append(authHeader.c_str());
 	headers.append("Content-Type: application/json");
 
-	nlohmann::json requestBody = settings;
+	nlohmann::json requestBody = insertingLiveBroadcast;
 	std::string bodyStr = requestBody.dump();
 
 	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), bodyStr, logger_, headers.getRaw());

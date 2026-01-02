@@ -184,7 +184,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 	}
 }
 
-void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p)
+void to_json(nlohmann::json &j, const InsertingYouTubeLiveBroadcast &p)
 {
 	j["snippet"] = {{"title", p.snippet.title}, {"scheduledStartTime", p.snippet.scheduledStartTime}};
 	if (!p.snippet.description.empty()) {
@@ -204,7 +204,7 @@ void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p)
 				{{"enableMonitorStream", p.contentDetails.monitorStream.enableMonitorStream}}}};
 }
 
-void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p)
+void from_json(const nlohmann::json &j, InsertingYouTubeLiveBroadcast &p)
 {
 	const auto &snippet = j.at("snippet");
 	snippet.at("title").get_to(p.snippet.title);

@@ -298,8 +298,8 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 
 	std::string result = context->executeFunction("onCreateYouTubeLiveBroadcast", R"({})");
 	nlohmann::json j = nlohmann::json::parse(result);
-	YouTubeApi::YouTubeLiveBroadcastSettings settings;
-	j.get_to(settings);
+	YouTubeApi::InsertingYouTubeLiveBroadcast insertingLiveBroadcast;
+	j.at("InsertingYouTubeLiveBroadcast").get_to(insertingLiveBroadcast);
 
 	logger->info("YouTubeLiveBroadcastInserting");
 
