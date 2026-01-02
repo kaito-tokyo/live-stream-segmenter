@@ -237,6 +237,7 @@ jobs:
             cmake \
             libgles2-mesa-dev \
             libqt6svg6-dev \
+            libsecret-1-dev \
             libsimde-dev \
             ninja-build \
             obs-studio \
