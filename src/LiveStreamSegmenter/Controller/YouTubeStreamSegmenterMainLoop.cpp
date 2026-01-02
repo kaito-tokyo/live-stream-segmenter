@@ -558,7 +558,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 {
 	// on the main thread
 	const std::shared_ptr<const Logger::ILogger> logger =
-		std::make_shared<TaskBoundLogger>(baseLogger, "StopContinuousYouTubeSessionTask");
+		std::make_shared<TaskBoundLogger>(baseLogger, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
 
 	logger->info("ContinuousYouTubeSessionStopping");
 

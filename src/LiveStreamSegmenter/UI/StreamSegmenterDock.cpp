@@ -123,7 +123,6 @@ void StreamSegmenterDock::setupUi()
 	mainLayout_->setSpacing(6);
 
 	// --- 1. Top Controls ---
-	stopButton_->setEnabled(false);
 	topControlLayout_->addWidget(startButton_, 1);
 	topControlLayout_->addWidget(stopButton_, 1);
 	mainLayout_->addLayout(topControlLayout_);
@@ -273,29 +272,35 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	};
 
 	// --- Progress for startContinuousSessionTask ---
-	static const QStringList startProgressLogNames = {"ContinuousYouTubeSessionStarting",
-					     "OBSStreamingEnsuringStopped",
-					     "OBSStreamingEnsuredStopped",
-					     "YouTubeLiveBroadcastCompletingActive",
-					     "YouTubeLiveBroadcastCompletedActive",
-					     "YouTubeLiveBroadcastCreatingInitial",
-					     "YouTubeLiveBroadcastCreatedInitial",
-					     "YouTubeLiveBroadcastCreatingNext",
-					     "YouTubeLiveBroadcastCreatedNext",
-					     "StreamingStarting",
-					     "StreamingStarted",
-					     "ContinuousYouTubeSessionStarted"};
+	static const QStringList startProgressLogNames = {
+		"ContinuousYouTubeSessionStarting",
+		"OBSStreamingEnsuringStopped",
+		"OBSStreamingEnsuredStopped",
+		"YouTubeLiveBroadcastCompletingActive",
+		"YouTubeLiveBroadcastCompletedActive",
+		"YouTubeLiveBroadcastCreatingInitial",
+		"YouTubeLiveBroadcastCreatedInitial",
+		"YouTubeLiveBroadcastCreatingNext",
+		"YouTubeLiveBroadcastCreatedNext",
+		"YouTubeLiveStreamGettingNext",
+		"YouTubeLiveStreamGottenNext",
+		"StreamingStarting",
+		"StreamingStarted",
+		"ContinuousYouTubeSessionStarted"
+	};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
 		int idx = startProgressLogNames.indexOf(name);
 		if (name == "ContinuousYouTubeSessionStarting") {
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(0);
+			monitorLabel_->setText(tr("Starting up..."));
 		} else if (name == "ContinuousYouTubeSessionStarted") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
 			progressBar_->setValue(100);
 			progressBar_->setVisible(false);
+			monitorLabel_->setText(tr("LIVE"));
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
@@ -308,23 +313,25 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	}
 
 	// --- Progress for StopContinuousYouTubeSessionTask ---
-	static const QStringList stopProgressLogNames = {"StoppingContinuousYouTubeSession",
+	static const QStringList stopProgressLogNames = {"ContinuousYouTubeSessionStopping",
 					     "OBSStreamingEnsuringStopped",
 					     "OBSStreamingEnsuredStopped",
 					     "YouTubeLiveBroadcastCompletingActive",
 					     "YouTubeLiveBroadcastCompletedActive",
-					     "StoppedContinuousYouTubeSession"};
+					     "ContinuousYouTubeSessionStopped"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask") {
 		int idx = stopProgressLogNames.indexOf(name);
-		if (name == "StoppingContinuousYouTubeSession") {
+		if (name == "ContinuousYouTubeSessionStopping") {
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(0);
-		} else if (name == "StoppedContinuousYouTubeSession") {
+			monitorLabel_->setText(tr("Stopping..."));
+		} else if (name == "ContinuousYouTubeSessionStopped") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
 			progressBar_->setValue(100);
 			progressBar_->setVisible(false);
+			monitorLabel_->setText(tr("IDLE"));
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
@@ -373,15 +380,10 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
-		monitorLabel_->setText(tr("Streaming"));
-	} else if (name == "LiveBroadcastPreparationStarted") {
-		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
 		logWithTimestamp(tr("Stopping the current stream for segment switching. Please wait..."), "#D7BA7D");
-		monitorLabel_->setText(tr("Switching"));
 	} else if (name == "YouTubeLiveStreamStatusChecking" || name == "YouTubeLiveBroadcastTransitioningToTesting" ||
 		   name == "YouTubeLiveBroadcastTransitioningToLive") {
-		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "YouTubeLiveStreamStatusChecking") {
 		QString nextLiveStreamId = context.value("nextLiveStreamId");
 		if (!nextLiveStreamId.isEmpty()) {
@@ -472,17 +474,13 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		logWithTimestamp(msg, "#4EC9B0");
 	} else if (name == "ContinuousSessionStarted") {
 		logWithTimestamp(tr("Continuous session started."), "#4EC9B0");
-		stopButton_->setEnabled(true);
 	} else if (name == "StoppingContinuousYouTubeSession") {
-		monitorLabel_->setText(tr("Stopping"));
 	} else if (name == "StoppedContinuousYouTubeSession") {
 		logWithTimestamp(tr("Continuous session stopped."), "#4EC9B0");
-		monitorLabel_->setText(tr("Idle"));
 
 		startButton_->setEnabled(true);
 	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
 		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
-		monitorLabel_->setText(tr("Streaming"));
 	}
 }
 
