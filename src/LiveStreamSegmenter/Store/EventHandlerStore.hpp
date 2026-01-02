@@ -24,7 +24,7 @@
 #include <memory>
 #include <mutex>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Store {
 

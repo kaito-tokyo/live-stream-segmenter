@@ -33,8 +33,8 @@
 #include <string>
 #include <vector>
 
-#include <CurlHandle.hpp>
-#include <ILogger.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 #include "YouTubeTypes.hpp"
 

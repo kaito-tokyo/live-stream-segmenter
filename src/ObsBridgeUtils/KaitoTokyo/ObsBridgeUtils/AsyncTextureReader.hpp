@@ -32,7 +32,8 @@
 
 #include "GsUnique.hpp"
 
-namespace KaitoTokyo::ObsBridgeUtils {
+namespace KaitoTokyo {
+namespace ObsBridgeUtils {
 
 /**
  * @brief Internal implementation details for AsyncTextureReader.
@@ -349,4 +350,5 @@ private:
 	std::mutex gpuMutex_;
 };
 
-} // namespace KaitoTokyo::ObsBridgeUtils
+} // namespace ObsBridgeUtils
+} // namespace KaitoTokyo

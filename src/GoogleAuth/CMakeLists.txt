@@ -4,14 +4,14 @@ target_link_libraries(GoogleAuth PUBLIC Async CurlHelper Logger)
 target_sources(
   GoogleAuth
   PRIVATE
-    GoogleAuthManager.cpp
-    GoogleAuthManager.hpp
-    GoogleAuthResponse.cpp
-    GoogleAuthResponse.hpp
-    GoogleOAuth2ClientCredentials.cpp
-    GoogleOAuth2ClientCredentials.hpp
-    GoogleOAuth2Flow.cpp
-    GoogleOAuth2Flow.hpp
-    GoogleTokenState.cpp
-    GoogleTokenState.hpp
+    KaitoTokyo/GoogleAuth/GoogleAuthManager.cpp
+    KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp
+    KaitoTokyo/GoogleAuth/GoogleAuthResponse.cpp
+    KaitoTokyo/GoogleAuth/GoogleAuthResponse.hpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.cpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.cpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.hpp
+    KaitoTokyo/GoogleAuth/GoogleTokenState.cpp
+    KaitoTokyo/GoogleAuth/GoogleTokenState.hpp
 )

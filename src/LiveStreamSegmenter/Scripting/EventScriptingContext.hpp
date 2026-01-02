@@ -30,7 +30,7 @@
 #include <memory>
 #include <string>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 #include "ScriptingDatabase.hpp"
 #include "ScriptingRuntime.hpp"

@@ -28,9 +28,10 @@
 
 #include <util/base.h>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
-namespace KaitoTokyo::ObsBridgeUtils {
+namespace KaitoTokyo {
+namespace ObsBridgeUtils {
 
 class ObsLogger final : public Logger::ILogger {
 public:
@@ -65,7 +66,8 @@ protected:
 		try {
 			fmt::basic_memory_buffer<char, 4096> buffer;
 
-			fmt::format_to(std::back_inserter(buffer), "{} name={}", prefix_, name);
+			fmt::format_to(std::back_inserter(buffer), "{} name={}\tlocation={}:{}", prefix_, name,
+				       loc.function_name(), loc.line());
 			for (const Logger::LogField &field : context) {
 				fmt::format_to(std::back_inserter(buffer), "\t{}={}", field.key, field.value);
 			}
@@ -81,4 +83,5 @@ private:
 	const std::string prefix_;
 };
 
-} // namespace KaitoTokyo::ObsBridgeUtils
+} // namespace ObsBridgeUtils
+} // namespace KaitoTokyo

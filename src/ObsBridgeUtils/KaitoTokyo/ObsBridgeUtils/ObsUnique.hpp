@@ -26,7 +26,8 @@
 
 #include <obs-module.h>
 
-namespace KaitoTokyo::ObsBridgeUtils {
+namespace KaitoTokyo {
+namespace ObsBridgeUtils {
 
 /**
  * @brief Contains custom deleters for managing OBS-specific resource pointers
@@ -142,4 +143,5 @@ inline unique_bfree_char_t unique_obs_module_config_path(const char *file)
 	return unique_bfree_char_t(rawPath);
 }
 
-} // namespace KaitoTokyo::ObsBridgeUtils
+} // namespace ObsBridgeUtils
+} // namespace KaitoTokyo

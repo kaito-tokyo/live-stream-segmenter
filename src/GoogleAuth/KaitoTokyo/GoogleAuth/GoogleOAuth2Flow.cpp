@@ -30,12 +30,12 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include <CurlHandle.hpp>
-#include <CurlUrlHandle.hpp>
-#include <CurlUrlSearchParams.hpp>
-#include <CurlWriteCallback.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/CurlHelper/CurlUrlHandle.hpp>
+#include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
+#include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
 
-#include <Task.hpp>
+#include <KaitoTokyo/Async/Task.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 

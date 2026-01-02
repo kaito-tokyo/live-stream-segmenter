@@ -34,7 +34,7 @@
 
 #include <quickjs.h>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 

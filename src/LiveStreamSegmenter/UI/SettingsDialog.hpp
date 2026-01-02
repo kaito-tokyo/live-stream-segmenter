@@ -25,16 +25,16 @@
 #include <QDialog>
 #include <QPointer>
 
-#include <ILogger.hpp>
+#include <KaitoTokyo/Async/Task.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeTypes.hpp>
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
-#include <GoogleOAuth2Flow.hpp>
 #include <ScriptingRuntime.hpp>
-#include <Task.hpp>
-#include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
-#include <YouTubeTypes.hpp>
 
 #include "GoogleOAuth2FlowCallbackServer.hpp"
 #include "JsonDropArea.hpp"

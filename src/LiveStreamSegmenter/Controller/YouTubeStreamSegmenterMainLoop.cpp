@@ -32,20 +32,21 @@
 #include <QObject>
 
 #include <quickjs.h>
+#include <nlohmann/json.hpp>
 
 #include <obs-frontend-api.h>
 
-#include <CurlWriteCallback.hpp>
+#include <KaitoTokyo/Async/Join.hpp>
+#include <KaitoTokyo/AsyncQt/ResumeOnQObject.hpp>
+#include <KaitoTokyo/AsyncQt/ResumeOnQThreadPool.hpp>
+#include <KaitoTokyo/AsyncQt/ResumeOnQTimerSingleShot.hpp>
+#include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
+#include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
+#include <KaitoTokyo/ObsBridgeUtils/ObsUnique.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeTypes.hpp>
+
 #include <EventScriptingContext.hpp>
-#include <GoogleAuthManager.hpp>
-#include <Join.hpp>
-#include <nlohmann/json.hpp>
-#include <ObsUnique.hpp>
-#include <ResumeOnQObject.hpp>
-#include <ResumeOnQThreadPool.hpp>
-#include <ResumeOnQTimerSingleShot.hpp>
 #include <ScriptingDatabase.hpp>
-#include <YouTubeTypes.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
