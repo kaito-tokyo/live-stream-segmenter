@@ -30,8 +30,7 @@
 
 #include <ILogger.hpp>
 
-namespace KaitoTokyo {
-namespace ObsBridgeUtils {
+namespace KaitoTokyo::ObsBridgeUtils {
 
 class ObsLogger final : public Logger::ILogger {
 public:
@@ -82,5 +81,4 @@ private:
 	const std::string prefix_;
 };
 
-} // namespace ObsBridgeUtils
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::ObsBridgeUtils

@@ -31,8 +31,7 @@
 
 #include "ObsUnique.hpp"
 
-namespace KaitoTokyo {
-namespace ObsBridgeUtils {
+namespace KaitoTokyo::ObsBridgeUtils {
 
 /**
  * @brief Internal helpers for managing Graphics Suite (GS) resources
@@ -257,5 +256,4 @@ inline unique_gs_stagesurf_t make_unique_gs_stagesurf(std::uint32_t width, std::
 	return unique_gs_stagesurf_t(rawSurface);
 }
 
-} // namespace ObsBridgeUtils
-} // namespace KaitoTokyo
+} // namespace KaitoTokyo::ObsBridgeUtils
