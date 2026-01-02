@@ -251,13 +251,17 @@ void StreamSegmenterDock::setupUi()
 void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &name,
 				     const QMap<QString, QString> &context)
 {
+	const QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+	auto logWithTimestamp = [&](const QString &msg, const QString &color = "#e0e0e0") {
+		consoleView_->append(QString("<span style=\"color:%1;\">[%2] %3</span>").arg(color, timestamp, msg));
+	};
 	if (name == "OBSStreamingStarted") {
-		consoleView_->append(tr("OBS streaming started."));
+		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
 		monitorLabel_->setText(tr("Streaming"));
 	} else if (name == "LiveBroadcastPreparationStarted") {
 		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
-		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+		logWithTimestamp(tr("Stopping the current stream for segment switching. Please wait..."), "#D7BA7D");
 		monitorLabel_->setText(tr("Switching"));
 	} else if (name == "YouTubeLiveStreamStatusChecking" || name == "YouTubeLiveBroadcastTransitioningToTesting" ||
 		   name == "YouTubeLiveBroadcastTransitioningToLive") {
@@ -265,32 +269,29 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	} else if (name == "YouTubeLiveStreamStatusChecking") {
 		QString nextLiveStreamId = context.value("nextLiveStreamId");
 		if (!nextLiveStreamId.isEmpty()) {
-			consoleView_->append(
-				tr("Checking YouTube live stream status (ID: %1)...").arg(nextLiveStreamId));
+			logWithTimestamp(tr("Checking YouTube live stream status (ID: %1)...").arg(nextLiveStreamId));
 		} else {
-			consoleView_->append(tr("Checking YouTube live stream status..."));
+			logWithTimestamp(tr("Checking YouTube live stream status..."));
 		}
 	} else if (name == "YouTubeLiveStreamActive") {
-		consoleView_->append(tr("YouTube live stream is active."));
+		logWithTimestamp(tr("YouTube live stream is active."), "#4EC9B0");
 	} else if (name == "YouTubeLiveStreamNotActiveYet") {
 		QString remainingAttempts = context.value("remainingAttempts");
 		if (!remainingAttempts.isEmpty()) {
-			consoleView_->append(tr("YouTube live stream is not active yet. Remaining attempts: %1")
-						     .arg(remainingAttempts));
+			logWithTimestamp(tr("YouTube live stream is not active yet. Remaining attempts: %1")
+						 .arg(remainingAttempts),
+					 "#D7BA7D");
 		} else {
-			consoleView_->append(tr("YouTube live stream is not active yet."));
+			logWithTimestamp(tr("YouTube live stream is not active yet."), "#D7BA7D");
 		}
 	} else if (name == "YouTubeLiveStreamStartTimeout") {
-		consoleView_->append(tr("Timeout: YouTube live stream did not become active in time."));
+		logWithTimestamp(tr("Timeout: YouTube live stream did not become active in time."), "#F44747");
 	} else if (name == "YouTubeLiveBroadcastTransitioningToTesting") {
-		consoleView_->append(tr("Transitioning YouTube live broadcast to 'testing' state..."));
+		logWithTimestamp(tr("Transitioning YouTube live broadcast to 'testing' state..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastTransitionedToTesting") {
-		consoleView_->append(tr("YouTube live broadcast transitioned to 'testing' state."));
+		logWithTimestamp(tr("YouTube live broadcast transitioned to 'testing' state."), "#4EC9B0");
 	} else if (name == "YouTubeLiveBroadcastTransitioningToLive") {
-		consoleView_->append(tr("Transitioning YouTube live broadcast to 'live' state..."));
-	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
-		consoleView_->append(tr("YouTube live broadcast transitioned to 'live' state."));
-		monitorLabel_->setText(tr("Streaming"));
+		logWithTimestamp(tr("Transitioning YouTube live broadcast to 'live' state..."), "#D7BA7D");
 	} else if (name == "UnsupportedIngestionTypeError") {
 		QString msg;
 		if (context.contains("type")) {
@@ -298,11 +299,11 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("Unsupported ingestion type: %1").arg(context["type"]);
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#F44747");
 	} else if (name == "YouTubeRTMPServiceCreated") {
-		consoleView_->append(tr("YouTube RTMP service created."));
+		logWithTimestamp(tr("YouTube RTMP service created."), "#4EC9B0");
 	} else if (name == "YouTubeHLSServiceCreated") {
-		consoleView_->append(tr("YouTube HLS service created."));
+		logWithTimestamp(tr("YouTube HLS service created."), "#4EC9B0");
 		// ...existing code...
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
@@ -311,7 +312,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSetting") {
 		QString msg;
 		if (context.contains("thumbnailFile")) {
@@ -319,11 +320,11 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("Setting YouTube live broadcast thumbnail.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastBinding") {
-		consoleView_->append(tr("Binding YouTube live broadcast to stream..."));
+		logWithTimestamp(tr("Binding YouTube live broadcast to stream..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastBound") {
-		consoleView_->append(tr("YouTube live broadcast bound to stream."));
+		logWithTimestamp(tr("YouTube live broadcast bound to stream."), "#4EC9B0");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSet") {
 		QString msg;
 		if (context.contains("thumbnailFile")) {
@@ -331,7 +332,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("YouTube live broadcast thumbnail set.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#4EC9B0");
 	} else if (name == "YouTubeLiveBroadcastThumbnailMissing") {
 		QString msg;
 		if (context.contains("thumbnailFile")) {
@@ -339,11 +340,12 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("YouTube live broadcast thumbnail missing.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastThumbnailSkippingDueToMissingVideoId") {
-		consoleView_->append(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."));
+		logWithTimestamp(tr("Skipping YouTube live broadcast thumbnail set due to missing video ID."),
+				 "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastInserting") {
-		consoleView_->append(tr("Creating new YouTube live broadcast..."));
+		logWithTimestamp(tr("Creating new YouTube live broadcast..."), "#D7BA7D");
 	} else if (name == "YouTubeLiveBroadcastInserted") {
 		QString msg;
 		if (context.contains("title")) {
@@ -351,16 +353,36 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		} else {
 			msg = tr("YouTube live broadcast created.");
 		}
-		consoleView_->append(msg);
+		logWithTimestamp(msg, "#4EC9B0");
 	} else if (name == "ContinuousSessionStarted") {
-		consoleView_->append(tr("Continuous session started."));
+		logWithTimestamp(tr("Continuous session started."), "#4EC9B0");
 		stopButton_->setEnabled(true);
 	} else if (name == "StoppingContinuousYouTubeSession") {
 		monitorLabel_->setText(tr("Stopping"));
 	} else if (name == "StoppedContinuousYouTubeSession") {
-		consoleView_->append(tr("Continuous session stopped."));
+		logWithTimestamp(tr("Continuous session stopped."), "#4EC9B0");
 		monitorLabel_->setText(tr("Idle"));
 		startButton_->setEnabled(true);
+	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
+		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
+		monitorLabel_->setText(tr("Streaming"));
+
+		// --- Show current broadcast info in current pane ---
+		QString title = context.value("title");
+		QString broadcastId = context.value("broadcastId");
+		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);
+		currentStatusLabel_->setText(tr("LIVE"));
+		if (!broadcastId.isEmpty()) {
+			QString url = QString("https://www.youtube.com/live/%1").arg(broadcastId);
+			currentLinkButton_->setToolTip(tr("Open in Browser"));
+			currentLinkButton_->setProperty("url", url);
+			currentLinkButton_->show();
+			QObject::disconnect(currentLinkButton_, nullptr, nullptr, nullptr);
+			QObject::connect(currentLinkButton_, &QToolButton::clicked, this,
+					 [url]() { QDesktopServices::openUrl(QUrl(url)); });
+		} else {
+			currentLinkButton_->hide();
+		}
 	}
 }
 
