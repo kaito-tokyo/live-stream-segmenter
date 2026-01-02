@@ -654,8 +654,8 @@ void SettingsDialog::fetchStreamKeys()
 
 		streamKeys_ = std::move(streamKeys);
 
-		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getStreamKeyA();
-		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getStreamKeyB();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyA = youTubeStore_->getLiveStreamA();
+		YouTubeApi::YouTubeLiveStream currentStreamKeyB = youTubeStore_->getLiveStreamB();
 
 		logger_->info("CurrentStreamKeys",
 			      {{"streamKeyA_id", currentStreamKeyA.id}, {"streamKeyB_id", currentStreamKeyB.id}});

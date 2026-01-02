@@ -63,13 +63,13 @@ void YouTubeStore::setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey)
 	streamKeyB_ = streamKey;
 }
 
-YouTubeApi::YouTubeLiveStream YouTubeStore::getStreamKeyA() const
+YouTubeApi::YouTubeLiveStream YouTubeStore::getLiveStreamA() const
 {
 	std::scoped_lock lock(mutex_);
 	return streamKeyA_;
 }
 
-YouTubeApi::YouTubeLiveStream YouTubeStore::getStreamKeyB() const
+YouTubeApi::YouTubeLiveStream YouTubeStore::getLiveStreamB() const
 {
 	std::scoped_lock lock(mutex_);
 	return streamKeyB_;

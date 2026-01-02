@@ -48,9 +48,9 @@ public:
 
 	void setStreamKeyB(const YouTubeApi::YouTubeLiveStream &streamKey);
 
-	YouTubeApi::YouTubeLiveStream getStreamKeyA() const;
+	YouTubeApi::YouTubeLiveStream getLiveStreamA() const;
 
-	YouTubeApi::YouTubeLiveStream getStreamKeyB() const;
+	YouTubeApi::YouTubeLiveStream getLiveStreamB() const;
 
 	void save() const;
 

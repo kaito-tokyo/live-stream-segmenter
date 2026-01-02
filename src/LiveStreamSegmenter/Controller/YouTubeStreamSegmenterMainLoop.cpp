@@ -156,10 +156,11 @@ private:
 	void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
 		 std::span<const Logger::LogField> context) const noexcept override
 	{
-		std::vector<Logger::LogField> extendedContext(context.size() + 1);
-		extendedContext[0] = Logger::LogField{"taskName", taskName_};
-		std::copy(context.begin(), context.end(), extendedContext.begin() + 1);
-		baseLogger_->log(level, name, loc, extendedContext);
+		std::vector<Logger::LogField> extendedContext;
+		extendedContext.reserve(context.size() + 1);
+		extendedContext.emplace_back("taskName", taskName_);
+		extendedContext.insert(extendedContext.end(), context.begin(), context.end());
+		baseLogger_->log(level, name, loc, std::span<const Logger::LogField>(extendedContext));
 	}
 
 	std::shared_ptr<const Logger::ILogger> baseLogger_;
@@ -253,9 +254,9 @@ Async::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 
 // Must be called from a worker thread and returns on a worker thread
 void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				  const std::string &accessToken,
-				  const YouTubeApi::YouTubeLiveStream &currentLiveStream,
-				  const YouTubeApi::YouTubeLiveStream &nextLiveStream,
+				  std::string accessToken,
+				  std::shared_ptr<YouTubeApi::YouTubeLiveStream> currentLiveStream,
+				  std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				  std::shared_ptr<const Logger::ILogger> logger)
 {
 	logger->info("YouTubeLiveBroadcastCompletingAllActive");
@@ -269,7 +270,7 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 		if (!boundStreamId.has_value())
 			continue;
 
-		if (boundStreamId.value() != currentLiveStream.id && boundStreamId.value() != nextLiveStream.id)
+		if (boundStreamId.value() != currentLiveStream->id && boundStreamId.value() != nextLiveStream->id)
 			continue;
 
 		logger->info("YouTubeLiveBroadcastCompleting",
@@ -286,7 +287,7 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 
 // Must be called from a worker thread and returns on a worker thread
 YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-						     const std::string &accessToken,
+						     std::string accessToken,
 						     std::shared_ptr<Scripting::EventScriptingContext> context,
 						     std::shared_ptr<const Logger::ILogger> logger)
 {
@@ -343,28 +344,28 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 
 // Must be called from a worker thread and returns on the main thread
 Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				 const std::string &accessToken, QObject *parent,
-				 const YouTubeApi::YouTubeLiveBroadcast &nextLiveBroadcast,
-				 const YouTubeApi::YouTubeLiveStream &nextLiveStream,
+				 std::string accessToken, QObject *parent,
+				 std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> nextLiveBroadcast,
+				 std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				 std::shared_ptr<const Logger::ILogger> logger)
 {
 	logger->info("StreamingStarting");
 
 	logger->info("YouTubeLiveBroadcastBindingLiveStream",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"streamId", nextLiveStream.id}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
-	youTubeApiClient->bindLiveBroadcast(accessToken, nextLiveBroadcast.id, nextLiveStream.id);
+	youTubeApiClient->bindLiveBroadcast(accessToken, nextLiveBroadcast->id, nextLiveStream->id);
 
 	logger->info("YouTubeLiveBroadcastBoundToLiveStream",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"streamId", nextLiveStream.id}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
-	if (nextLiveStream.cdn.ingestionType == "rtmp") {
+	if (nextLiveStream->cdn.ingestionType == "rtmp") {
 		logger->info("OBSStreamingYouTubeRTMPServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
 		obs_data_set_string(settings.get(), "service", "YouTube - RTMP");
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
-		obs_data_set_string(settings.get(), "key", nextLiveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
 		obs_service_t *service =
 			obs_service_create("rtmp_common", "YouTube RTMP Service", settings.get(), NULL);
@@ -373,7 +374,7 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 		obs_service_release(service);
 
 		logger->info("OBSStreamingYouTubeRTMPServiceCreated");
-	} else if (nextLiveStream.cdn.ingestionType == "hls") {
+	} else if (nextLiveStream->cdn.ingestionType == "hls") {
 		logger->info("OBSStreamingYouTubeHLSServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
@@ -381,7 +382,7 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 		obs_data_set_string(
 			settings.get(), "server",
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
-		obs_data_set_string(settings.get(), "key", nextLiveStream.cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
 
@@ -391,7 +392,7 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 		logger->info("OBSStreamingYouTubeHLSServiceCreated");
 	} else {
 		logger->error("OBSStreamingUnsupportedYouTubeIngestionTypeError",
-			      {{"ingestionType", nextLiveStream.cdn.ingestionType}});
+			      {{"ingestionType", nextLiveStream->cdn.ingestionType}});
 		throw std::runtime_error(
 			"OBSStreamingUnsupportedYouTubeIngestionTypeError(YouTubeStreamSegmenterMainLoop::startOBSStreaming)");
 	}
@@ -400,46 +401,50 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 
 	logger->info("OBSStreamingStarted");
 
-	logger->info("YouTubeLiveStreamWaitingForActive", {{"liveStreamId", nextLiveStream.id}});
+	logger->info("YouTubeLiveStreamWaitingForActive", {{"liveStreamId", nextLiveStream->id}});
 
-	std::array<std::string_view, 1> ids{nextLiveStream.id};
+	std::array<std::string_view, 1> ids{nextLiveStream->id};
 	for (int maxAttempts = 20; true; --maxAttempts) {
 		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
 		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
+		std::string maxAttemptsStr = std::to_string(maxAttempts);
 		logger->info("YouTubeLiveStreamCheckingIfActive",
-			     {{"liveStreamId", nextLiveStream.id}, {"attemptsLeft", std::to_string(maxAttempts)}});
+			     {{"liveStreamId", nextLiveStream->id}, {"attemptsLeft", maxAttemptsStr}});
 
 		std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
 			youTubeApiClient->listLiveStreams(accessToken, ids);
 
 		if (liveStreams.size() == 1 && liveStreams[0].status.has_value() &&
 		    liveStreams[0].status->streamStatus == "active") {
-			logger->info("YouTubeLiveStreamActive", {{"liveStreamId", nextLiveStream.id}});
+			logger->info("YouTubeLiveStreamActive", {{"liveStreamId", nextLiveStream->id}});
 			break;
 		}
 
 		if (maxAttempts <= 0) {
-			logger->error("YouTubeLiveStreamTimeout", {{"liveStreamId", nextLiveStream.id}});
+			logger->error("YouTubeLiveStreamTimeout", {{"liveStreamId", nextLiveStream->id}});
 			co_return;
 		}
 	}
 
 	logger->info("YouTubeLiveBroadcastTransitioningToTesting",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"title", nextLiveBroadcast.snippet.title}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"title", nextLiveBroadcast->snippet.title}});
 
-	youTubeApiClient->transitionLiveBroadcast(accessToken, nextLiveBroadcast.id, "testing");
+	youTubeApiClient->transitionLiveBroadcast(accessToken, nextLiveBroadcast->id, "testing");
 
 	logger->info("YouTubeLiveBroadcastTransitionedToTesting",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"title", nextLiveBroadcast.snippet.title}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"title", nextLiveBroadcast->snippet.title}});
+
+	co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
 	logger->info("YouTubeLiveBroadcastTransitioningToLive",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"title", nextLiveBroadcast.snippet.title}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"title", nextLiveBroadcast->snippet.title}});
 
-	youTubeApiClient->transitionLiveBroadcast(accessToken, nextLiveBroadcast.id, "live");
+	youTubeApiClient->transitionLiveBroadcast(accessToken, nextLiveBroadcast->id, "live");
 
 	logger->info("YouTubeLiveBroadcastTransitionedToLive",
-		     {{"broadcastId", nextLiveBroadcast.id}, {"title", nextLiveBroadcast.snippet.title}});
+		     {{"broadcastId", nextLiveBroadcast->id}, {"title", nextLiveBroadcast->snippet.title}});
 }
 
 } // anonymous namespace
@@ -482,13 +487,13 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(
 	std::string accessToken = getAccessToken(curl, authStore, logger);
 
 	// --- Complete active broadcasts ---
-	YouTubeApi::YouTubeLiveStream currentLiveStream, nextLiveStream;
+	std::shared_ptr<YouTubeApi::YouTubeLiveStream> currentLiveStream, nextLiveStream;
 	if (currentLiveStreamIndex == 0) {
-		currentLiveStream = youtubeStore->getStreamKeyA();
-		nextLiveStream = youtubeStore->getStreamKeyB();
+		currentLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamA());
+		nextLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamB());
 	} else if (currentLiveStreamIndex == 1) {
-		currentLiveStream = youtubeStore->getStreamKeyB();
-		nextLiveStream = youtubeStore->getStreamKeyA();
+		currentLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamB());
+		nextLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamA());
 	} else {
 		logger->error("InvalidCurrentLiveStreamIndex");
 		throw std::runtime_error(
@@ -504,11 +509,11 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(
 	// --- Create an initial live broadcast ---
 	logger->info("YouTubeLiveBroadcastCreatingInitial");
 
-	YouTubeApi::YouTubeLiveBroadcast initialLiveBroadcast =
-		createLiveBroadcast(youTubeApiClient, accessToken, context, logger);
+	auto initialLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(
+		createLiveBroadcast(youTubeApiClient, accessToken, context, logger));
 
 	logger->info("YouTubeLiveBroadcastCreatedInitial",
-		     {{"broadcastId", initialLiveBroadcast.id}, {"title", initialLiveBroadcast.snippet.title}});
+		     {{"broadcastId", initialLiveBroadcast->id}, {"title", initialLiveBroadcast->snippet.title}});
 
 	// --- Create the next live broadcast ---
 	logger->info("YouTubeLiveBroadcastCreatingNext");
@@ -522,7 +527,7 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(
 	// --- Start streaming the initial live broadcast ---
 	logger->info("StreamingStarting");
 
-	co_await startStreaming(youTubeApiClient, accessToken, parent, initialLiveBroadcast, currentLiveStream, logger);
+	co_await startStreaming(youTubeApiClient, accessToken, parent, initialLiveBroadcast, nextLiveStream, logger);
 
 	logger->info("StreamingStarted");
 
@@ -553,8 +558,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 	std::string accessToken = getAccessToken(curl, authStore, logger);
 
 	// --- Complete active broadcasts ---
-	YouTubeApi::YouTubeLiveStream liveStreamA = youtubeStore->getStreamKeyA();
-	YouTubeApi::YouTubeLiveStream liveStreamB = youtubeStore->getStreamKeyB();
+	auto liveStreamA = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamA());
+	auto liveStreamB = std::make_shared<YouTubeApi::YouTubeLiveStream>(youtubeStore->getLiveStreamB());
 
 	logger->info("YouTubeLiveBroadcastCompletingActive");
 
