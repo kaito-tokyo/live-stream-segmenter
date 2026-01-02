@@ -333,7 +333,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		if (context.contains("title")) {
 			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
 		} else {
-			msg = tr("Completing existing live broadcast: %1").arg(context["title"]);
+			msg = tr("Completing existing live broadcast.");
 		}
 		setProgress(40);
 		logWithTimestamp(msg, "#D7BA7D");
@@ -356,10 +356,8 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		setProgress(60);
 		QString msg;
 		if (context.contains("thumbnailFile")) {
-			setProgress(70);
 			msg = tr("YouTube live broadcast thumbnail set: %1").arg(context["thumbnailFile"]);
 		} else {
-			setProgress(80);
 			msg = tr("YouTube live broadcast thumbnail set.");
 		}
 		logWithTimestamp(msg, "#4EC9B0");
@@ -395,7 +393,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		setProgress(0, false);
 		logWithTimestamp(tr("Continuous session stopped."), "#4EC9B0");
 		monitorLabel_->setText(tr("Idle"));
-		setProgress(0, true);
+
 		startButton_->setEnabled(true);
 	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
 		logWithTimestamp(tr("YouTube live broadcast transitioned to 'live' state."), "#4EC9B0");
