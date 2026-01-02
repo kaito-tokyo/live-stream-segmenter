@@ -109,9 +109,14 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 		stopButton_->setEnabled(false);
 		stopButtonClicked();
 	});
-	connect(createBroadcastButton_, &QPushButton::clicked, this,
-		&StreamSegmenterDock::createBroadcastButtonClicked);
-	connect(switchStreamButton_, &QPushButton::clicked, this, &StreamSegmenterDock::switchStreamButtonClicked);
+	connect(createBroadcastButton_, &QPushButton::clicked, this, [this]() {
+		createBroadcastButton_->setEnabled(false);
+		emit createBroadcastButtonClicked();
+	});
+	connect(switchStreamButton_, &QPushButton::clicked, this, [this]() {
+		switchStreamButton_->setEnabled(false);
+		emit switchStreamButtonClicked();
+	});
 	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
 
@@ -260,17 +265,6 @@ void StreamSegmenterDock::setupUi()
 	bottomControlLayout_->addWidget(createBroadcastButton_);
 	bottomControlLayout_->addWidget(switchStreamButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
-}
-
-// --- Button Handlers ---
-void StreamSegmenterDock::createBroadcastButtonClicked()
-{
-	// TODO: Implement create broadcast logic
-}
-
-void StreamSegmenterDock::switchStreamButtonClicked()
-{
-	// TODO: Implement switch stream logic
 }
 
 void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &name,
