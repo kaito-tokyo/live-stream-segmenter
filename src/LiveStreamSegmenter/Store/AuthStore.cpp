@@ -113,14 +113,14 @@ void AuthStore::onWriteFinished(QKeychain::Job *job)
 		logger = logger_;
 	}
 
-	if (logger_) {
+	if (logger) {
 		std::string key = job->key().toStdString();
 		if (job->error()) {
 			std::string error = job->errorString().toStdString();
-			logger_->error("KeychainWriteError(AuthStore::onWriteFinished)",
+			logger->error("KeychainWriteError(AuthStore::onWriteFinished)",
 				       {{"key", key}, {"error", error}});
 		} else {
-			logger_->info("KeychainWriteSuccess", {{"key", key}});
+			logger->info("KeychainWriteSuccess", {{"key", key}});
 		}
 	}
 }
