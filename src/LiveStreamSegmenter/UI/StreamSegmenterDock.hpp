@@ -33,13 +33,14 @@
 #include <YouTubeApiClient.hpp>
 #include <YouTubeStore.hpp>
 
-class QGroupBox;
-class QHBoxLayout;
-class QLabel;
-class QPushButton;
-class QTextEdit;
-class QToolButton;
-class QVBoxLayout;
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QToolButton>
+#include <QVBoxLayout>
+#include <QProgressBar>
 
 namespace KaitoTokyo {
 namespace LiveStreamSegmenter {
@@ -124,6 +125,14 @@ private slots:
 private:
 	void setupUi();
 
+	void setProgress(int value, bool visible = true)
+	{
+		if (progressBar_) {
+			progressBar_->setValue(value);
+			progressBar_->setVisible(visible);
+		}
+	}
+
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
 	const std::shared_ptr<const Logger::ILogger> loggerAdapter_;
 
@@ -146,6 +155,7 @@ private:
 	QGroupBox *const statusGroup_;
 	QVBoxLayout *const statusLayout_;
 	QLabel *const monitorLabel_;
+	QProgressBar *progressBar_ = nullptr;
 
 	// 3. Schedule Section
 	QGroupBox *const scheduleGroup_;
