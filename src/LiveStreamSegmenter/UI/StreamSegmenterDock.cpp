@@ -291,7 +291,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
 		int idx = progressLogNames.indexOf(name);
 		if (idx >= 0) {
-			// Indeterminate状態なら通常進捗バーに切り替えて値をセット
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
 				progressBar_->setMaximum(100);
