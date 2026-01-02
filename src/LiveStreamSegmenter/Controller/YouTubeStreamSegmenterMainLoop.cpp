@@ -167,7 +167,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 				break;
 			}
 			case MessageType::StopContinuousSession: {
-				Async::Task<void> task = stopContinuousSessionTask(channel);
+				Async::Task<void> task = stopContinuousSessionTask(channel, curl, youTubeApiClient,
+										   authStore, youtubeStore, logger);
 				co_await task;
 				break;
 			}
@@ -209,10 +210,28 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(Asy
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
-Async::Task<void>
-YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask([[maybe_unused]] Async::Channel<Message> &channel)
+Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
+	[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
+	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient, std::shared_ptr<Store::AuthStore> authStore,
+	std::shared_ptr<Store::YouTubeStore> youtubeStore, std::shared_ptr<const Logger::ILogger> logger)
 {
 	obs_frontend_streaming_stop();
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+
+	// --- Complete all existing live broadcasts managed by this plugin ---
+		std::string accessToken = getAccessToken(curl, authStore, logger);
+	std::vector<YouTubeApi::YouTubeLiveBroadcast> existingBroadcasts =
+		youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
+	for (const auto &broadcast : existingBroadcasts) {
+		auto boundStreamId = broadcast.contentDetails.boundStreamId;
+		// Only complete broadcasts bound to either stream key A or B
+		if (boundStreamId.has_value() && (boundStreamId.value() == youtubeStore->getStreamKeyA().id ||
+						  boundStreamId.value() == youtubeStore->getStreamKeyB().id)) {
+			logger->info("CompletingExistingLiveBroadcast",
+				     {{"broadcastId", broadcast.id}, {"title", broadcast.snippet.title}});
+			youTubeApiClient->transitionLiveBroadcast(accessToken, broadcast.id, "complete");
+		}
+	}
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
@@ -224,6 +243,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::segmentLiveBroadcastTask(
 	QWidget *parent, const YouTubeApi::YouTubeLiveStream &currentLiveStream,
 	const YouTubeApi::YouTubeLiveStream &nextLiveStream)
 {
+	logger->info("LiveBroadcastPreparationStarted");
+
 	if (obs_frontend_streaming_active()) {
 		logger->info("StoppingCurrentStreamBeforeSegmenting");
 		obs_frontend_streaming_stop();

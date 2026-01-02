@@ -97,7 +97,11 @@ private:
 
 	static Async::Task<void> startContinuousSessionTask(Async::Channel<Message> &channel);
 
-	static Async::Task<void> stopContinuousSessionTask(Async::Channel<Message> &channel);
+	static Async::Task<void> stopContinuousSessionTask(
+		[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
+		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
+		std::shared_ptr<const Logger::ILogger> logger);
 
 	static Async::Task<void>
 	segmentLiveBroadcastTask(Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,

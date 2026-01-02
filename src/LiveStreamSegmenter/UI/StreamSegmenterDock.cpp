@@ -122,6 +122,7 @@ void StreamSegmenterDock::setupUi()
 	monitorLabel_->setFont(monitorFont);
 	monitorLabel_->setWordWrap(true);
 	monitorLabel_->setAlignment(Qt::AlignCenter);
+	monitorLabel_->setText(tr("Ready"));
 	statusLayout_->addWidget(monitorLabel_);
 	mainLayout_->addWidget(statusGroup_);
 
@@ -246,6 +247,15 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 {
 	if (name == "OBSStreamingStarted") {
 		consoleView_->append(tr("OBS streaming started."));
+		monitorLabel_->setText(tr("Streaming"));
+	} else if (name == "LiveBroadcastPreparationStarted") {
+		monitorLabel_->setText(tr("Preparing"));
+	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
+		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+		monitorLabel_->setText(tr("Switching"));
+	} else if (name == "YouTubeLiveStreamStatusChecking" || name == "YouTubeLiveBroadcastTransitioningToTesting" ||
+		   name == "YouTubeLiveBroadcastTransitioningToLive") {
+		monitorLabel_->setText(tr("Preparing"));
 	} else if (name == "YouTubeLiveStreamStatusChecking") {
 		QString nextLiveStreamId = context.value("nextLiveStreamId");
 		if (!nextLiveStreamId.isEmpty()) {
@@ -274,6 +284,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		consoleView_->append(tr("Transitioning YouTube live broadcast to 'live' state..."));
 	} else if (name == "YouTubeLiveBroadcastTransitionedToLive") {
 		consoleView_->append(tr("YouTube live broadcast transitioned to 'live' state."));
+		monitorLabel_->setText(tr("Streaming"));
 	} else if (name == "UnsupportedIngestionTypeError") {
 		QString msg;
 		if (context.contains("type")) {
@@ -286,8 +297,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		consoleView_->append(tr("YouTube RTMP service created."));
 	} else if (name == "YouTubeHLSServiceCreated") {
 		consoleView_->append(tr("YouTube HLS service created."));
-	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
-		consoleView_->append(tr("Stopping the current stream for segment switching. Please wait..."));
+		// ...existing code...
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
 		if (context.contains("title")) {

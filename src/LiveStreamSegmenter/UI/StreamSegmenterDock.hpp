@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include <QWidget>
+#include <QLabel>
 
 #include <AuthStore.hpp>
 #include <CurlHandle.hpp>
@@ -46,7 +47,7 @@ namespace UI {
 
 class StreamSegmenterDock : public QWidget {
 	Q_OBJECT
-
+public:
 	class LoggerAdapter : public Logger::ILogger {
 	public:
 		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
@@ -106,6 +107,8 @@ public:
 		std::scoped_lock lock(mutex_);
 		youTubeStore_ = std::move(youTubeStore);
 	}
+
+	void setSystemMonitorStatus(const QString &status) { monitorLabel_->setText(status); }
 
 signals:
 	void startButtonClicked();
