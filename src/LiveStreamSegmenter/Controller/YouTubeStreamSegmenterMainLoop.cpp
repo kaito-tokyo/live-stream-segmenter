@@ -486,10 +486,15 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(
 	std::string accessToken = getAccessToken(curl, authStore, logger);
 
 	// --- Complete active broadcasts ---
+	logger->info("YouTubeLiveBroadcastCompletingActive");
+
 	std::string currentLiveStreamId = youtubeStore->getLiveStreamId(currentLiveStreamIndex);
 	std::string nextLiveStreamId = youtubeStore->getLiveStreamId(1 - currentLiveStreamIndex);
-
-	logger->info("YouTubeLiveBroadcastCompletingActive");
+	if (currentLiveStreamId.empty() || nextLiveStreamId.empty()) {
+		logger->error("YouTubeLiveStreamIdNotSet");
+		throw std::runtime_error(
+			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+	}
 
 	std::array<std::string, 2> liveStreamIds{
 		currentLiveStreamId,
@@ -571,10 +576,15 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 	// --- Complete active broadcasts ---
 	logger->info("YouTubeLiveBroadcastCompletingActive");
 
-	std::vector<std::string> liveStreamIds{
+	std::array<std::string, 2> liveStreamIds{
 		youtubeStore->getLiveStreamId(0),
 		youtubeStore->getLiveStreamId(1),
 	};
+	if (liveStreamIds[0].empty() || liveStreamIds[1].empty()) {
+		logger->error("YouTubeLiveStreamIdNotSet");
+		throw std::runtime_error(
+			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask)");
+	}
 
 	completeActiveLiveBroadcasts(youTubeApiClient, accessToken, liveStreamIds, logger);
 
