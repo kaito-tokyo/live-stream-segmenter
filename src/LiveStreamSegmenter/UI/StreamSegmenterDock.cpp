@@ -353,7 +353,14 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		}
 		consoleView_->append(msg);
 	} else if (name == "ContinuousSessionStarted") {
+		consoleView_->append(tr("Continuous session started."));
 		stopButton_->setEnabled(true);
+	} else if (name == "StoppingContinuousYouTubeSession") {
+		monitorLabel_->setText(tr("Stopping"));
+	} else if (name == "StoppedContinuousYouTubeSession") {
+		consoleView_->append(tr("Continuous session stopped."));
+		monitorLabel_->setText(tr("Idle"));
+		startButton_->setEnabled(true);
 	}
 }
 

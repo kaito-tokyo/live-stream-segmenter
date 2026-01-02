@@ -215,6 +215,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::YouTubeStore> youtubeStore, std::shared_ptr<const Logger::ILogger> logger)
 {
+	logger->info("StoppingContinuousYouTubeSession");
+
 	obs_frontend_streaming_stop();
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
@@ -232,6 +234,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
 			youTubeApiClient->transitionLiveBroadcast(accessToken, broadcast.id, "complete");
 		}
 	}
+
+	logger->info("StoppedContinuousYouTubeSession");
 	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 }
 
