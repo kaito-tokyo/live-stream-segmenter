@@ -57,7 +57,7 @@ public:
 	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
 						 const YouTubeLiveBroadcastSettings &settings);
 
-	YouTubeLiveBroadcast updateLiveBroadcast(std::string_view accessToken, const YouTubeLiveBroadcast &broadcast);
+	YouTubeLiveBroadcast updateLiveBroadcast(std::string_view accessToken, const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 
 	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string broadcastId,
 					       std::optional<std::string> streamId);

@@ -182,7 +182,7 @@ struct YouTubeLiveBroadcastSettings {
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastSettings &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastSettings &p);
 
-struct YouTubeLiveBroadcastUpdatingBody {
+struct UpdatingYouTubeLiveBroadcast {
 	std::string id;
 	struct Snippet {
 		std::optional<std::string> title;
@@ -215,7 +215,7 @@ struct YouTubeLiveBroadcastUpdatingBody {
 	} monetizationDetails;
 };
 
-void to_json(nlohmann::json &j, const YouTubeLiveBroadcastUpdatingBody &p);
-void from_json(const nlohmann::json &j, YouTubeLiveBroadcastUpdatingBody &p);
+void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p);
+void from_json(const nlohmann::json &j, UpdatingYouTubeLiveBroadcast &p);
 
 } // namespace KaitoTokyo::YouTubeApi

@@ -439,4 +439,165 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 	}
 }
 
+void from_json(const nlohmann::json &j, UpdatingYouTubeLiveBroadcast &p)
+{
+	if (j.contains("id")) {
+		j.at("id").get_to(p.id);
+	}
+
+	if (j.contains("snippet")) {
+		const auto &snippet = j.at("snippet");
+		if (snippet.contains("title")) {
+			snippet.at("title").get_to(p.snippet.title);
+		} else {
+			p.snippet.title = std::nullopt;
+		}
+		if (snippet.contains("description")) {
+			snippet.at("description").get_to(p.snippet.description);
+		} else {
+			p.snippet.description = std::nullopt;
+		}
+		snippet.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
+		if (snippet.contains("scheduledEndTime")) {
+			snippet.at("scheduledEndTime").get_to(p.snippet.scheduledEndTime.emplace());
+		} else {
+			p.snippet.scheduledEndTime = std::nullopt;
+		}
+	}
+
+	if (j.contains("status")) {
+		const auto &status = j.at("status");
+		if (status.contains("privacyStatus")) {
+			status.at("privacyStatus").get_to(p.status.privacyStatus);
+		} else {
+			p.status.privacyStatus = std::nullopt;
+		}
+	}
+
+	if (j.contains("contentDetails")) {
+		const auto &cd = j.at("contentDetails");
+		if (cd.contains("monitorStream")) {
+			const auto &ms = cd.at("monitorStream");
+			ms.at("enableMonitorStream").get_to(p.contentDetails.monitorStream.enableMonitorStream);
+			if (ms.contains("broadcastStreamDelayMs")) {
+				ms.at("broadcastStreamDelayMs")
+					.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
+			} else {
+				p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
+			}
+		} else {
+			p.contentDetails.monitorStream.enableMonitorStream = false;
+			p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
+		}
+		if (cd.contains("enableAutoStart")) {
+			cd.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart);
+		} else {
+			p.contentDetails.enableAutoStart = std::nullopt;
+		}
+		if (cd.contains("enableAutoStop")) {
+			cd.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop);
+		} else {
+			p.contentDetails.enableAutoStop = std::nullopt;
+		}
+		if (cd.contains("enableClosedCaptions")) {
+			cd.at("enableClosedCaptions").get_to(p.contentDetails.enableClosedCaptions);
+		} else {
+			p.contentDetails.enableClosedCaptions = std::nullopt;
+		}
+		if (cd.contains("enableDvr")) {
+			cd.at("enableDvr").get_to(p.contentDetails.enableDvr);
+		} else {
+			p.contentDetails.enableDvr = std::nullopt;
+		}
+		if (cd.contains("enableEmbed")) {
+			cd.at("enableEmbed").get_to(p.contentDetails.enableEmbed);
+		} else {
+			p.contentDetails.enableEmbed = std::nullopt;
+		}
+		if (cd.contains("recordFromStart")) {
+			cd.at("recordFromStart").get_to(p.contentDetails.recordFromStart);
+		} else {
+			p.contentDetails.recordFromStart = std::nullopt;
+		}
+	}
+
+	if (j.contains("monetizationDetails")) {
+		const auto &md = j.at("monetizationDetails");
+		if (md.contains("cuepointSchedule")) {
+			const auto &cs = md.at("cuepointSchedule");
+			if (cs.contains("pauseAdsUntil")) {
+				cs.at("pauseAdsUntil").get_to(p.monetizationDetails.cuepointSchedule.pauseAdsUntil);
+			} else {
+				p.monetizationDetails.cuepointSchedule.pauseAdsUntil = std::nullopt;
+			}
+		} else {
+			p.monetizationDetails.cuepointSchedule.pauseAdsUntil = std::nullopt;
+		}
+	}
+}
+
+void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
+{
+	j = nlohmann::json{};
+	j["id"] = p.id;
+
+	// snippet
+	nlohmann::json snippetJson;
+	if (p.snippet.title) {
+		snippetJson["title"] = *p.snippet.title;
+	}
+	if (p.snippet.description) {
+		snippetJson["description"] = *p.snippet.description;
+	}
+	snippetJson["scheduledStartTime"] = p.snippet.scheduledStartTime;
+	if (p.snippet.scheduledEndTime) {
+		snippetJson["scheduledEndTime"] = *p.snippet.scheduledEndTime;
+	}
+	j["snippet"] = std::move(snippetJson);
+
+	// status
+	nlohmann::json statusJson;
+	if (p.status.privacyStatus) {
+		statusJson["privacyStatus"] = *p.status.privacyStatus;
+	}
+	j["status"] = std::move(statusJson);
+
+	// contentDetails
+	nlohmann::json contentDetailsJson;
+	nlohmann::json monitorStreamJson;
+	monitorStreamJson["enableMonitorStream"] = p.contentDetails.monitorStream.enableMonitorStream;
+	if (p.contentDetails.monitorStream.broadcastStreamDelayMs) {
+		monitorStreamJson["broadcastStreamDelayMs"] = *p.contentDetails.monitorStream.broadcastStreamDelayMs;
+	}
+	contentDetailsJson["monitorStream"] = std::move(monitorStreamJson);
+	if (p.contentDetails.enableAutoStart) {
+		contentDetailsJson["enableAutoStart"] = *p.contentDetails.enableAutoStart;
+	}
+	if (p.contentDetails.enableAutoStop) {
+		contentDetailsJson["enableAutoStop"] = *p.contentDetails.enableAutoStop;
+	}
+	if (p.contentDetails.enableClosedCaptions) {
+		contentDetailsJson["enableClosedCaptions"] = *p.contentDetails.enableClosedCaptions;
+	}
+	if (p.contentDetails.enableDvr) {
+		contentDetailsJson["enableDvr"] = *p.contentDetails.enableDvr;
+	}
+	if (p.contentDetails.enableEmbed) {
+		contentDetailsJson["enableEmbed"] = *p.contentDetails.enableEmbed;
+	}
+	if (p.contentDetails.recordFromStart) {
+		contentDetailsJson["recordFromStart"] = *p.contentDetails.recordFromStart;
+	}
+	j["contentDetails"] = std::move(contentDetailsJson);
+
+	// monetizationDetails
+	nlohmann::json monetizationDetailsJson;
+	nlohmann::json cuepointScheduleJson;
+	if (p.monetizationDetails.cuepointSchedule.pauseAdsUntil) {
+		cuepointScheduleJson["pauseAdsUntil"] = *p.monetizationDetails.cuepointSchedule.pauseAdsUntil;
+	}
+	monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
+	j["monetizationDetails"] = std::move(monetizationDetailsJson);
+}
+
 } // namespace KaitoTokyo::YouTubeApi
