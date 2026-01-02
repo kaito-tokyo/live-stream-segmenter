@@ -197,6 +197,38 @@ if(NOT unofficial-sqlite3_FOUND)
   message(FATAL_ERROR "unofficial-sqlite3 or sqlite3 not found.")
 endif()
 
+# --- qtkeychain ---
+find_package(Qt6Keychain CONFIG QUIET)
+if(NOT QT6KEYCHAIN_FOUND)
+  find_package(Qt6Keychain QUIET)
+endif()
+
+if(NOT QT6KEYCHAIN_FOUND)
+  pkg_check_modules(PC_QT6KEYCHAIN libqt6keychain)
+  if(PC_QT6KEYCHAIN_FOUND)
+    add_library(Qt6Keychain::Qt6Keychain INTERFACE IMPORTED)
+    target_link_libraries(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARIES})
+    target_include_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_INCLUDE_DIRS})
+    target_compile_definitions(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_CFLAGS_OTHER})
+    target_link_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARY_DIRS})
+    set(QT6KEYCHAIN_FOUND TRUE)
+  endif()
+endif()
+
+if(NOT QT6KEYCHAIN_FOUND)
+  block()
+    set(BUILD_WITH_QT6 ON)
+    set(BUILD_TRANSLATIONS OFF)
+    set(BUILD_TESTING OFF)
+    add_subdirectory(vendor/qtkeychain EXCLUDE_FROM_ALL)
+  endblock()
+endif()
+
+if(TARGET qt6keychain)
+  target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
+  add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
+endif()
+
 add_subdirectory(src)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
