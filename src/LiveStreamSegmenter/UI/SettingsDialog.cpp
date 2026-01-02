@@ -628,7 +628,7 @@ void SettingsDialog::fetchStreamKeys()
 			authStore_->getGoogleOAuth2ClientCredentials();
 		const auto authManager =
 			std::make_shared<GoogleAuth::GoogleAuthManager>(curl, clientCredentials, logger_);
-		const GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
+		GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
 		if (tokenState.isAuthorized()) {
@@ -639,9 +639,8 @@ void SettingsDialog::fetchStreamKeys()
 				logger_->info("YouTubeAccessTokenNotFresh");
 				GoogleAuth::GoogleAuthResponse freshAuthResponse =
 					authManager->fetchFreshAuthResponse(tokenState.refresh_token);
-				GoogleAuth::GoogleTokenState newTokenState;
-				newTokenState.loadAuthResponse(freshAuthResponse);
-				authStore_->setGoogleTokenState(newTokenState);
+				tokenState.loadAuthResponse(freshAuthResponse);
+				authStore_->setGoogleTokenState(tokenState);
 				accessToken = freshAuthResponse.access_token;
 				logger_->info("YouTubeAccessTokenFetched");
 			}
