@@ -272,22 +272,20 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	};
 
 	// --- Progress for startContinuousSessionTask ---
-	static const QStringList startProgressLogNames = {
-		"ContinuousYouTubeSessionStarting",
-		"OBSStreamingEnsuringStopped",
-		"OBSStreamingEnsuredStopped",
-		"YouTubeLiveBroadcastCompletingActive",
-		"YouTubeLiveBroadcastCompletedActive",
-		"YouTubeLiveBroadcastCreatingInitial",
-		"YouTubeLiveBroadcastCreatedInitial",
-		"YouTubeLiveBroadcastCreatingNext",
-		"YouTubeLiveBroadcastCreatedNext",
-		"YouTubeLiveStreamGettingNext",
-		"YouTubeLiveStreamGottenNext",
-		"StreamingStarting",
-		"StreamingStarted",
-		"ContinuousYouTubeSessionStarted"
-	};
+	static const QStringList startProgressLogNames = {"ContinuousYouTubeSessionStarting",
+							  "OBSStreamingEnsuringStopped",
+							  "OBSStreamingEnsuredStopped",
+							  "YouTubeLiveBroadcastCompletingActive",
+							  "YouTubeLiveBroadcastCompletedActive",
+							  "YouTubeLiveBroadcastCreatingInitial",
+							  "YouTubeLiveBroadcastCreatedInitial",
+							  "YouTubeLiveBroadcastCreatingNext",
+							  "YouTubeLiveBroadcastCreatedNext",
+							  "YouTubeLiveStreamGettingNext",
+							  "YouTubeLiveStreamGottenNext",
+							  "StreamingStarting",
+							  "StreamingStarted",
+							  "ContinuousYouTubeSessionStarted"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask") {
 		int idx = startProgressLogNames.indexOf(name);
 		if (name == "ContinuousYouTubeSessionStarting") {
@@ -313,12 +311,10 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	}
 
 	// --- Progress for StopContinuousYouTubeSessionTask ---
-	static const QStringList stopProgressLogNames = {"ContinuousYouTubeSessionStopping",
-					     "OBSStreamingEnsuringStopped",
-					     "OBSStreamingEnsuredStopped",
-					     "YouTubeLiveBroadcastCompletingActive",
-					     "YouTubeLiveBroadcastCompletedActive",
-					     "ContinuousYouTubeSessionStopped"};
+	static const QStringList stopProgressLogNames = {
+		"ContinuousYouTubeSessionStopping",    "OBSStreamingEnsuringStopped",
+		"OBSStreamingEnsuredStopped",          "YouTubeLiveBroadcastCompletingActive",
+		"YouTubeLiveBroadcastCompletedActive", "ContinuousYouTubeSessionStopped"};
 	if (context.value("taskName") == "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask") {
 		int idx = stopProgressLogNames.indexOf(name);
 		if (name == "ContinuousYouTubeSessionStopping") {
