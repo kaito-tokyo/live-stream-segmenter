@@ -118,7 +118,7 @@ void AuthStore::onWriteFinished(QKeychain::Job *job)
 		if (job->error()) {
 			std::string error = job->errorString().toStdString();
 			logger->error("KeychainWriteError(AuthStore::onWriteFinished)",
-				       {{"key", key}, {"error", error}});
+				      {{"key", key}, {"error", error}});
 		} else {
 			logger->info("KeychainWriteSuccess", {{"key", key}});
 		}
