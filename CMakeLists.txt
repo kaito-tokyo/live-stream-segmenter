@@ -35,10 +35,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
-  add_compile_options("/pathmap:${CMAKE_SOURCE_DIR}=.")
-  add_compile_options(/experimental:deterministic)
+  set(PLUGIN_COMPILE_OPTIONS /experimental:deterministic "/pathmap:${CMAKE_SOURCE_DIR}=.")
 else()
-  add_compile_options(-fno-omit-frame-pointer -fstack-protector-strong "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}=.")
+  add_compile_options(-fno-omit-frame-pointer -fstack-protector-strong)
+  set(PLUGIN_COMPILE_OPTIONS "-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=.")
 endif()
 
 if(MSVC)
@@ -243,6 +243,23 @@ target_link_libraries(
   PUBLIC OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
 )
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
+
+foreach(
+  target
+  GoogleAuth
+  YouTubeApi
+  ${CMAKE_PROJECT_NAME}_Controller
+  ${CMAKE_PROJECT_NAME}_Scripting
+  ${CMAKE_PROJECT_NAME}_Store
+  ${CMAKE_PROJECT_NAME}_UI
+  ${CMAKE_PROJECT_NAME}
+)
+  if(MSVC)
+    set(${target} PRIVATE /experimental:deterministic "/pathmap:${CMAKE_SOURCE_DIR}=.")
+  else()
+    set(${target} PRIVATE "-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=.")
+  endif()
+endforeach()
 
 if(APPLE)
   target_link_options(
