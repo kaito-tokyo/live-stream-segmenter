@@ -8,6 +8,7 @@ project(${PLUGIN_NAME} VERSION ${PLUGIN_VERSION} LANGUAGES C CXX)
 option(BUILD_TESTING "Build test cases" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(ENABLE_UBSAN "Enable Undefined Behavior Sanitizer" OFF)
+option(MOCK_YOUTUBE_API "Mock YouTube API for testing purposes" OFF)
 
 if(MSVC)
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/windows")
