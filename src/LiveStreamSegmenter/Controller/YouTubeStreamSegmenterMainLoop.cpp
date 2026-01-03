@@ -114,7 +114,12 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 		nlohmann::json jConfig = nlohmann::json::parse(config);
 		jConfig.at("segmentIntervalMilliseconds").get_to(segmentIntervalMilliseconds);
 	} catch (std::exception &e) {
-		logger_->error("YouTubeStreamSegmenterMainLoopScriptError", {{"exception", e.what()}});
+		logger_->error(
+			"YouTubeStreamSegmenterMainLoopScriptError",
+			{{"exception", e.what()},
+			 {"message",
+			  "YouTubeStreamSegmenterMainLoopScriptError: falling back to default interval of 3600000ms"},
+			 {"segmentIntervalMilliseconds", "3600000"}});
 	}
 	tickTimer_->setInterval(1000);
 	segmentTimer_->setInterval(segmentIntervalMilliseconds);

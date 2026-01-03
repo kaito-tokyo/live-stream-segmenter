@@ -490,7 +490,7 @@ void StreamSegmenterDock::onMainLoopTimerTick(int segmentTimerRemainingTime)
 					       .arg(currentStatusColor_, currentStatusText_));
 	} else {
 		int secondsRemaining = segmentTimerRemainingTime / 1000;
-		// Format remaining time as -HH:MM:SS
+		// Format remaining time as HH:MM:SS with optional negative sign
 		int absSeconds = std::abs(secondsRemaining);
 		int hours = absSeconds / 3600;
 		int minutes = (absSeconds % 3600) / 60;
@@ -503,9 +503,9 @@ void StreamSegmenterDock::onMainLoopTimerTick(int segmentTimerRemainingTime)
 						.arg(seconds, 2, 10, QChar('0'));
 		currentTimeRemainingText_ = remainingTime;
 
-		// Format next time as h:mm ap
+		// Format next time as 24-hour HH:mm for better internationalization support
 		QTime nextTime = QTime::currentTime().addSecs(secondsRemaining);
-		QString nextTimeText = nextTime.toString("h:mm ap");
+		QString nextTimeText = nextTime.toString("HH:mm");
 		currentNextTimeText_ = nextTimeText;
 
 		// Show status / next time / remaining time
