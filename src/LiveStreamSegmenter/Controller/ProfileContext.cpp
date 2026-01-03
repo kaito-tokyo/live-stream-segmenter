@@ -74,8 +74,8 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 			 &UI::StreamSegmenterDock::onMainLoopTimerTick);
 
 	youTubeStreamSegmenterMainLoop_->startMainLoop();
-	youTubeStreamSegmenterMainLoop_->startTickTimer(1000);
-	youTubeStreamSegmenterMainLoop_->startSegmentTimer(120000);
+	youTubeStreamSegmenterMainLoop_->setTickTimerInterval(1000);
+	youTubeStreamSegmenterMainLoop_->setSegmentTimerInterval(120000);
 }
 
 ProfileContext::~ProfileContext() noexcept = default;

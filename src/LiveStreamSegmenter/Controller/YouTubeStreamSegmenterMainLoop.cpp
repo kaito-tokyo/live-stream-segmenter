@@ -79,8 +79,8 @@ YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 	tickTimer_->setTimerType(Qt::VeryCoarseTimer);
 	segmentTimer_->setTimerType(Qt::VeryCoarseTimer);
 
-	connect(tickTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onTick);
-	connect(segmentTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onSegmentTimeout);
+	connect(tickTimer_, &QTimer::timeout, this, [this]() { emit tick(segmentTimer_->remainingTime()); });
+	connect(segmentTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession);
 }
 
 YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
@@ -97,33 +97,20 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
 
-void YouTubeStreamSegmenterMainLoop::startTickTimer(int interval)
+void YouTubeStreamSegmenterMainLoop::setTickTimerInterval(int interval)
 {
-	tickTimer_->start(interval);
+	tickTimer_->setInterval(interval);
 }
 
-void YouTubeStreamSegmenterMainLoop::startSegmentTimer(int interval)
+void YouTubeStreamSegmenterMainLoop::setSegmentTimerInterval(int interval)
 {
-	segmentTimer_->start(interval);
-}
-
-void YouTubeStreamSegmenterMainLoop::stopSegmentTimer()
-{
-	segmentTimer_->stop();
-}
-
-void YouTubeStreamSegmenterMainLoop::onTick()
-{
-	emit tick(segmentTimer_->remainingTime());
-}
-
-void YouTubeStreamSegmenterMainLoop::onSegmentTimeout()
-{
-	channel_.send(Message{MessageType::SegmentContinuousSession});
+	segmentTimer_->setInterval(interval);
 }
 
 void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
 {
+	segmentTimer_->start();
+	tickTimer_->start();
 	channel_.send(Message{MessageType::StartContinuousSession});
 }
 

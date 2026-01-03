@@ -71,8 +71,8 @@ public:
 	std::chrono::milliseconds getRemainingTimeForNextSegment() const;
 
 	void startMainLoop();
-	void startTickTimer(int interval);
-	void startSegmentTimer(int interval);
+	void setTickTimerInterval(int interval);
+	void setSegmentTimerInterval(int interval);
 	void stopSegmentTimer();
 
 signals:
@@ -82,8 +82,6 @@ public slots:
 	void onStartContinuousSession();
 	void onStopContinuousSession();
 	void onSegmentContinuousSession();
-	void onTick();
-	void onSegmentTimeout();
 
 private:
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
