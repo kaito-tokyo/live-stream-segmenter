@@ -5,8 +5,9 @@ target_link_libraries(
   PUBLIC
     qjs::qjs
     unofficial::sqlite3::sqlite3
-    fmt::fmt
     Logger
+  PRIVATE
+    fmt::fmt
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Scripting
