@@ -115,8 +115,7 @@ public:
 signals:
 	void startButtonClicked();
 	void stopButtonClicked();
-	void createBroadcastButtonClicked();
-	void switchStreamButtonClicked();
+	void segmentNowButtonClicked();
 
 public slots:
 	void logMessage(int level, const QString &name, const QMap<QString, QString> &context);
@@ -189,8 +188,7 @@ private:
 	// 5. Bottom Controls
 	QVBoxLayout *const bottomControlLayout_;
 	QPushButton *const settingsButton_;
-	QPushButton *const createBroadcastButton_;
-	QPushButton *const switchStreamButton_;
+	QPushButton *const segmentNowButton_;
 
 	mutable std::mutex mutex_;
 	std::shared_ptr<const Logger::ILogger> logger_;

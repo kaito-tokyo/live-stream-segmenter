@@ -48,25 +48,24 @@ public:
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
-	std::vector<YouTubeLiveStream> listLiveStreams(std::string_view accessToken,
-						       std::span<std::string_view> ids = {});
+	std::vector<YouTubeLiveStream> listLiveStreams(std::string accessToken, std::span<const std::string> ids = {});
 
-	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(std::string_view accessToken,
+	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(std::string accessToken,
 								     std::string broadcastStatus);
 
-	YouTubeLiveBroadcast insertLiveBroadcast(std::string_view accessToken,
+	YouTubeLiveBroadcast insertLiveBroadcast(std::string accessToken,
 						 const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
 
-	YouTubeLiveBroadcast updateLiveBroadcast(std::string_view accessToken, const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
+	YouTubeLiveBroadcast updateLiveBroadcast(std::string accessToken,
+						 const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 
-	YouTubeLiveBroadcast bindLiveBroadcast(std::string_view accessToken, std::string broadcastId,
+	YouTubeLiveBroadcast bindLiveBroadcast(std::string accessToken, std::string broadcastId,
 					       std::optional<std::string> streamId);
 
-	YouTubeLiveBroadcast transitionLiveBroadcast(std::string_view accessToken, std::string broadcastId,
+	YouTubeLiveBroadcast transitionLiveBroadcast(std::string accessToken, std::string broadcastId,
 						     std::string broadcastStatus);
 
-	void setThumbnail(std::string_view accessToken, std::string videoId,
-			  const std::filesystem::path &thumbnailPath);
+	void setThumbnail(std::string accessToken, std::string videoId, const std::filesystem::path &thumbnailPath);
 
 private:
 	std::shared_ptr<CurlHelper::CurlHandle> curl_;

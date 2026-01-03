@@ -91,31 +91,33 @@ struct YouTubeLiveBroadcastThumbnail {
 };
 
 struct YouTubeLiveBroadcast {
-	std::string kind;
-	std::string etag;
-	std::string id;
+	std::optional<std::string> kind;
+	std::optional<std::string> etag;
+	std::optional<std::string> id;
 
 	struct Snippet {
-		std::string publishedAt;
-		std::string channelId;
-		std::string title;
-		std::string description;
-		std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail> thumbnails;
-		std::string scheduledStartTime;
+		std::optional<std::string> publishedAt;
+		std::optional<std::string> channelId;
+		std::optional<std::string> title;
+		std::optional<std::string> description;
+		std::optional<std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail>> thumbnails;
+		std::optional<std::string> scheduledStartTime;
 		std::optional<std::string> scheduledEndTime;
 		std::optional<std::string> actualStartTime;
 		std::optional<std::string> actualEndTime;
 		std::optional<bool> isDefaultBroadcast;
 		std::optional<std::string> liveChatId;
-	} snippet;
+	};
+	std::optional<Snippet> snippet;
 
 	struct Status {
-		std::string lifeCycleStatus;
-		std::string privacyStatus;
-		std::string recordingStatus;
+		std::optional<std::string> lifeCycleStatus;
+		std::optional<std::string> privacyStatus;
+		std::optional<std::string> recordingStatus;
 		std::optional<bool> madeForKids;
 		std::optional<bool> selfDeclaredMadeForKids;
-	} status;
+	};
+	std::optional<Status> status;
 
 	struct ContentDetails {
 		std::optional<std::string> boundStreamId;
@@ -124,7 +126,8 @@ struct YouTubeLiveBroadcast {
 			std::optional<bool> enableMonitorStream;
 			std::optional<std::uint32_t> broadcastStreamDelayMs;
 			std::optional<std::string> embedHtml;
-		} monitorStream;
+		};
+		std::optional<MonitorStream> monitorStream;
 		std::optional<bool> enableEmbed;
 		std::optional<bool> enableDvr;
 		std::optional<bool> recordFromStart;
@@ -135,11 +138,13 @@ struct YouTubeLiveBroadcast {
 		std::optional<std::string> latencyPreference;
 		std::optional<bool> enableAutoStart;
 		std::optional<bool> enableAutoStop;
-	} contentDetails;
+	};
+	std::optional<ContentDetails> contentDetails;
 
 	struct Statistics {
 		std::optional<std::uint64_t> totalChatCount;
-	} statistics;
+	};
+	std::optional<Statistics> statistics;
 
 	struct MonetizationDetails {
 		struct CuepointSchedule {
@@ -147,39 +152,41 @@ struct YouTubeLiveBroadcast {
 			std::optional<std::string> pauseAdsUntil;
 			std::optional<std::string> scheduleStrategy;
 			std::optional<std::uint32_t> repeatIntervalSecs;
-		} cuepointSchedule;
-	} monetizationDetails;
+		};
+		std::optional<CuepointSchedule> cuepointSchedule;
+	};
+	std::optional<MonetizationDetails> monetizationDetails;
 };
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p);
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p);
 
 struct InsertingYouTubeLiveBroadcast {
-       struct Snippet {
-	       std::string title; // required
-	       std::optional<std::string> description;
-	       std::string scheduledStartTime; // required
-	       std::optional<std::string> scheduledEndTime;
-       } snippet;
+	struct Snippet {
+		std::string title;
+		std::optional<std::string> description;
+		std::string scheduledStartTime;
+		std::optional<std::string> scheduledEndTime;
+	} snippet;
 
-       struct Status {
-	       std::string privacyStatus = "private"; // required
-	       std::optional<bool> selfDeclaredMadeForKids;
-       } status;
+	struct Status {
+		std::string privacyStatus = "private";
+		std::optional<bool> selfDeclaredMadeForKids;
+	} status;
 
-       struct ContentDetails {
-	       std::optional<bool> enableAutoStart;
-	       std::optional<bool> enableAutoStop;
-	       std::optional<bool> enableClosedCaptions;
-	       std::optional<bool> enableDvr;
-	       std::optional<bool> enableEmbed;
-	       std::optional<bool> recordFromStart;
-	       std::optional<std::string> latencyPreference;
-	       struct MonitorStream {
-		       std::optional<bool> enableMonitorStream;
-		       std::optional<uint32_t> broadcastStreamDelayMs;
-	       } monitorStream;
-       } contentDetails;
+	struct ContentDetails {
+		std::optional<bool> enableAutoStart;
+		std::optional<bool> enableAutoStop;
+		std::optional<bool> enableClosedCaptions;
+		std::optional<bool> enableDvr;
+		std::optional<bool> enableEmbed;
+		std::optional<bool> recordFromStart;
+		std::optional<std::string> latencyPreference;
+		struct MonitorStream {
+			std::optional<bool> enableMonitorStream;
+			std::optional<uint32_t> broadcastStreamDelayMs;
+		} monitorStream;
+	} contentDetails;
 };
 
 void to_json(nlohmann::json &j, const InsertingYouTubeLiveBroadcast &p);

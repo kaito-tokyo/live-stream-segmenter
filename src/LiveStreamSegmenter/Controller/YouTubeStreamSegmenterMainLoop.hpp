@@ -115,7 +115,8 @@ private:
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 		std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::size_t currentLiveStreamIndex, QObject *parent,
+		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::size_t currentLiveStreamIndex,
+		YouTubeApi::YouTubeLiveBroadcast incomingLiveBroadcast, QObject *parent,
 		std::shared_ptr<const Logger::ILogger> baseLogger);
 };
 
