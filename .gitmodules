@@ -4,3 +4,6 @@
 [submodule "vendor/qtkeychain"]
 	path = vendor/qtkeychain
 	url = https://github.com/frankosterfeld/qtkeychain.git
+[submodule "vendor/qcoro"]
+	path = vendor/qcoro
+	url = https://github.com/qcoro/qcoro.git
