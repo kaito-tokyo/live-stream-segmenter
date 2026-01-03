@@ -333,7 +333,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		}
 	}
 
-	if (name == "YouTubeLiveBroadcastCreatedInitial") {
+	if (name == "YouTubeLiveBroadcastCreatedInitial" || name == "ContinuousYouTubeSessionSegmented") {
 		QString title = context.value("title");
 		QString broadcastId = context.value("broadcastId");
 		currentTitleLabel_->setText(title.isEmpty() ? tr("(No title)") : title);

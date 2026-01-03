@@ -725,8 +725,8 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 	logger->info("YouTubeLiveBroadcastCreatedNext",
 		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
-	// --- Get the switching live stream ---
-	logger->info("YouTubeLiveStreamGettingSwitching", {{"liveStreamId", incomingLiveStreamId}});
+	// --- Get the incoming live stream ---
+	logger->info("YouTubeLiveStreamGettingIncoming", {{"liveStreamId", incomingLiveStreamId}});
 
 	const std::array<std::string, 1> incomingLiveStreamIdArray{incomingLiveStreamId};
 	const std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
@@ -740,7 +740,7 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 	}
 	const auto incomingLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(liveStreams[0]);
 
-	logger->info("YouTubeLiveStreamGottenSwitching", {{"liveStreamId", incomingLiveStream->id}});
+	logger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
 
 	// --- Ensure OBS streaming is stopped ---
 	logger->info("OBSStreamingEnsuringStopped");
@@ -771,7 +771,18 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 	logger->info("YouTubeLiveBroadcastCompletedActive");
 
 	// --- Segment completed ---
-	logger->info("ContinuousYouTubeSessionSegmented");
+	if (!incomingLiveBroadcast.id) {
+		logger->error("YouTubeLiveBroadcastIncomingIdMissing");
+		throw std::runtime_error(
+			"YouTubeLiveBroadcastIncomingIdMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
+	}
+	if (!incomingLiveBroadcast.snippet || !incomingLiveBroadcast.snippet->title) {
+		logger->error("YouTubeLiveBroadcastIncomingTitleMissing");
+		throw std::runtime_error(
+			"YouTubeLiveBroadcastIncomingTitleMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
+	}
+	logger->info("ContinuousYouTubeSessionSegmented",
+		     {{"broadcastId", *incomingLiveBroadcast.id}, {"title", *incomingLiveBroadcast.snippet->title}});
 
 	co_return {incomingLiveBroadcast, nextLiveBroadcast};
 }
