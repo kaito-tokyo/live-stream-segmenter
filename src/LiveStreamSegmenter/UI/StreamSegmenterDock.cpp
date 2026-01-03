@@ -140,7 +140,7 @@ void StreamSegmenterDock::setupUi()
 	statusLayout_->addWidget(progressBar_);
 	mainLayout_->addWidget(statusGroup_);
 
-	onMainLoopTimerTick(0);
+	onMainLoopTimerTick(-1);
 
 	// --- 3. Schedule ---
 	scheduleLayout_->setContentsMargins(4, 8, 4, 8);
@@ -264,6 +264,10 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	const QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
 	auto logWithTimestamp = [&](const QString &msg, const QString &color = "#e0e0e0") {
 		consoleView_->append(QString("<span style=\"color:%1;\">[%2] %3</span>").arg(color, timestamp, msg));
+		QScrollBar *bar = consoleView_->verticalScrollBar();
+		if (bar) {
+			bar->setValue(bar->maximum());
+		}
 	};
 
 	// --- Progress for startContinuousSessionTask ---
