@@ -110,7 +110,7 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 
 	int segmentIntervalMilliseconds = 60 * 60 * 1000;
 	try {
-		std::string config = context->executeFunction("onYouTubeStreamSegmenterMainLoop", "{}");
+		std::string config = context->executeFunction("onInitYouTubeStreamSegmenter", "{}");
 		nlohmann::json jConfig = nlohmann::json::parse(config);
 		jConfig.at("segmentIntervalMilliseconds").get_to(segmentIntervalMilliseconds);
 	} catch (std::exception &e) {
