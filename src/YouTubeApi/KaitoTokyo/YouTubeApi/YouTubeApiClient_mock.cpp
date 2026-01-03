@@ -111,7 +111,7 @@ void YouTubeApiClient::setThumbnail([[maybe_unused]] const std::string &accessTo
 				    [[maybe_unused]] const std::string &videoId,
 				    [[maybe_unused]] const std::filesystem::path &thumbnailPath)
 {
-	// モック: 何もしない
+	// Mock implementation does nothing
 }
 
 } // namespace KaitoTokyo::YouTubeApi
