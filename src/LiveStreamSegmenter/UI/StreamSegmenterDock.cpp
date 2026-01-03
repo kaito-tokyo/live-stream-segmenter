@@ -324,6 +324,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			progressBar_->setMaximum(0);
 			currentStatusText_ = tr("STOPPING...");
 			currentStatusColor_ = "#D7BA7D";
+			onMainLoopTimerTick(-1);
 		} else if (name == "ContinuousYouTubeSessionStopped") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
@@ -331,6 +332,7 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			progressBar_->setVisible(false);
 			currentStatusText_ = tr("IDLE");
 			currentStatusColor_ = "#888888";
+			onMainLoopTimerTick(-1);
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
@@ -376,7 +378,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		}
 	}
 
-	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
 	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
@@ -421,7 +422,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		logWithTimestamp(tr("YouTube RTMP service created."), "#4EC9B0");
 	} else if (name == "YouTubeHLSServiceCreated") {
 		logWithTimestamp(tr("YouTube HLS service created."), "#4EC9B0");
-		// ...existing code...
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
 		if (context.contains("title")) {
