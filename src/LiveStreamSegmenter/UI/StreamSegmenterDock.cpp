@@ -90,8 +90,7 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	  // Bottom Controls
 	  bottomControlLayout_(new QVBoxLayout(this)),
 	  settingsButton_(new QPushButton(tr("Settings"), this)),
-	  createBroadcastButton_(new QPushButton(tr("Create Broadcast"), this)),
-	  switchStreamButton_(new QPushButton(tr("Switch Stream"), this)),
+	  segmentNowButton_(new QPushButton(tr("Segment Now"), this)),
 
 	  // Cache Initialization
 	  currentStatusText_(tr("IDLE")),
@@ -106,13 +105,9 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 		startButtonClicked();
 	});
 	connect(stopButton_, &QPushButton::clicked, this, &StreamSegmenterDock::stopButtonClicked);
-	connect(createBroadcastButton_, &QPushButton::clicked, this, [this]() {
-		createBroadcastButton_->setEnabled(false);
-		emit createBroadcastButtonClicked();
-	});
-	connect(switchStreamButton_, &QPushButton::clicked, this, [this]() {
-		switchStreamButton_->setEnabled(false);
-		emit switchStreamButtonClicked();
+	connect(segmentNowButton_, &QPushButton::clicked, this, [this]() {
+		segmentNowButton_->setEnabled(false);
+		emit segmentNowButtonClicked();
 	});
 	connect(settingsButton_, &QPushButton::clicked, this, &StreamSegmenterDock::onSettingsButtonClicked);
 }
@@ -258,8 +253,7 @@ void StreamSegmenterDock::setupUi()
 	// --- 5. Bottom Controls ---
 	bottomControlLayout_->setSpacing(4);
 	bottomControlLayout_->addWidget(settingsButton_);
-	bottomControlLayout_->addWidget(createBroadcastButton_);
-	bottomControlLayout_->addWidget(switchStreamButton_);
+	bottomControlLayout_->addWidget(segmentNowButton_);
 	mainLayout_->addLayout(bottomControlLayout_);
 }
 

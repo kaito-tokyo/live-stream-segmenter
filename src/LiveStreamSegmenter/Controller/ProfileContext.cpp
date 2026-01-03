@@ -66,6 +66,10 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
 			 &YouTubeStreamSegmenterMainLoop::onStopContinuousSession);
 
+	QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
+			 youTubeStreamSegmenterMainLoop_.get(),
+			 &YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession);
+
 	youTubeStreamSegmenterMainLoop_->startMainLoop();
 }
 

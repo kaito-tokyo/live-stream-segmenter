@@ -45,6 +45,7 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	enum class MessageType {
 		StartContinuousSession,
 		StopContinuousSession,
+		SegmentContinuousSession,
 	};
 
 	struct Message {
@@ -70,6 +71,7 @@ public:
 public slots:
 	void onStartContinuousSession();
 	void onStopContinuousSession();
+	void onSegmentContinuousSession();
 
 private:
 	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
@@ -94,7 +96,7 @@ private:
 					  std::shared_ptr<Store::YouTubeStore> youtubeStore,
 					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
 
-	static Async::Task<void> startContinuousSessionTask(
+	static Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> startContinuousSessionTask(
 		std::shared_ptr<CurlHelper::CurlHandle> curl,
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
@@ -107,6 +109,15 @@ private:
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
 		std::shared_ptr<const Logger::ILogger> logger);
+
+	static Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> segmentContinuousSessionTask(
+		std::shared_ptr<CurlHelper::CurlHandle> curl,
+		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
+		std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::size_t currentLiveStreamIndex,
+		YouTubeApi::YouTubeLiveBroadcast incomingLiveBroadcast, QObject *parent,
+		std::shared_ptr<const Logger::ILogger> baseLogger);
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
