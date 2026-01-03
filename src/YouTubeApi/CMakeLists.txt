@@ -1,11 +1,26 @@
-add_library(YouTubeApi OBJECT)
-target_include_directories(YouTubeApi PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(YouTubeApi PUBLIC CurlHelper Logger)
+add_library(YouTubeApi STATIC)
+# gersemi: off
+target_link_libraries(
+  YouTubeApi
+  PUBLIC
+    nlohmann_json::nlohmann_json
+    CurlHelper
+    Logger
+  PRIVATE
+    CURL::libcurl
+)
+target_sources(
+  YouTubeApi
+  PUBLIC
+  FILE_SET HEADERS
+  FILES
+    KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp
+    KaitoTokyo/YouTubeApi/YouTubeTypes.hpp
+)
 target_sources(
   YouTubeApi
   PRIVATE
     KaitoTokyo/YouTubeApi/YouTubeApiClient.cpp
-    KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp
     KaitoTokyo/YouTubeApi/YouTubeTypes.cpp
-    KaitoTokyo/YouTubeApi/YouTubeTypes.hpp
 )
+# gersemi: on

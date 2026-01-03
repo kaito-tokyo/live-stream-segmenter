@@ -35,8 +35,6 @@
 #include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
 #include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
 
-#include <KaitoTokyo/Async/Task.hpp>
-
 namespace KaitoTokyo::GoogleAuth {
 
 GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
