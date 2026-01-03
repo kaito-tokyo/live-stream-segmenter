@@ -119,6 +119,7 @@ signals:
 
 public slots:
 	void logMessage(int level, const QString &name, const QMap<QString, QString> &context);
+	void onMainLoopTimerTick(int segmentTimerRemainingTime);
 
 private slots:
 	void onSettingsButtonClicked();

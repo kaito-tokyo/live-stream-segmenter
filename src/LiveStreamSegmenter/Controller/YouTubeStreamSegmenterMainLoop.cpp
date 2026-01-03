@@ -70,9 +70,17 @@ YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 			 : throw std::invalid_argument("LoggerIsNullError(YouTubeStreamSegmenterMainLoop)")),
 	  parent_(parent),
 	  curl_(std::make_shared<CurlHelper::CurlHandle>()),
-	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_))
+	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_)),
+	  tickTimer_(new QTimer(this)),
+	  segmentTimer_(new QTimer(this))
 {
 	youTubeApiClient_->setLogger(logger_);
+
+	tickTimer_->setTimerType(Qt::VeryCoarseTimer);
+	segmentTimer_->setTimerType(Qt::VeryCoarseTimer);
+
+	connect(tickTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onTick);
+	connect(segmentTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onSegmentTimeout);
 }
 
 YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
@@ -89,6 +97,31 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
 }
 
+void YouTubeStreamSegmenterMainLoop::startTickTimer(int interval)
+{
+	tickTimer_->start(interval);
+}
+
+void YouTubeStreamSegmenterMainLoop::startSegmentTimer(int interval)
+{
+	segmentTimer_->start(interval);
+}
+
+void YouTubeStreamSegmenterMainLoop::stopSegmentTimer()
+{
+	segmentTimer_->stop();
+}
+
+void YouTubeStreamSegmenterMainLoop::onTick()
+{
+	emit tick(segmentTimer_->remainingTime());
+}
+
+void YouTubeStreamSegmenterMainLoop::onSegmentTimeout()
+{
+	channel_.send(Message{MessageType::SegmentContinuousSession});
+}
+
 void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
 {
 	channel_.send(Message{MessageType::StartContinuousSession});
@@ -96,6 +129,7 @@ void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
 
 void YouTubeStreamSegmenterMainLoop::onStopContinuousSession()
 {
+	segmentTimer_->stop();
 	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
