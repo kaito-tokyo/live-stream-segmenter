@@ -8,9 +8,6 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
     CurlHelper
     Logger
-)
-target_link_libraries(
-  GoogleAuth
   PRIVATE
     fmt::fmt
 )
