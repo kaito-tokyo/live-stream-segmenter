@@ -3,11 +3,12 @@ add_library(GoogleAuth STATIC)
 target_link_libraries(
   GoogleAuth
   PUBLIC
-    CURL::libcurl
     fmt::fmt
     nlohmann_json::nlohmann_json
     CurlHelper
     Logger
+  PRIVATE
+    CURL::libcurl
 )
 target_sources(
   GoogleAuth
