@@ -3,10 +3,11 @@ add_library(YouTubeApi STATIC)
 target_link_libraries(
   YouTubeApi
   PUBLIC
-    CURL::libcurl
     nlohmann_json::nlohmann_json
     CurlHelper
     Logger
+  PRIVATE
+    CURL::libcurl
 )
 target_sources(
   YouTubeApi
