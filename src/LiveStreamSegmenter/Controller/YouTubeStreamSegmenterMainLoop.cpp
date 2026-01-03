@@ -265,7 +265,7 @@ Async::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 
 // Must be called from a worker thread and returns on a worker thread
 void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				  std::string accessToken, std::span<const std::string> liveStreamIds,
+				  const std::string &accessToken, std::span<const std::string> liveStreamIds,
 				  std::shared_ptr<const Logger::ILogger> logger)
 {
 	logger->info("YouTubeLiveBroadcastCompletingAllActive");
@@ -310,8 +310,8 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 						     std::string accessToken,
 						     std::shared_ptr<Scripting::EventScriptingContext> context,
-						     std::string onCreateLiveBroadcastFunctionName,
-						     std::string onSetThumbnailFunctionName,
+						     const std::string &onCreateLiveBroadcastFunctionName,
+						     const std::string &onSetThumbnailFunctionName,
 						     std::shared_ptr<const Logger::ILogger> logger)
 {
 	logger->info("YouTubeLiveBroadcastCreating");
@@ -461,7 +461,7 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	if (!nextLiveBroadcast->id) {
 		logger->error("YouTubeLiveBroadcastIdMissing");
 		throw std::runtime_error(
-			"YouTubeLiveBroadcastIdMissing(YouTubeStreamSegmenterMainLoop::startOBSStreaming)");
+			"YouTubeLiveBroadcastIdMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
 	}
 	const std::string nextLiveBroadcastTitle = (nextLiveBroadcast->snippet && nextLiveBroadcast->snippet->title)
 							   ? *nextLiveBroadcast->snippet->title
@@ -669,7 +669,7 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 	if (currentLiveStreamId.empty() || incomingLiveStreamId.empty()) {
 		logger->error("YouTubeLiveStreamIdNotSet");
 		throw std::runtime_error(
-			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	}
 
 	// --- Scripting ---
@@ -712,7 +712,7 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 	if (liveStreams.empty()) {
 		logger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", incomingLiveStreamId}});
 		throw std::runtime_error(
-			"YouTubeLiveStreamNotFound(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
+			"YouTubeLiveStreamNotFound(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	} else if (liveStreams.size() > 1) {
 		logger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", incomingLiveStreamId}});
 	}

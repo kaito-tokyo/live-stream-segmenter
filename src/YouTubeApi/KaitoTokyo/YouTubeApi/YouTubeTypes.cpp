@@ -575,7 +575,9 @@ void to_json(nlohmann::json &j, const InsertingYouTubeLiveBroadcast &p)
 	if (!monitorStreamJson.empty()) {
 		contentDetailsJson["monitorStream"] = std::move(monitorStreamJson);
 	}
-	j["contentDetails"] = std::move(contentDetailsJson);
+	if (!contentDetailsJson.empty()) {
+		j["contentDetails"] = std::move(contentDetailsJson);
+	}
 }
 
 void from_json(const nlohmann::json &j, InsertingYouTubeLiveBroadcast &p)
@@ -779,7 +781,9 @@ void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
 	if (p.status.privacyStatus) {
 		statusJson["privacyStatus"] = *p.status.privacyStatus;
 	}
-	j["status"] = std::move(statusJson);
+	if (!statusJson.empty()) {
+		j["status"] = std::move(statusJson);
+	}
 
 	// contentDetails
 	nlohmann::json contentDetailsJson;
@@ -815,8 +819,12 @@ void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
 	if (p.monetizationDetails.cuepointSchedule.pauseAdsUntil) {
 		cuepointScheduleJson["pauseAdsUntil"] = *p.monetizationDetails.cuepointSchedule.pauseAdsUntil;
 	}
-	monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
-	j["monetizationDetails"] = std::move(monetizationDetailsJson);
+	if (!cuepointScheduleJson.empty()) {
+		monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
+	}
+	if (!monetizationDetailsJson.empty()) {
+		j["monetizationDetails"] = std::move(monetizationDetailsJson);
+	}
 }
 
 } // namespace KaitoTokyo::YouTubeApi
