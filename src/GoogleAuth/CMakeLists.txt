@@ -5,10 +5,14 @@ target_link_libraries(
   PUBLIC
     fmt::fmt
     nlohmann_json::nlohmann_json
+    nlohmann_json::nlohmann_json
     CurlHelper
     Logger
+)
+target_link_libraries(
+  GoogleAuth
   PRIVATE
-    CURL::libcurl
+    fmt::fmt
 )
 target_sources(
   GoogleAuth
