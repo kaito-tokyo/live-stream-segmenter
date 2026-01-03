@@ -130,6 +130,7 @@ void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
 void YouTubeStreamSegmenterMainLoop::onStopContinuousSession()
 {
 	segmentTimer_->stop();
+	tickTimer_->stop();
 	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
