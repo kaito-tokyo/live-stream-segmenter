@@ -616,9 +616,6 @@ Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> YouTubeStreamSegmen
 	logger->info("YouTubeLiveBroadcastCreatedNext",
 		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
-	co_await AsyncQt::ResumeOnQTimerSingleShot{60000, parent};
-	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
-
 	// --- Get the next live stream ---
 	logger->info("YouTubeLiveStreamGettingCurrent", {{"liveStreamId", currentLiveStreamId}});
 
