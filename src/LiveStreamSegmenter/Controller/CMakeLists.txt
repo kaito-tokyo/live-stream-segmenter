@@ -4,6 +4,7 @@ target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Controller
   PUBLIC
     Qt6::Core
+    QCoro6::Core
     OBS::obs-frontend-api
     Async
     AsyncQt
