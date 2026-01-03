@@ -241,7 +241,7 @@ endif()
 # --- QCoro ---
 find_package(QCoro6 CONFIG QUIET COMPONENTS Core)
 
-if(NOT QT6KEYCHAIN_FOUND)
+if(NOT QCoro6_FOUND AND ENABLE_FETCH_CONTENT)
   include(FetchContent)
   FetchContent_Declare(QCoro GIT_REPOSITORY https://github.com/qcoro/qcoro.git GIT_TAG v0.12.0 EXCLUDE_FROM_ALL SYSTEM)
   block()
