@@ -308,7 +308,7 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 
 // Must be called from a worker thread and returns on a worker thread
 YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-						     std::string accessToken,
+						     const std::string &accessToken,
 						     std::shared_ptr<Scripting::EventScriptingContext> context,
 						     const std::string &onCreateLiveBroadcastFunctionName,
 						     const std::string &onSetThumbnailFunctionName,
@@ -371,7 +371,7 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 
 // Must be called from a worker thread and returns on the main thread
 Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				 std::string accessToken, QObject *parent,
+				 const std::string &accessToken, QObject *parent,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> nextLiveBroadcast,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				 std::shared_ptr<const Logger::ILogger> logger)
@@ -381,7 +381,7 @@ Async::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	if (!nextLiveBroadcast->id) {
 		logger->error("YouTubeLiveBroadcastIdMissing");
 		throw std::runtime_error(
-			"YouTubeLiveBroadcastIdMissing(YouTubeStreamSegmenterMainLoop::startOBSStreaming)");
+			"YouTubeLiveBroadcastIdMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
 	}
 	logger->info("YouTubeLiveBroadcastBindingLiveStream",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
