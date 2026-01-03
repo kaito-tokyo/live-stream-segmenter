@@ -340,7 +340,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string accessToken,
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(const std::string &accessToken,
 								 std::span<const std::string> ids)
 {
 	if (accessToken.empty()) {
@@ -376,8 +376,8 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(std::string acc
 	return liveStreams;
 }
 
-std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(std::string accessToken,
-									       std::string broadcastStatus)
+std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(const std::string &accessToken,
+									       const std::string &broadcastStatus)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -391,7 +391,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 	params.append("part", "id,snippet,contentDetails,status");
-	params.append("broadcastStatus", std::move(broadcastStatus));
+	params.append("broadcastStatus", broadcastStatus);
 	std::string qs = params.toString();
 
 	CurlHelper::CurlUrlHandle urlHandle;
@@ -413,7 +413,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(s
 	return broadcasts;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(const std::string &accessToken,
 							   const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	if (accessToken.empty()) {
@@ -451,7 +451,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(std::string accessTok
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(std::string accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(const std::string &accessToken,
 							   const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
 	if (accessToken.empty()) {
@@ -488,8 +488,8 @@ YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(std::string accessTok
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string accessToken, std::string broadcastId,
-							 std::optional<std::string> streamId)
+YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(const std::string &accessToken, const std::string &broadcastId,
+							 const std::optional<std::string> &streamId)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -501,10 +501,10 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string accessToken
 	}
 
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
-	params.append("id", std::move(broadcastId));
+	params.append("id", broadcastId);
 	params.append("part", "id,snippet,contentDetails,status");
 	if (streamId.has_value()) {
-		params.append("streamId", std::move(streamId.value()));
+		params.append("streamId", streamId.value());
 	}
 
 	CurlHelper::CurlUrlHandle urlHandle;
@@ -529,8 +529,9 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(std::string accessToken
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string accessToken, std::string broadcastId,
-							       std::string broadcastStatus)
+YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(const std::string &accessToken,
+							       const std::string &broadcastId,
+							       const std::string &broadcastStatus)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -546,8 +547,8 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string acces
 	}
 
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
-	params.append("id", std::move(broadcastId));
-	params.append("broadcastStatus", std::move(broadcastStatus));
+	params.append("id", broadcastId);
+	params.append("broadcastStatus", broadcastStatus);
 	params.append("part", "id,snippet,contentDetails,status");
 	std::string qs = params.toString();
 
@@ -574,7 +575,7 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(std::string acces
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-void YouTubeApiClient::setThumbnail(std::string accessToken, std::string videoId,
+void YouTubeApiClient::setThumbnail(const std::string &accessToken, const std::string &videoId,
 				    const std::filesystem::path &thumbnailPath)
 {
 	constexpr std::uintmax_t kMaxThumbnailBytes = 2 * 1024 * 1024;
@@ -611,7 +612,7 @@ void YouTubeApiClient::setThumbnail(std::string accessToken, std::string videoId
 	// FIXME: Path whitelist will be implemented later.
 
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
-	params.append("videoId", std::move(videoId));
+	params.append("videoId", videoId);
 	std::string qs = params.toString();
 
 	CurlHelper::CurlUrlHandle urlHandle;
