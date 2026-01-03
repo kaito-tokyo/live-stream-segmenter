@@ -46,7 +46,7 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	: QWidget(parent),
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeIsNullError(StreamSegmenterDock)")),
-	  loggerAdapter_(std::make_shared<const LoggerAdapter>(this)),
+	  loggerAdapter_(std::static_pointer_cast<const Logger::ILogger>(std::make_shared<LoggerAdapter>(this))),
 	  mainLayout_(new QVBoxLayout(this)),
 
 	  // Top Controls

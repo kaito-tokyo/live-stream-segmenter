@@ -37,6 +37,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPointer>
 #include <QPushButton>
 #include <QTextEdit>
 #include <QToolButton>
@@ -52,7 +53,7 @@ class StreamSegmenterDock : public QWidget {
 public:
 	class LoggerAdapter : public Logger::ILogger {
 	public:
-		explicit LoggerAdapter(StreamSegmenterDock *parent) : parent_(parent) {}
+		explicit LoggerAdapter(QPointer<StreamSegmenterDock> parent) : parent_(parent) {}
 
 		void log(Logger::LogLevel level, std::string_view name, std::source_location,
 			 std::span<const Logger::LogField> context) const noexcept override
@@ -66,13 +67,19 @@ public:
 						  QString::fromUtf8(field.value.data(), field.value.size()));
 			}
 
-			QMetaObject::invokeMethod(
-				parent_, [=, this]() { parent_->logMessage(logLevel, logName, contextMap); },
-				Qt::QueuedConnection);
+			if (parent_) {
+				QMetaObject::invokeMethod(
+					parent_,
+					[=, this]() {
+						if (parent_)
+							parent_->logMessage(logLevel, logName, contextMap);
+					},
+					Qt::QueuedConnection);
+			}
 		}
 
 	private:
-		StreamSegmenterDock *const parent_;
+		QPointer<StreamSegmenterDock> parent_;
 	};
 
 public:
