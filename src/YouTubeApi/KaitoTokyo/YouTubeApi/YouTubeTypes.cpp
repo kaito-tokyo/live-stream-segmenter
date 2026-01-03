@@ -224,162 +224,140 @@ void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p)
 		if (p.snippet->title) {
 			snippetJson["title"] = *p.snippet->title;
 		}
-		if (p.kind) {
-			j["kind"] = *p.kind;
+		if (p.snippet->description) {
+			snippetJson["description"] = *p.snippet->description;
 		}
-		if (p.etag) {
-			j["etag"] = *p.etag;
+		if (p.snippet->thumbnails) {
+			snippetJson["thumbnails"] = *p.snippet->thumbnails;
 		}
-		if (p.id) {
-			j["id"] = *p.id;
+		if (p.snippet->scheduledStartTime) {
+			snippetJson["scheduledStartTime"] = *p.snippet->scheduledStartTime;
 		}
-		if (p.snippet) {
-			nlohmann::json snippetJson;
-			if (p.snippet->publishedAt) {
-				snippetJson["publishedAt"] = *p.snippet->publishedAt;
-			}
-			if (p.snippet->channelId) {
-				snippetJson["channelId"] = *p.snippet->channelId;
-			}
-			if (p.snippet->title) {
-				snippetJson["title"] = *p.snippet->title;
-			}
-			if (p.snippet->description) {
-				snippetJson["description"] = *p.snippet->description;
-			}
-			if (p.snippet->thumbnails) {
-				snippetJson["thumbnails"] = *p.snippet->thumbnails;
-			}
-			if (p.snippet->scheduledStartTime) {
-				snippetJson["scheduledStartTime"] = *p.snippet->scheduledStartTime;
-			}
-			if (p.snippet->scheduledEndTime) {
-				snippetJson["scheduledEndTime"] = *p.snippet->scheduledEndTime;
-			}
-			if (p.snippet->actualStartTime) {
-				snippetJson["actualStartTime"] = *p.snippet->actualStartTime;
-			}
-			if (p.snippet->actualEndTime) {
-				snippetJson["actualEndTime"] = *p.snippet->actualEndTime;
-			}
-			if (p.snippet->isDefaultBroadcast) {
-				snippetJson["isDefaultBroadcast"] = *p.snippet->isDefaultBroadcast;
-			}
-			if (p.snippet->liveChatId) {
-				snippetJson["liveChatId"] = *p.snippet->liveChatId;
-			}
-			j["snippet"] = std::move(snippetJson);
+		if (p.snippet->scheduledEndTime) {
+			snippetJson["scheduledEndTime"] = *p.snippet->scheduledEndTime;
 		}
-		if (p.status) {
-			nlohmann::json statusJson;
-			if (p.status->lifeCycleStatus) {
-				statusJson["lifeCycleStatus"] = *p.status->lifeCycleStatus;
-			}
-			if (p.status->privacyStatus) {
-				statusJson["privacyStatus"] = *p.status->privacyStatus;
-			}
-			if (p.status->recordingStatus) {
-				statusJson["recordingStatus"] = *p.status->recordingStatus;
-			}
-			if (p.status->madeForKids) {
-				statusJson["madeForKids"] = *p.status->madeForKids;
-			}
-			if (p.status->selfDeclaredMadeForKids) {
-				statusJson["selfDeclaredMadeForKids"] = *p.status->selfDeclaredMadeForKids;
-			}
-			j["status"] = std::move(statusJson);
+		if (p.snippet->actualStartTime) {
+			snippetJson["actualStartTime"] = *p.snippet->actualStartTime;
 		}
-		if (p.contentDetails) {
-			nlohmann::json contentDetailsJson;
-			if (p.contentDetails->boundStreamId) {
-				contentDetailsJson["boundStreamId"] = *p.contentDetails->boundStreamId;
-			}
-			if (p.contentDetails->boundStreamLastUpdateTimeMs) {
-				contentDetailsJson["boundStreamLastUpdateTimeMs"] =
-					*p.contentDetails->boundStreamLastUpdateTimeMs;
-			}
-			if (p.contentDetails->monitorStream) {
-				nlohmann::json monitorStreamJson;
-				if (p.contentDetails->monitorStream->enableMonitorStream) {
-					monitorStreamJson["enableMonitorStream"] =
-						*p.contentDetails->monitorStream->enableMonitorStream;
-				}
-				if (p.contentDetails->monitorStream->broadcastStreamDelayMs) {
-					monitorStreamJson["broadcastStreamDelayMs"] =
-						*p.contentDetails->monitorStream->broadcastStreamDelayMs;
-				}
-				if (p.contentDetails->monitorStream->embedHtml) {
-					monitorStreamJson["embedHtml"] = *p.contentDetails->monitorStream->embedHtml;
-				}
-				if (!monitorStreamJson.empty()) {
-					contentDetailsJson["monitorStream"] = std::move(monitorStreamJson);
-				}
-			}
-			if (p.contentDetails->enableEmbed) {
-				contentDetailsJson["enableEmbed"] = *p.contentDetails->enableEmbed;
-			}
-			if (p.contentDetails->enableDvr) {
-				contentDetailsJson["enableDvr"] = *p.contentDetails->enableDvr;
-			}
-			if (p.contentDetails->recordFromStart) {
-				contentDetailsJson["recordFromStart"] = *p.contentDetails->recordFromStart;
-			}
-			if (p.contentDetails->enableClosedCaptions) {
-				contentDetailsJson["enableClosedCaptions"] = *p.contentDetails->enableClosedCaptions;
-			}
-			if (p.contentDetails->closedCaptionsType) {
-				contentDetailsJson["closedCaptionsType"] = *p.contentDetails->closedCaptionsType;
-			}
-			if (p.contentDetails->projection) {
-				contentDetailsJson["projection"] = *p.contentDetails->projection;
-			}
-			if (p.contentDetails->enableLowLatency) {
-				contentDetailsJson["enableLowLatency"] = *p.contentDetails->enableLowLatency;
-			}
-			if (p.contentDetails->latencyPreference) {
-				contentDetailsJson["latencyPreference"] = *p.contentDetails->latencyPreference;
-			}
-			if (p.contentDetails->enableAutoStart) {
-				contentDetailsJson["enableAutoStart"] = *p.contentDetails->enableAutoStart;
-			}
-			if (p.contentDetails->enableAutoStop) {
-				contentDetailsJson["enableAutoStop"] = *p.contentDetails->enableAutoStop;
-			}
-			j["contentDetails"] = std::move(contentDetailsJson);
+		if (p.snippet->actualEndTime) {
+			snippetJson["actualEndTime"] = *p.snippet->actualEndTime;
 		}
-		if (p.statistics) {
-			nlohmann::json statisticsJson;
-			if (p.statistics->totalChatCount) {
-				statisticsJson["totalChatCount"] = *p.statistics->totalChatCount;
-			}
-			j["statistics"] = std::move(statisticsJson);
+		if (p.snippet->isDefaultBroadcast) {
+			snippetJson["isDefaultBroadcast"] = *p.snippet->isDefaultBroadcast;
 		}
-		if (p.monetizationDetails) {
-			nlohmann::json monetizationDetailsJson;
-			if (p.monetizationDetails->cuepointSchedule) {
-				nlohmann::json cuepointScheduleJson;
-				if (p.monetizationDetails->cuepointSchedule->enabled) {
-					cuepointScheduleJson["enabled"] =
-						*p.monetizationDetails->cuepointSchedule->enabled;
-				}
-				if (p.monetizationDetails->cuepointSchedule->pauseAdsUntil) {
-					cuepointScheduleJson["pauseAdsUntil"] =
-						*p.monetizationDetails->cuepointSchedule->pauseAdsUntil;
-				}
-				if (p.monetizationDetails->cuepointSchedule->scheduleStrategy) {
-					cuepointScheduleJson["scheduleStrategy"] =
-						*p.monetizationDetails->cuepointSchedule->scheduleStrategy;
-				}
-				if (p.monetizationDetails->cuepointSchedule->repeatIntervalSecs) {
-					cuepointScheduleJson["repeatIntervalSecs"] =
-						*p.monetizationDetails->cuepointSchedule->repeatIntervalSecs;
-				}
-				if (!cuepointScheduleJson.empty()) {
-					monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
-				}
-			}
-			j["monetizationDetails"] = std::move(monetizationDetailsJson);
+		if (p.snippet->liveChatId) {
+			snippetJson["liveChatId"] = *p.snippet->liveChatId;
 		}
+		j["snippet"] = std::move(snippetJson);
+	}
+	if (p.status) {
+		nlohmann::json statusJson;
+		if (p.status->lifeCycleStatus) {
+			statusJson["lifeCycleStatus"] = *p.status->lifeCycleStatus;
+		}
+		if (p.status->privacyStatus) {
+			statusJson["privacyStatus"] = *p.status->privacyStatus;
+		}
+		if (p.status->recordingStatus) {
+			statusJson["recordingStatus"] = *p.status->recordingStatus;
+		}
+		if (p.status->madeForKids) {
+			statusJson["madeForKids"] = *p.status->madeForKids;
+		}
+		if (p.status->selfDeclaredMadeForKids) {
+			statusJson["selfDeclaredMadeForKids"] = *p.status->selfDeclaredMadeForKids;
+		}
+		j["status"] = std::move(statusJson);
+	}
+	if (p.contentDetails) {
+		nlohmann::json contentDetailsJson;
+		if (p.contentDetails->boundStreamId) {
+			contentDetailsJson["boundStreamId"] = *p.contentDetails->boundStreamId;
+		}
+		if (p.contentDetails->boundStreamLastUpdateTimeMs) {
+			contentDetailsJson["boundStreamLastUpdateTimeMs"] =
+				*p.contentDetails->boundStreamLastUpdateTimeMs;
+		}
+		if (p.contentDetails->monitorStream) {
+			nlohmann::json monitorStreamJson;
+			if (p.contentDetails->monitorStream->enableMonitorStream) {
+				monitorStreamJson["enableMonitorStream"] =
+					*p.contentDetails->monitorStream->enableMonitorStream;
+			}
+			if (p.contentDetails->monitorStream->broadcastStreamDelayMs) {
+				monitorStreamJson["broadcastStreamDelayMs"] =
+					*p.contentDetails->monitorStream->broadcastStreamDelayMs;
+			}
+			if (p.contentDetails->monitorStream->embedHtml) {
+				monitorStreamJson["embedHtml"] = *p.contentDetails->monitorStream->embedHtml;
+			}
+			if (!monitorStreamJson.empty()) {
+				contentDetailsJson["monitorStream"] = std::move(monitorStreamJson);
+			}
+		}
+		if (p.contentDetails->enableEmbed) {
+			contentDetailsJson["enableEmbed"] = *p.contentDetails->enableEmbed;
+		}
+		if (p.contentDetails->enableDvr) {
+			contentDetailsJson["enableDvr"] = *p.contentDetails->enableDvr;
+		}
+		if (p.contentDetails->recordFromStart) {
+			contentDetailsJson["recordFromStart"] = *p.contentDetails->recordFromStart;
+		}
+		if (p.contentDetails->enableClosedCaptions) {
+			contentDetailsJson["enableClosedCaptions"] = *p.contentDetails->enableClosedCaptions;
+		}
+		if (p.contentDetails->closedCaptionsType) {
+			contentDetailsJson["closedCaptionsType"] = *p.contentDetails->closedCaptionsType;
+		}
+		if (p.contentDetails->projection) {
+			contentDetailsJson["projection"] = *p.contentDetails->projection;
+		}
+		if (p.contentDetails->enableLowLatency) {
+			contentDetailsJson["enableLowLatency"] = *p.contentDetails->enableLowLatency;
+		}
+		if (p.contentDetails->latencyPreference) {
+			contentDetailsJson["latencyPreference"] = *p.contentDetails->latencyPreference;
+		}
+		if (p.contentDetails->enableAutoStart) {
+			contentDetailsJson["enableAutoStart"] = *p.contentDetails->enableAutoStart;
+		}
+		if (p.contentDetails->enableAutoStop) {
+			contentDetailsJson["enableAutoStop"] = *p.contentDetails->enableAutoStop;
+		}
+		j["contentDetails"] = std::move(contentDetailsJson);
+	}
+	if (p.statistics) {
+		nlohmann::json statisticsJson;
+		if (p.statistics->totalChatCount) {
+			statisticsJson["totalChatCount"] = *p.statistics->totalChatCount;
+		}
+		j["statistics"] = std::move(statisticsJson);
+	}
+	if (p.monetizationDetails) {
+		nlohmann::json monetizationDetailsJson;
+		if (p.monetizationDetails->cuepointSchedule) {
+			nlohmann::json cuepointScheduleJson;
+			if (p.monetizationDetails->cuepointSchedule->enabled) {
+				cuepointScheduleJson["enabled"] = *p.monetizationDetails->cuepointSchedule->enabled;
+			}
+			if (p.monetizationDetails->cuepointSchedule->pauseAdsUntil) {
+				cuepointScheduleJson["pauseAdsUntil"] =
+					*p.monetizationDetails->cuepointSchedule->pauseAdsUntil;
+			}
+			if (p.monetizationDetails->cuepointSchedule->scheduleStrategy) {
+				cuepointScheduleJson["scheduleStrategy"] =
+					*p.monetizationDetails->cuepointSchedule->scheduleStrategy;
+			}
+			if (p.monetizationDetails->cuepointSchedule->repeatIntervalSecs) {
+				cuepointScheduleJson["repeatIntervalSecs"] =
+					*p.monetizationDetails->cuepointSchedule->repeatIntervalSecs;
+			}
+			if (!cuepointScheduleJson.empty()) {
+				monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
+			}
+		}
+		j["monetizationDetails"] = std::move(monetizationDetailsJson);
 	}
 }
 
