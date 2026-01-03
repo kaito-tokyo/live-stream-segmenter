@@ -1,9 +1,15 @@
 add_library(CurlHelper INTERFACE)
-target_include_directories(CurlHelper INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(CurlHelper INTERFACE CURL::libcurl)
+# gersemi: off
+target_link_libraries(
+  CurlHelper
+  INTERFACE
+    CURL::libcurl
+)
 target_sources(
   CurlHelper
-  PRIVATE
+  INTERFACE
+  FILE_SET HEADERS
+  FILES
     KaitoTokyo/CurlHelper/CurlHandle.hpp
     KaitoTokyo/CurlHelper/CurlReadCallback.hpp
     KaitoTokyo/CurlHelper/CurlSlistHandle.hpp
@@ -11,3 +17,4 @@ target_sources(
     KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp
     KaitoTokyo/CurlHelper/CurlWriteCallback.hpp
 )
+# gersemi: on

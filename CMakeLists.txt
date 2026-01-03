@@ -243,9 +243,9 @@ add_library(${CMAKE_PROJECT_NAME} MODULE)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
-  PUBLIC OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
+  PRIVATE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
 )
-target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
 
 if(APPLE)
   target_link_options(

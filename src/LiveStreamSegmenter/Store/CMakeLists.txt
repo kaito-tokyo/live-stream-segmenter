@@ -1,11 +1,12 @@
-add_library(${CMAKE_PROJECT_NAME}_Store OBJECT)
-target_include_directories(${CMAKE_PROJECT_NAME}_Store PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(${CMAKE_PROJECT_NAME}_Store STATIC)
+set_target_properties(${CMAKE_PROJECT_NAME}_Store PROPERTIES AUTOMOC ON)
+# gersemi: off
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Store
   PUBLIC
+    Qt6::Core
     OBS::libobs
     OBS::obs-frontend-api
-    Qt6::Core
     Qt6Keychain::Qt6Keychain
     Logger
     GoogleAuth
@@ -14,6 +15,18 @@ target_link_libraries(
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Store
-  PRIVATE AuthStore.cpp AuthStore.hpp EventHandlerStore.cpp EventHandlerStore.hpp YouTubeStore.cpp YouTubeStore.hpp
+  PUBLIC
+  FILE_SET HEADERS
+  FILES
+    AuthStore.hpp
+    EventHandlerStore.hpp
+    YouTubeStore.hpp
 )
-set_target_properties(${CMAKE_PROJECT_NAME}_Store PROPERTIES AUTOMOC ON)
+target_sources(
+  ${CMAKE_PROJECT_NAME}_Store
+  PRIVATE
+    AuthStore.cpp
+    EventHandlerStore.cpp
+    YouTubeStore.cpp
+)
+# gersemi: on

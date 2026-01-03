@@ -25,7 +25,6 @@
 #include <QDialog>
 #include <QPointer>
 
-#include <KaitoTokyo/Async/Task.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 #include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
@@ -178,8 +177,6 @@ private:
 	std::vector<YouTubeApi::YouTubeLiveStream> streamKeys_;
 
 	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow_;
-	Async::Task<void> currentAuthFlowTask_ = {};
-	Async::Task<void> currentFetchStreamKeysTask_ = {};
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::UI
