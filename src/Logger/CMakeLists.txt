@@ -1,10 +1,5 @@
 add_library(Logger INTERFACE)
 # gersemi: off
-target_link_libraries(
-  Logger
-  INTERFACE
-    CURL::libcurl
-)
 target_sources(
   Logger
   INTERFACE
