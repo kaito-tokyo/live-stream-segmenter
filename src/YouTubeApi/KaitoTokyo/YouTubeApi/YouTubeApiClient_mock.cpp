@@ -46,8 +46,9 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams([[maybe_unused]
 	return {stream};
 }
 
-std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] const std::string &accessToken,
-									       [[maybe_unused]] const std::string &broadcastStatus)
+std::vector<YouTubeLiveBroadcast>
+YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] const std::string &accessToken,
+					     [[maybe_unused]] const std::string &broadcastStatus)
 {
 	YouTubeLiveBroadcast broadcast;
 	broadcast.id = "mocked_broadcast_id";
@@ -57,8 +58,9 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus([
 	return {broadcast};
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] const std::string &accessToken,
-							   [[maybe_unused]] const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
+YouTubeLiveBroadcast
+YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+				      [[maybe_unused]] const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	YouTubeLiveBroadcast broadcast;
 	broadcast.id = "mocked_inserted_broadcast_id";
@@ -68,8 +70,9 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] cons
 	return broadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] const std::string &accessToken,
-							   [[maybe_unused]] const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
+YouTubeLiveBroadcast
+YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+				      [[maybe_unused]] const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
 	YouTubeLiveBroadcast broadcast;
 	broadcast.id = updatingLiveBroadcast.id;
@@ -80,7 +83,8 @@ YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] cons
 	return broadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] const std::string &accessToken, const std::string &broadcastId,
+YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+							 const std::string &broadcastId,
 							 [[maybe_unused]] const std::optional<std::string> &streamId)
 {
 	YouTubeLiveBroadcast broadcast;
@@ -103,7 +107,8 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] 
 	return broadcast;
 }
 
-void YouTubeApiClient::setThumbnail([[maybe_unused]] const std::string &accessToken, [[maybe_unused]] const std::string &videoId,
+void YouTubeApiClient::setThumbnail([[maybe_unused]] const std::string &accessToken,
+				    [[maybe_unused]] const std::string &videoId,
 				    [[maybe_unused]] const std::filesystem::path &thumbnailPath)
 {
 	// モック: 何もしない
