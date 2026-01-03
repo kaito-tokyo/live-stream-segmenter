@@ -20,10 +20,11 @@
 
 #pragma once
 
-#include <condition_variable>
+#include <chrono>
 #include <memory>
 
 #include <QObject>
+#include <QTimer>
 #include <QWidget>
 
 #include <KaitoTokyo/Async/Channel.hpp>
@@ -66,7 +67,16 @@ public:
 	YouTubeStreamSegmenterMainLoop(YouTubeStreamSegmenterMainLoop &&) = delete;
 	YouTubeStreamSegmenterMainLoop &operator=(YouTubeStreamSegmenterMainLoop &&) = delete;
 
+	void setIntervalBetweenSegments(std::chrono::milliseconds interval);
+	std::chrono::milliseconds getRemainingTimeForNextSegment() const;
+
 	void startMainLoop();
+	void setTickTimerInterval(int interval);
+	void setSegmentTimerInterval(int interval);
+	void stopSegmentTimer();
+
+signals:
+	void tick(int segmentTimerRemainingTime);
 
 public slots:
 	void onStartContinuousSession();
@@ -83,6 +93,8 @@ private:
 
 	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient_;
+	QTimer *tickTimer_;
+	QTimer *segmentTimer_;
 
 	Async::Channel<Message> channel_;
 	Async::Task<void> mainLoopTask_;

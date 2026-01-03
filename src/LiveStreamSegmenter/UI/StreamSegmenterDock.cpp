@@ -474,6 +474,13 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	}
 }
 
+void StreamSegmenterDock::onMainLoopTimerTick(int segmentTimerRemainingTime)
+{
+	int secondsRemaining = segmentTimerRemainingTime / 1000;
+	currentTimeRemainingText_ = QString::number(secondsRemaining) + "s";
+	currentStatusLabel_->setText(tr("%1 | Next Segment In: %2").arg(currentStatusText_, currentTimeRemainingText_));
+}
+
 void StreamSegmenterDock::onSettingsButtonClicked()
 {
 	auto logger = [this]() {

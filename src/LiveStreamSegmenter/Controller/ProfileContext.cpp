@@ -70,7 +70,12 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 			 youTubeStreamSegmenterMainLoop_.get(),
 			 &YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession);
 
+	QObject::connect(youTubeStreamSegmenterMainLoop_.get(), &YouTubeStreamSegmenterMainLoop::tick, dock_,
+			 &UI::StreamSegmenterDock::onMainLoopTimerTick);
+
 	youTubeStreamSegmenterMainLoop_->startMainLoop();
+	youTubeStreamSegmenterMainLoop_->setTickTimerInterval(1000);
+	youTubeStreamSegmenterMainLoop_->setSegmentTimerInterval(120000);
 }
 
 ProfileContext::~ProfileContext() noexcept = default;
