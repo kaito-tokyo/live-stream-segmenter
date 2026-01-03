@@ -1,5 +1,5 @@
-add_library(Logger INTERFACE)
 # gersemi: off
+add_library(Logger INTERFACE)
 target_sources(
   Logger
   INTERFACE

@@ -1,7 +1,7 @@
-add_library(GoogleAuth STATIC)
 # gersemi: off
+add_library(GoogleAuth_common OBJECT)
 target_link_libraries(
-  GoogleAuth
+  GoogleAuth_common
   PUBLIC
     fmt::fmt
     nlohmann_json::nlohmann_json
@@ -12,7 +12,7 @@ target_link_libraries(
     fmt::fmt
 )
 target_sources(
-  GoogleAuth
+  GoogleAuth_common
   PUBLIC
   FILE_SET HEADERS
   FILES
@@ -23,12 +23,33 @@ target_sources(
     KaitoTokyo/GoogleAuth/GoogleTokenState.hpp
 )
 target_sources(
-  GoogleAuth
+  GoogleAuth_common
   PRIVATE
-    KaitoTokyo/GoogleAuth/GoogleAuthManager.cpp
     KaitoTokyo/GoogleAuth/GoogleAuthResponse.cpp
     KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.cpp
-    KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.cpp
     KaitoTokyo/GoogleAuth/GoogleTokenState.cpp
 )
+add_library(GoogleAuth_mock STATIC)
+target_sources(
+  GoogleAuth_mock
+  PRIVATE
+    KaitoTokyo/GoogleAuth/GoogleAuthManager_mock.cpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2Flow_mock.cpp
+)
+target_link_libraries(GoogleAuth_mock PUBLIC GoogleAuth_common)
+
+add_library(GoogleAuth_impl STATIC)
+target_sources(
+  GoogleAuth_impl
+  PRIVATE
+    KaitoTokyo/GoogleAuth/GoogleAuthManager.cpp
+    KaitoTokyo/GoogleAuth/GoogleOAuth2Flow.cpp
+)
+target_link_libraries(GoogleAuth_impl PUBLIC GoogleAuth_common)
+
+if(MOCK_GOOGLE_AUTH)
+  add_library(GoogleAuth ALIAS GoogleAuth_mock)
+else()
+  add_library(GoogleAuth ALIAS GoogleAuth_impl)
+endif()
 # gersemi: on

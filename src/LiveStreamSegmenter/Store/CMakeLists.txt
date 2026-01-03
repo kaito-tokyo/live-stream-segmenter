@@ -1,6 +1,5 @@
-add_library(${CMAKE_PROJECT_NAME}_Store STATIC)
-set_target_properties(${CMAKE_PROJECT_NAME}_Store PROPERTIES AUTOMOC ON)
 # gersemi: off
+add_library(${CMAKE_PROJECT_NAME}_Store STATIC)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Store
   PUBLIC
@@ -29,4 +28,5 @@ target_sources(
     EventHandlerStore.cpp
     YouTubeStore.cpp
 )
+set_target_properties(${CMAKE_PROJECT_NAME}_Store PROPERTIES AUTOMOC ON)
 # gersemi: on
