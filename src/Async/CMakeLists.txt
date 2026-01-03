@@ -1,5 +1,5 @@
-add_library(Async INTERFACE)
 # gersemi: off
+add_library(Async INTERFACE)
 target_sources(
   Async
   INTERFACE

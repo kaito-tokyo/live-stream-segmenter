@@ -1,5 +1,5 @@
-add_library(AsyncQt INTERFACE)
 # gersemi: off
+add_library(AsyncQt INTERFACE)
 target_link_libraries(
   AsyncQt
   INTERFACE

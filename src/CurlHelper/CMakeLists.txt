@@ -1,5 +1,5 @@
-add_library(CurlHelper INTERFACE)
 # gersemi: off
+add_library(CurlHelper INTERFACE)
 target_link_libraries(
   CurlHelper
   INTERFACE

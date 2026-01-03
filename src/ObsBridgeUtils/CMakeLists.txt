@@ -1,5 +1,5 @@
-add_library(ObsBridgeUtils INTERFACE)
 # gersemi: off
+add_library(ObsBridgeUtils INTERFACE)
 target_link_libraries(
   ObsBridgeUtils
   INTERFACE

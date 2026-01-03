@@ -1,9 +1,10 @@
-add_library(${CMAKE_PROJECT_NAME}_Controller STATIC)
-set_target_properties(${CMAKE_PROJECT_NAME}_Controller PROPERTIES AUTOMOC ON)
 # gersemi: off
+add_library(${CMAKE_PROJECT_NAME}_Controller STATIC)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Controller
   PUBLIC
+    Qt6::Core
+    OBS::obs-frontend-api
     Async
     AsyncQt
     GoogleAuth
@@ -31,4 +32,5 @@ target_sources(
     ProfileContext.cpp
     YouTubeStreamSegmenterMainLoop.cpp
 )
+set_target_properties(${CMAKE_PROJECT_NAME}_Controller PROPERTIES AUTOMOC ON)
 # gersemi: on

@@ -1,6 +1,5 @@
-add_library(${CMAKE_PROJECT_NAME}_UI STATIC)
-set_target_properties(${CMAKE_PROJECT_NAME}_UI PROPERTIES AUTOMOC ON AUTORCC ON)
 # gersemi: off
+add_library(${CMAKE_PROJECT_NAME}_UI STATIC)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_UI
   PUBLIC
@@ -35,4 +34,5 @@ target_sources(
     SettingsDialog.cpp
     StreamSegmenterDock.cpp
 )
+set_target_properties(${CMAKE_PROJECT_NAME}_UI PROPERTIES AUTOMOC ON)
 # gersemi: on
