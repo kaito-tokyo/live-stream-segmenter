@@ -67,13 +67,7 @@ public:
 	YouTubeStreamSegmenterMainLoop(YouTubeStreamSegmenterMainLoop &&) = delete;
 	YouTubeStreamSegmenterMainLoop &operator=(YouTubeStreamSegmenterMainLoop &&) = delete;
 
-	void setIntervalBetweenSegments(std::chrono::milliseconds interval);
-	std::chrono::milliseconds getRemainingTimeForNextSegment() const;
-
 	void startMainLoop();
-	void setTickTimerInterval(int interval);
-	void setSegmentTimerInterval(int interval);
-	void stopSegmentTimer();
 
 signals:
 	void tick(int segmentTimerRemainingTime);
