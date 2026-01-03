@@ -95,8 +95,8 @@ StreamSegmenterDock::StreamSegmenterDock(std::shared_ptr<Scripting::ScriptingRun
 	  // Cache Initialization
 	  currentStatusText_(tr("IDLE")),
 	  currentStatusColor_("#888888"),
-	  currentNextTimeText_("--:--:--"),
-	  currentTimeRemainingText_("--")
+	  currentNextTimeText_("--:--"),
+	  currentTimeRemainingText_("--:--:--")
 {
 	setupUi();
 
@@ -130,7 +130,6 @@ void StreamSegmenterDock::setupUi()
 	monitorLabel_->setFont(monitorFont);
 	monitorLabel_->setWordWrap(true);
 	monitorLabel_->setAlignment(Qt::AlignCenter);
-	monitorLabel_->setText(tr("Ready"));
 	statusLayout_->addWidget(monitorLabel_);
 	progressBar_ = new QProgressBar(statusGroup_);
 	progressBar_->setRange(0, 100);
@@ -140,6 +139,8 @@ void StreamSegmenterDock::setupUi()
 	progressBar_->setVisible(false);
 	statusLayout_->addWidget(progressBar_);
 	mainLayout_->addWidget(statusGroup_);
+
+	onMainLoopTimerTick(-1);
 
 	// --- 3. Schedule ---
 	scheduleLayout_->setContentsMargins(4, 8, 4, 8);
@@ -263,6 +264,10 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 	const QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
 	auto logWithTimestamp = [&](const QString &msg, const QString &color = "#e0e0e0") {
 		consoleView_->append(QString("<span style=\"color:%1;\">[%2] %3</span>").arg(color, timestamp, msg));
+		QScrollBar *bar = consoleView_->verticalScrollBar();
+		if (bar) {
+			bar->setValue(bar->maximum());
+		}
 	};
 
 	// --- Progress for startContinuousSessionTask ---
@@ -286,13 +291,15 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(0);
-			monitorLabel_->setText(tr("Starting up..."));
+			currentStatusText_ = tr("STARTING UP...");
+			currentStatusColor_ = "#D7BA7D";
 		} else if (name == "ContinuousYouTubeSessionStarted") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
 			progressBar_->setValue(100);
 			progressBar_->setVisible(false);
-			monitorLabel_->setText(tr("LIVE"));
+			currentStatusText_ = tr("LIVE");
+			currentStatusColor_ = "#4EC9B0";
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
@@ -315,13 +322,17 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 			progressBar_->setVisible(true);
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(0);
-			monitorLabel_->setText(tr("Stopping..."));
+			currentStatusText_ = tr("STOPPING...");
+			currentStatusColor_ = "#D7BA7D";
+			onMainLoopTimerTick(-1);
 		} else if (name == "ContinuousYouTubeSessionStopped") {
 			progressBar_->setMinimum(0);
 			progressBar_->setMaximum(100);
 			progressBar_->setValue(100);
 			progressBar_->setVisible(false);
-			monitorLabel_->setText(tr("IDLE"));
+			currentStatusText_ = tr("IDLE");
+			currentStatusColor_ = "#888888";
+			onMainLoopTimerTick(-1);
 		} else if (idx >= 0) {
 			if (progressBar_->maximum() == 0) {
 				progressBar_->setMinimum(0);
@@ -367,7 +378,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		}
 	}
 
-	// ...existing code...
 	if (name == "OBSStreamingStarted") {
 		logWithTimestamp(tr("OBS streaming started."), "#4EC9B0");
 	} else if (name == "StoppingCurrentStreamBeforeSegmenting") {
@@ -412,7 +422,6 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 		logWithTimestamp(tr("YouTube RTMP service created."), "#4EC9B0");
 	} else if (name == "YouTubeHLSServiceCreated") {
 		logWithTimestamp(tr("YouTube HLS service created."), "#4EC9B0");
-		// ...existing code...
 	} else if (name == "CompletingExistingLiveBroadcast") {
 		QString msg;
 		if (context.contains("title")) {
@@ -476,9 +485,34 @@ void StreamSegmenterDock::logMessage([[maybe_unused]] int level, const QString &
 
 void StreamSegmenterDock::onMainLoopTimerTick(int segmentTimerRemainingTime)
 {
-	int secondsRemaining = segmentTimerRemainingTime / 1000;
-	currentTimeRemainingText_ = QString::number(secondsRemaining) + "s";
-	currentStatusLabel_->setText(tr("%1 | Next Segment In: %2").arg(currentStatusText_, currentTimeRemainingText_));
+	if (segmentTimerRemainingTime < 0) {
+		monitorLabel_->setText(tr("<span style=\"color:%1; font-weight:bold;\">%2</span> / --:-- / --:--:--")
+					       .arg(currentStatusColor_, currentStatusText_));
+	} else {
+		int secondsRemaining = segmentTimerRemainingTime / 1000;
+		// Format remaining time as HH:MM:SS with optional negative sign
+		int absSeconds = std::abs(secondsRemaining);
+		int hours = absSeconds / 3600;
+		int minutes = (absSeconds % 3600) / 60;
+		int seconds = absSeconds % 60;
+		QString sign = secondsRemaining < 0 ? "-" : "";
+		QString remainingTime = QString("%1%2:%3:%4")
+						.arg(sign)
+						.arg(hours, 2, 10, QChar('0'))
+						.arg(minutes, 2, 10, QChar('0'))
+						.arg(seconds, 2, 10, QChar('0'));
+		currentTimeRemainingText_ = remainingTime;
+
+		// Format next time as 24-hour HH:mm for better internationalization support
+		QTime nextTime = QTime::currentTime().addSecs(secondsRemaining);
+		QString nextTimeText = nextTime.toString("HH:mm");
+		currentNextTimeText_ = nextTimeText;
+
+		// Show status / next time / remaining time
+		monitorLabel_->setText(tr("<span style=\"color:%1; font-weight:bold;\">%2</span> / %3 / %4")
+					       .arg(currentStatusColor_, currentStatusText_, currentNextTimeText_,
+						    currentTimeRemainingText_));
+	}
 }
 
 void StreamSegmenterDock::onSettingsButtonClicked()

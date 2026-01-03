@@ -94,30 +94,50 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 	mainLoopTask_ = mainLoop(channel_, curl_, youTubeApiClient_, runtime_, authStore_, eventHandlerStore_,
 				 youtubeStore_, logger_, parent_);
 	mainLoopTask_.start();
+
+	// --- Scripting ---
+	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
+	std::shared_ptr<Scripting::EventScriptingContext> context =
+		std::make_shared<Scripting::EventScriptingContext>(runtime_, ctx, logger_);
+	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, eventHandlerStore_->getEventHandlerDatabasePath(),
+					      true);
+	context->setupContext();
+	database.setupContext();
+	context->setupLocalStorage();
+
+	const std::string scriptContent = eventHandlerStore_->getEventHandlerScript();
+	context->loadEventHandler(scriptContent.c_str());
+
+	int segmentIntervalMilliseconds = 60 * 60 * 1000;
+	try {
+		std::string config = context->executeFunction("onInitYouTubeStreamSegmenter", "{}");
+		nlohmann::json jConfig = nlohmann::json::parse(config);
+		jConfig.at("segmentIntervalMilliseconds").get_to(segmentIntervalMilliseconds);
+	} catch (std::exception &e) {
+		logger_->error(
+			"YouTubeStreamSegmenterMainLoopScriptError",
+			{{"exception", e.what()},
+			 {"message",
+			  "YouTubeStreamSegmenterMainLoopScriptError: falling back to default interval of 3600000ms"},
+			 {"segmentIntervalMilliseconds", "3600000"}});
+	}
+	tickTimer_->setInterval(1000);
+	segmentTimer_->setInterval(segmentIntervalMilliseconds);
+
 	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
-}
-
-void YouTubeStreamSegmenterMainLoop::setTickTimerInterval(int interval)
-{
-	tickTimer_->setInterval(interval);
-}
-
-void YouTubeStreamSegmenterMainLoop::setSegmentTimerInterval(int interval)
-{
-	segmentTimer_->setInterval(interval);
 }
 
 void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
 {
-	segmentTimer_->start();
 	tickTimer_->start();
+	segmentTimer_->start();
 	channel_.send(Message{MessageType::StartContinuousSession});
 }
 
 void YouTubeStreamSegmenterMainLoop::onStopContinuousSession()
 {
-	segmentTimer_->stop();
 	tickTimer_->stop();
+	segmentTimer_->stop();
 	channel_.send(Message{MessageType::StopContinuousSession});
 }
 
@@ -595,6 +615,9 @@ Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> YouTubeStreamSegmen
 
 	logger->info("YouTubeLiveBroadcastCreatedNext",
 		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
+
+	co_await AsyncQt::ResumeOnQTimerSingleShot{60000, parent};
+	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
 
 	// --- Get the next live stream ---
 	logger->info("YouTubeLiveStreamGettingCurrent", {{"liveStreamId", currentLiveStreamId}});
