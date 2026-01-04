@@ -206,11 +206,10 @@ endif()
 # --- qtkeychain ---
 find_package(Qt6Keychain CONFIG QUIET)
 
-if(NOT QT6KEYCHAIN_FOUND AND ENABLE_FETCH_CONTENT)
+if(NOT Qt6Keychain_FOUND AND ENABLE_FETCH_CONTENT)
   include(FetchContent)
   FetchContent_Declare(
     qtkeychain
-    URL
     URL https://github.com/frankosterfeld/qtkeychain/archive/refs/tags/0.15.0.tar.gz
     URL_HASH SHA256=f4254dc8f0933b06d90672d683eab08ef770acd8336e44dfa030ce041dc2ca22
     EXCLUDE_FROM_ALL
@@ -227,11 +226,11 @@ if(NOT QT6KEYCHAIN_FOUND AND ENABLE_FETCH_CONTENT)
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(qtkeychain)
   endblock()
-  set(QT6KEYCHAIN_FOUND ON)
+  set(Qt6Keychain_FOUND ON)
 endif()
 
-if(NOT QT6KEYCHAIN_FOUND)
-  message(FATAL_ERROR "qtkeychain not found.")
+if(NOT Qt6Keychain_FOUND)
+  message(FATAL_ERROR "Qt6Keychain not found.")
 endif()
 
 if(TARGET qt6keychain)
