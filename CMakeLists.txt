@@ -233,7 +233,7 @@ if(NOT Qt6Keychain_FOUND)
   message(FATAL_ERROR "Qt6Keychain not found.")
 endif()
 
-if(TARGET qt6keychain)
+if(TARGET qt6keychain AND NOT TARGET Qt6Keychain::Qt6Keychain)
   add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
 endif()
 
