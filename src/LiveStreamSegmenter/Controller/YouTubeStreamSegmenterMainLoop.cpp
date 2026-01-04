@@ -107,7 +107,7 @@ YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 	std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 	std::shared_ptr<Store::YouTubeStore> youtubeStore, QWidget *parent)
-	: QObject(parent),
+	: QObject(nullptr),
 	  logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
 	  runtime_(std::move(runtime)),
 	  authStore_(std::move(authStore)),
