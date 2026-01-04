@@ -6,6 +6,7 @@ set(
   Release
   MinSizeRel
   None
+  Noconfig
   ""
 )
 set(
@@ -14,6 +15,7 @@ set(
   Release
   RelWithDebInfo
   None
+  Noconfig
   ""
 )
 set(
@@ -22,6 +24,7 @@ set(
   RelWithDebInfo
   MinSizeRel
   None
+  Noconfig
   ""
 )
 
