@@ -206,25 +206,32 @@ endif()
 # --- qtkeychain ---
 find_package(Qt6Keychain CONFIG QUIET)
 
-if(NOT QT6KEYCHAIN_FOUND)
-  pkg_check_modules(PC_QT6KEYCHAIN qt6keychain)
-  if(PC_QT6KEYCHAIN_FOUND)
-    add_library(Qt6Keychain::Qt6Keychain INTERFACE IMPORTED)
-    target_link_libraries(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARIES})
-    target_include_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_INCLUDE_DIRS})
-    target_compile_definitions(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_CFLAGS_OTHER})
-    target_link_directories(Qt6Keychain::Qt6Keychain INTERFACE ${PC_QT6KEYCHAIN_LIBRARY_DIRS})
-    set(QT6KEYCHAIN_FOUND TRUE)
-  endif()
+if(NOT QT6KEYCHAIN_FOUND AND ENABLE_FETCH_CONTENT)
+  include(FetchContent)
+  FetchContent_Declare(
+    qtkeychain
+    URL
+    URL https://github.com/frankosterfeld/qtkeychain/archive/refs/tags/0.15.0.tar.gz
+    URL_HASH SHA256=f4254dc8f0933b06d90672d683eab08ef770acd8336e44dfa030ce041dc2ca22
+    EXCLUDE_FROM_ALL
+    SYSTEM
+  )
+  block()
+    if(APPLE)
+      add_compile_options(-Wno-quoted-include-in-framework-header -fno-objc-arc)
+    elseif(NOT MSVC)
+      add_compile_options(-Wno-cast-function-type)
+    endif()
+    set(BUILD_WITH_QT6 ON CACHE BOOL "" FORCE)
+    set(BUILD_TRANSLATIONS OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(qtkeychain)
+  endblock()
+  set(QT6KEYCHAIN_FOUND ON)
 endif()
 
 if(NOT QT6KEYCHAIN_FOUND)
-  block()
-    set(BUILD_WITH_QT6 ON)
-    set(BUILD_TRANSLATIONS OFF)
-    set(BUILD_TESTING OFF)
-    add_subdirectory(vendor/qtkeychain EXCLUDE_FROM_ALL)
-  endblock()
+  message(FATAL_ERROR "qtkeychain not found.")
 endif()
 
 if(TARGET qt6keychain)
@@ -243,7 +250,13 @@ find_package(QCoro6 CONFIG QUIET COMPONENTS Core)
 
 if(NOT QCoro6_FOUND AND ENABLE_FETCH_CONTENT)
   include(FetchContent)
-  FetchContent_Declare(QCoro GIT_REPOSITORY https://github.com/qcoro/qcoro.git GIT_TAG v0.12.0 EXCLUDE_FROM_ALL SYSTEM)
+  FetchContent_Declare(
+    QCoro
+    URL https://github.com/qcoro/qcoro/archive/refs/tags/v0.12.0.tar.gz
+    URL_HASH SHA256=809afafab61593f994c005ca6e242300e1e3e7f4db8b5d41f8c642aab9450fbc
+    EXCLUDE_FROM_ALL
+    SYSTEM
+  )
   block()
     set(QCORO_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(QCORO_BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -258,8 +271,12 @@ if(NOT QCoro6_FOUND AND ENABLE_FETCH_CONTENT)
     endif()
     FetchContent_MakeAvailable(QCoro)
   endblock()
+  set(QCoro6_FOUND ON)
 endif()
 
+if(NOT QCoro6_FOUND)
+  message(FATAL_ERROR "QCoro6 not found.")
+endif()
 add_subdirectory(src)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
