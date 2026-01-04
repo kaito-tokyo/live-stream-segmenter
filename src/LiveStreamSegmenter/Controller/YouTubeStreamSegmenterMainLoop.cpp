@@ -268,7 +268,8 @@ Async::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
 namespace {
 
 // Must be called from a worker thread and returns on a worker thread
-std::string getAccessToken(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<Store::AuthStore> authStore)
+std::string getAccessToken(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			   std::shared_ptr<Store::AuthStore> authStore)
 {
 	Jthread::stop_token stoken;
 	logger->info("YouTubeAccessTokenGetting");
@@ -348,9 +349,7 @@ QCoro::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 			}
 		}
 
-		bool await_ready() const noexcept {
-			return stoken_.stop_requested();
-		}
+		bool await_ready() const noexcept { return stoken_.stop_requested(); }
 
 		bool await_suspend(std::coroutine_handle<> h) noexcept
 		{
@@ -368,7 +367,8 @@ QCoro::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 			return true;
 		}
 
-		bool await_resume() noexcept {
+		bool await_resume() noexcept
+		{
 			stopCallback_.reset();
 			return !isCancelled_;
 		}

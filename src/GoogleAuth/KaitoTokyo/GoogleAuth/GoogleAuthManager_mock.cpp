@@ -25,20 +25,35 @@
 
 #include "GoogleAuthManager.hpp"
 
+#include <cassert>
+
+#include <KaitoTokyo/Logger/NullLogger.hpp>
+
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
-				     const GoogleOAuth2ClientCredentials &clientCredentials,
-				     std::shared_ptr<const Logger::ILogger> logger)
-	: curl_(std::move(curl)),
-	  clientCredentials_(clientCredentials),
-	  logger_(std::move(logger))
+GoogleAuthManager::GoogleAuthManager(std::shared_ptr<const Logger::ILogger> logger,
+				     std::shared_ptr<CurlHelper::CurlHandle> curl,
+				     std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials)
+	: logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
+	  curl_(std::move(curl)),
+	  clientCredentials_(std::move(clientCredentials))
 {
+	assert(logger_);
+	if (!curl_) {
+		logger_->error("CurlIsNullError");
+		throw std::invalid_argument("CurlIsNullError(GoogleAuthManager::GoogleAuthManager)");
+	}
+	if (!clientCredentials_) {
+		logger_->error("ClientCredentialsIsNullError");
+		throw std::invalid_argument("ClientCredentialsIsNullError(GoogleAuthManager::GoogleAuthManager)");
+	}
 }
 
 GoogleAuthManager::~GoogleAuthManager() noexcept = default;
 
-std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(const std::string &refreshToken, [[maybe_unused]] Jthread::stop_token stoken) const
+std::shared_ptr<GoogleAuthResponse>
+GoogleAuthManager::fetchFreshAuthResponse([[maybe_unused]] Jthread::stop_token stoken,
+					  const std::string &refreshToken) const
 {
 	std::shared_ptr<GoogleAuthResponse> resp = std::make_shared<GoogleAuthResponse>();
 	resp->access_token = "mocked_access_token";

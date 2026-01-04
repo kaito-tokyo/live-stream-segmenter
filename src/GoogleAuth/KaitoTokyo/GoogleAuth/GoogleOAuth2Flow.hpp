@@ -30,6 +30,7 @@
 #include <string>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Jthread/Jthread.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
@@ -39,8 +40,8 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleOAuth2Flow {
 public:
-	GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl, GoogleOAuth2ClientCredentials clientCredentials,
-			 std::string scopes, std::shared_ptr<const Logger::ILogger> logger);
+	GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			 std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials, std::string scopes);
 
 	~GoogleOAuth2Flow() noexcept;
 
@@ -50,15 +51,15 @@ public:
 	GoogleOAuth2Flow &operator=(GoogleOAuth2Flow &&) = delete;
 
 	[[nodiscard]]
-	std::string getAuthorizationUrl(std::string redirectUri) const;
+	std::string getAuthorizationUrl(const std::string &redirectUri) const;
 
 	[[nodiscard]]
-	GoogleAuthResponse exchangeCode(std::string code, std::string redirectUri);
+	GoogleAuthResponse exchangeCode(Jthread::stop_token stoken, const std::string &code, const std::string &redirectUri);
 
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::string scopes_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	const std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials_;
+	const std::string scopes_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth
