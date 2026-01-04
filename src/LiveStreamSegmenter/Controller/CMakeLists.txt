@@ -6,7 +6,6 @@ target_link_libraries(
     Qt6::Core
     QCoro6::Core
     OBS::obs-frontend-api
-    QCoro6::Core
     Async
     AsyncQt
     GoogleAuth
