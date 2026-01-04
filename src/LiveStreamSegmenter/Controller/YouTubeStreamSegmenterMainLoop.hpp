@@ -28,7 +28,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QWidget>
-#include <QMutex>
+
 
 // QCoro Includes
 #include <QCoro/QCoroTask>

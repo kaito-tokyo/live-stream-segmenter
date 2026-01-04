@@ -105,6 +105,7 @@ void YouTubeStreamSegmenterMainLoop::startMainLoop()
 	// though for a "fire and forget" loop on `this`, standard QCoro usage often implies
 	// the task runs until completion or cancellation.
 	mainLoopTask_ = mainLoop();
+	mainLoopTask_.start();
 
 	// --- Scripting ---
 	// Scripting setup remains on main thread for initialization
@@ -262,7 +263,8 @@ private:
 	std::string taskName_;
 };
 
-// Returns on the calling thread (synchronous helper for QtConcurrent)
+// Returns on the calling thread; synchronous helper that performs blocking network I/O,
+// intended to be called from worker threads via QtConcurrent.
 std::string getAccessToken(std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<Store::AuthStore> authStore,
 			   std::shared_ptr<const Logger::ILogger> logger)
 {
@@ -469,12 +471,14 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	logger->info("YouTubeLiveBroadcastBindingLiveStream",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
-	// Note: bindLiveBroadcast is network IO. Ideally this shouldn't block Main Thread,
-	// but moving just this call to worker thread while surrounding code needs Main Thread (OBS) is complex.
-	// Assuming bindLiveBroadcast is reasonably fast or wrapping it in QtConcurrent if strictly necessary.
-	// For this refactor, we keep it consistent with the "Main Thread Logic" block,
-	// but heavily network-dependent apps might want to isolate this specific call.
-	youTubeApiClient->bindLiveBroadcast(accessToken, *nextLiveBroadcast->id, nextLiveStream->id);
+	// Note: bindLiveBroadcast is network IO. To avoid blocking the Main Thread and UI,
+	// run it on a worker thread via QtConcurrent and co_await the result from this QCoro coroutine.
+	const auto broadcastId = *nextLiveBroadcast->id;
+	const auto streamId = nextLiveStream->id;
+	co_await QtConcurrent::run(
+		[youTubeApiClient, accessToken, broadcastId, streamId]() {
+			youTubeApiClient->bindLiveBroadcast(accessToken, broadcastId, streamId);
+		});
 	logger->info("YouTubeLiveBroadcastBoundToLiveStream",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
@@ -531,9 +535,13 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 		logger->info("YouTubeLiveStreamCheckingIfActive",
 			     {{"liveStreamId", nextLiveStream->id}, {"attemptsLeft", maxAttemptsStr}});
 
-		// Network call on main thread (see previous note)
+		// Offload network call to a worker thread to avoid blocking the main/UI thread.
+		auto liveStreamsFuture = QtConcurrent::run(
+			[youTubeApiClient, accessToken, nextLiveStreamIdArray]() {
+				return youTubeApiClient->listLiveStreams(accessToken, nextLiveStreamIdArray);
+			});
 		const std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-			youTubeApiClient->listLiveStreams(accessToken, nextLiveStreamIdArray);
+			co_await QCoro::fromFuture(liveStreamsFuture);
 
 		if (liveStreams.size() == 1 && liveStreams[0].status.has_value() &&
 		    liveStreams[0].status->streamStatus == "active") {
