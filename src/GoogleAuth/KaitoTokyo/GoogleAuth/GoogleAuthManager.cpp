@@ -64,7 +64,7 @@ std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(Jt
 	CurlHelper::CurlUrlSearchParams postParams(curl_->getRaw());
 	postParams.append("client_id", clientCredentials_->client_id);
 	postParams.append("client_secret", clientCredentials_->client_secret);
-	postParams.append("refresh_token", std::move(refreshToken));
+	postParams.append("refresh_token", refreshToken);
 	postParams.append("grant_type", "refresh_token");
 
 	std::vector<char> readBuffer;
