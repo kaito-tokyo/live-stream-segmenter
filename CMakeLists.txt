@@ -221,9 +221,9 @@ if(NOT Qt6Keychain_FOUND AND ENABLE_FETCH_CONTENT)
     elseif(NOT MSVC)
       add_compile_options(-Wno-cast-function-type)
     endif()
-    set(BUILD_WITH_QT6 ON CACHE BOOL "" FORCE)
-    set(BUILD_TRANSLATIONS OFF CACHE BOOL "" FORCE)
-    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(BUILD_WITH_QT6 ON)
+    set(BUILD_TRANSLATIONS OFF)
+    set(BUILD_TESTING OFF)
     FetchContent_MakeAvailable(qtkeychain)
   endblock()
   set(Qt6Keychain_FOUND ON)
@@ -257,14 +257,14 @@ if(NOT QCoro6_FOUND AND ENABLE_FETCH_CONTENT)
     SYSTEM
   )
   block()
-    set(QCORO_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(QCORO_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QTDBUS OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QTNETWORK OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QTWEBSOCKETS OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QTQUICK OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QML OFF CACHE BOOL "" FORCE)
-    set(QCORO_WITH_QTTEST OFF CACHE BOOL "" FORCE)
+    set(QCORO_BUILD_EXAMPLES OFF)
+    set(QCORO_BUILD_TESTING OFF)
+    set(QCORO_WITH_QTDBUS OFF)
+    set(QCORO_WITH_QTNETWORK OFF)
+    set(QCORO_WITH_QTWEBSOCKETS OFF)
+    set(QCORO_WITH_QTQUICK OFF)
+    set(QCORO_WITH_QML OFF)
+    set(QCORO_WITH_QTTEST OFF)
     if(NOT MSVC)
       add_compile_options(-Wno-newline-eof)
     endif()
@@ -305,8 +305,18 @@ set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PLUG
 
 if(BUILD_TESTING)
   enable_testing()
+
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+    URL_HASH SHA256=65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c
+    EXCLUDE_FROM_ALL
+    SYSTEM
+  )
   block()
-    add_subdirectory(vendor/googletest EXCLUDE_FROM_ALL)
-    add_subdirectory(tests)
+    FetchContent_MakeAvailable(googletest)
   endblock()
+
+  add_subdirectory(tests)
 endif()
