@@ -29,25 +29,27 @@
 
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
-				   GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
-				   std::shared_ptr<const Logger::ILogger> logger)
-	: curl_(std::move(curl)),
-	  clientCredentials_(std::move(clientCredentials)),
-	  scopes_(std::move(scopes)),
-	  logger_(std::move(logger))
+GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger,
+																	 std::shared_ptr<CurlHelper::CurlHandle> curl,
+																	 std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials,
+																	 std::string scopes)
+		: logger_(std::move(logger)),
+			curl_(std::move(curl)),
+			clientCredentials_(std::move(clientCredentials)),
+			scopes_(std::move(scopes))
 {
 }
 
 GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
-std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
+std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri) const
 {
 	return "https://mocked.example.com/oauth2/auth?redirect_uri=" + redirectUri;
 }
 
-GoogleAuthResponse GoogleOAuth2Flow::exchangeCode([[maybe_unused]] std::string code,
-						  [[maybe_unused]] std::string redirectUri)
+GoogleAuthResponse GoogleOAuth2Flow::exchangeCode([[maybe_unused]] Jthread::stop_token stoken,
+                                                 [[maybe_unused]] const std::string &code,
+                                                 [[maybe_unused]] const std::string &redirectUri)
 {
 	GoogleAuthResponse resp;
 	resp.access_token = "mocked_access_token";

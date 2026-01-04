@@ -276,8 +276,8 @@ std::string getAccessToken(std::shared_ptr<const Logger::ILogger> logger, std::s
 
 	std::string accessToken;
 
-	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials = authStore->getGoogleOAuth2ClientCredentials();
-	GoogleAuth::GoogleAuthManager authManager(curl, clientCredentials, logger);
+	auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(authStore->getGoogleOAuth2ClientCredentials());
+	GoogleAuth::GoogleAuthManager authManager(logger, curl, clientCredentials);
 
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();
 
@@ -294,7 +294,7 @@ std::string getAccessToken(std::shared_ptr<const Logger::ILogger> logger, std::s
 		logger->info("YouTubeAccessTokenRefreshing");
 
 		std::shared_ptr<GoogleAuth::GoogleAuthResponse> freshAuthResponse =
-			authManager.fetchFreshAuthResponse(tokenState.refresh_token, stoken);
+			authManager.fetchFreshAuthResponse(stoken, tokenState.refresh_token);
 
 		tokenState.loadAuthResponse(*freshAuthResponse);
 
