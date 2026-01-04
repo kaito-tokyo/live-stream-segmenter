@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  * SPDX-License-Identifier: MIT
  *
- * KaitoTokyo GoogleAuth Library
+ * KaitoTokyo Jthread Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,40 +25,18 @@
 
 #pragma once
 
-#include <memory>
-#include <string_view>
+#ifdef __APPLE__
+#include <jthread.hpp>
+#else
+#include <thread>
+#endif
 
-#include <curl/curl.h>
+namespace KaitoTokyo {
 
-#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
-#include <KaitoTokyo/Jthread/Jthread.hpp>
-#include <KaitoTokyo/Logger/ILogger.hpp>
+#ifdef __APPLE__
+namespace Jthread = josuttis;
+#else
+namespace Jthread = std;
+#endif
 
-#include "GoogleAuthResponse.hpp"
-#include "GoogleOAuth2ClientCredentials.hpp"
-
-namespace KaitoTokyo::GoogleAuth {
-
-class GoogleAuthManager {
-public:
-	GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
-			  const GoogleOAuth2ClientCredentials &clientCredentials,
-			  std::shared_ptr<const Logger::ILogger> logger);
-
-	~GoogleAuthManager() noexcept;
-
-	GoogleAuthManager(const GoogleAuthManager &) = delete;
-	GoogleAuthManager &operator=(const GoogleAuthManager &) = delete;
-	GoogleAuthManager(GoogleAuthManager &&) = delete;
-	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
-
-	[[nodiscard]]
-	std::shared_ptr<GoogleAuthResponse> fetchFreshAuthResponse(std::string refreshToken, Jthread::stop_token stoken) const;
-
-private:
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const GoogleOAuth2ClientCredentials clientCredentials_;
-	const std::shared_ptr<const Logger::ILogger> logger_;
-};
-
-} // namespace KaitoTokyo::GoogleAuth
+} // namespace KaitoTokyo

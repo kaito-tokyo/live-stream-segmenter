@@ -269,6 +269,10 @@ endif()
 if(NOT QCoro6_FOUND)
   message(FATAL_ERROR "QCoro6 not found.")
 endif()
+
+# --- jthread ---
+add_subdirectory(vendor/josuttis-jthread)
+
 add_subdirectory(src)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)

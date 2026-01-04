@@ -47,8 +47,11 @@ GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> cur
 
 GoogleAuthManager::~GoogleAuthManager() noexcept = default;
 
-GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refreshToken) const
+std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(std::string refreshToken, Jthread::stop_token stoken) const
 {
+	if (stoken.stop_requested())
+		throw std::runtime_error("OperationCancelled(GoogleAuthManager::fetchFreshAuthResponse)");
+
 	CurlHelper::CurlUrlSearchParams postParams(curl_->getRaw());
 	postParams.append("client_id", clientCredentials_.client_id);
 	postParams.append("client_secret", clientCredentials_.client_secret);
@@ -69,11 +72,28 @@ GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refresh
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFOFUNCTION, +[](void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t) -> int {
+		auto *stoken = static_cast<Jthread::stop_token *>(clientp);
+		if (stoken && stoken->stop_requested()) {
+			return 1;
+		} else {
+			return 0;
+		}
+	});
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFODATA, &stoken);
+
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_TIMEOUT, 60L);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_NOSIGNAL, 1L);
 
 	CURLcode res = curl_easy_perform(curl_->getRaw());
+
+	if (res == CURLE_ABORTED_BY_CALLBACK) {
+		logger_->info("OperationCancelled");
+		throw std::runtime_error("OperationCancelled(GoogleAuthManager::fetchFreshAuthResponse)");
+	}
+
 	if (res != CURLE_OK) {
 		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
 		throw std::runtime_error("NetworkError(fetchFreshAuthResponse)");
@@ -86,7 +106,9 @@ GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refresh
 		throw std::runtime_error("APIError(fetchFreshAuthResponse)");
 	}
 
-	return j.get<GoogleAuthResponse>();
+	auto authResponse = std::make_shared<GoogleAuthResponse>();
+	j.get_to(*authResponse);
+	return authResponse;
 }
 
 } // namespace KaitoTokyo::GoogleAuth

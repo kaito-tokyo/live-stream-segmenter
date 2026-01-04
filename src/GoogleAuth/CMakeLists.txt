@@ -6,6 +6,7 @@ target_link_libraries(
     fmt::fmt
     nlohmann_json::nlohmann_json
     nlohmann_json::nlohmann_json
+    Jthread
     CurlHelper
     Logger
   PRIVATE

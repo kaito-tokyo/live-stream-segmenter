@@ -58,6 +58,7 @@
 #include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleTokenState.hpp>
+#include <KaitoTokyo/Jthread/Jthread.hpp>
 #include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
 
 #include <EventScriptingContext.hpp>
@@ -623,6 +624,7 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 void SettingsDialog::fetchStreamKeys()
 {
 	try {
+		Jthread::stop_token stoken;
 		auto curl = std::make_shared<CurlHelper::CurlHandle>();
 		GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials =
 			authStore_->getGoogleOAuth2ClientCredentials();
@@ -637,11 +639,11 @@ void SettingsDialog::fetchStreamKeys()
 				accessToken = tokenState.access_token;
 			} else {
 				logger_->info("YouTubeAccessTokenNotFresh");
-				GoogleAuth::GoogleAuthResponse freshAuthResponse =
-					authManager->fetchFreshAuthResponse(tokenState.refresh_token);
-				tokenState.loadAuthResponse(freshAuthResponse);
+				std::shared_ptr<GoogleAuth::GoogleAuthResponse> freshAuthResponse =
+					authManager->fetchFreshAuthResponse(tokenState.refresh_token, stoken);
+				tokenState.loadAuthResponse(*freshAuthResponse);
 				authStore_->setGoogleTokenState(tokenState);
-				accessToken = freshAuthResponse.access_token;
+				accessToken = freshAuthResponse->access_token;
 				logger_->info("YouTubeAccessTokenFetched");
 			}
 		}
