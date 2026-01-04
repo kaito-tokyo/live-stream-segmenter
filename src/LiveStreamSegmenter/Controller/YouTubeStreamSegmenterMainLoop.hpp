@@ -21,14 +21,18 @@
 #pragma once
 
 #include <chrono>
+#include <deque>
 #include <memory>
+#include <mutex>
 
 #include <QObject>
 #include <QTimer>
 #include <QWidget>
+#include <QMutex>
 
-#include <KaitoTokyo/Async/Channel.hpp>
-#include <KaitoTokyo/Async/Task.hpp>
+// QCoro Includes
+#include <QCoroTask>
+
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 #include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
@@ -71,6 +75,7 @@ public:
 
 signals:
 	void tick(int segmentTimerRemainingTime);
+	void messageEnqueued(); // Signal used to wake up the QCoro loop
 
 public slots:
 	void onStartContinuousSession();
@@ -90,19 +95,20 @@ private:
 	QTimer *tickTimer_;
 	QTimer *segmentTimer_;
 
-	Async::Channel<Message> channel_;
-	Async::Task<void> mainLoopTask_;
+	// Internal Message Queue to replace Async::Channel
+	std::deque<Message> messageQueue_;
+	std::mutex queueMutex_;
+	bool stopRequested_ = false;
 
-	static Async::Task<void> mainLoop(Async::Channel<Message> &channel,
-					  std::shared_ptr<CurlHelper::CurlHandle> curl,
-					  std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-					  std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-					  std::shared_ptr<Store::AuthStore> authStore,
-					  std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-					  std::shared_ptr<Store::YouTubeStore> youtubeStore,
-					  std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+	// QCoro Task handle (to keep the loop alive)
+	QCoro::Task<void> mainLoopTask_;
 
-	static Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> startContinuousSessionTask(
+	QCoro::Task<void> mainLoop();
+
+	// Helper to push messages safely
+	void enqueueMessage(MessageType type);
+
+	static QCoro::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> startContinuousSessionTask(
 		std::shared_ptr<CurlHelper::CurlHandle> curl,
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
@@ -110,13 +116,14 @@ private:
 		std::shared_ptr<Store::YouTubeStore> youtubeStore, std::size_t currentLiveStreamIndex, QObject *parent,
 		std::shared_ptr<const Logger::ILogger> baseLogger);
 
-	static Async::Task<void> stopContinuousSessionTask(
-		[[maybe_unused]] Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
-		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-		std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-		std::shared_ptr<const Logger::ILogger> logger);
+	static QCoro::Task<void>
+	stopContinuousSessionTask(std::shared_ptr<CurlHelper::CurlHandle> curl,
+				  std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+				  std::shared_ptr<Store::AuthStore> authStore,
+				  std::shared_ptr<Store::YouTubeStore> youtubeStore,
+				  std::shared_ptr<const Logger::ILogger> logger);
 
-	static Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> segmentContinuousSessionTask(
+	static QCoro::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> segmentContinuousSessionTask(
 		std::shared_ptr<CurlHelper::CurlHandle> curl,
 		std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 		std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
