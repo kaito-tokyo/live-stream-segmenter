@@ -28,14 +28,6 @@ set(
   ""
 )
 
-set(
-  CMAKE_MAP_IMPORTED_CONFIG_DEBUG
-  Debug
-  None
-  Noconfig
-  ""
-)
-
 set(BUILDSPEC_FILE "${CMAKE_CURRENT_SOURCE_DIR}/buildspec.json")
 
 if(EXISTS "${BUILDSPEC_FILE}")
