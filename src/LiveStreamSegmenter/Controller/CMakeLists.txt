@@ -3,9 +3,11 @@ add_library(${CMAKE_PROJECT_NAME}_Controller STATIC)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}_Controller
   PUBLIC
+    Qt6::Concurrent
     Qt6::Core
     QCoro6::Core
     OBS::obs-frontend-api
+    nlohmann_json::nlohmann_json
     Async
     AsyncQt
     GoogleAuth

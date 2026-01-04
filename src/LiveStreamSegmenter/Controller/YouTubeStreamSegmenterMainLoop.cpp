@@ -30,7 +30,7 @@
 
 #include <QMessageBox>
 #include <QObject>
-#include <QtConcurrent> // Required for offloading heavy tasks
+#include <QtConcurrent>
 
 #include <quickjs.h>
 #include <nlohmann/json.hpp>
@@ -38,9 +38,9 @@
 #include <obs-frontend-api.h>
 
 // QCoro Includes
-#include <QCoroFuture>
-#include <QCoroSignal>
-#include <QCoroTimer>
+#include <QCoro/QCoroFuture>
+#include <QCoro/QCoroSignal>
+#include <QCoro/QCoroTimer>
 
 #include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
@@ -55,7 +55,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
+	std::shared_ptr<const Logger::ILogger> logger, [[maybe_unused]] QWidget *parent)
 	: QObject(nullptr),
 	  runtime_(runtime ? std::move(runtime)
 			   : throw std::invalid_argument("RuntimeIsNullError(YouTubeStreamSegmenterMainLoop)")),
@@ -194,7 +194,7 @@ QCoro::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop()
 				break;
 
 			// Wait for the signal
-			co_await qCoro(self, &YouTubeStreamSegmenterMainLoop::messageEnqueued).waitForNext();
+			co_await qCoro(self, &YouTubeStreamSegmenterMainLoop::messageEnqueued);
 		}
 
 		Message message;
@@ -454,7 +454,7 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 
 // Must be called from the main thread because of OBS API usage
 QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-				 const std::string &accessToken, QObject *parent,
+				 const std::string &accessToken, [[maybe_unused]] QObject *parent,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> nextLiveBroadcast,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				 std::shared_ptr<const Logger::ILogger> logger)

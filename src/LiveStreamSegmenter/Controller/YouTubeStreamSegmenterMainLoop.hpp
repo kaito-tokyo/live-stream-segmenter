@@ -31,7 +31,7 @@
 #include <QMutex>
 
 // QCoro Includes
-#include <QCoroTask>
+#include <QCoro/QCoroTask>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
