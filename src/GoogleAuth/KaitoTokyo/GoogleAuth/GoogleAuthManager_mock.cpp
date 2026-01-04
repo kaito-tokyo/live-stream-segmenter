@@ -38,14 +38,14 @@ GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> cur
 
 GoogleAuthManager::~GoogleAuthManager() noexcept = default;
 
-GoogleAuthResponse GoogleAuthManager::fetchFreshAuthResponse(std::string refreshToken) const
+std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(const std::string &refreshToken, [[maybe_unused]] Jthread::stop_token stoken) const
 {
-	GoogleAuthResponse resp;
-	resp.access_token = "mocked_access_token";
-	resp.expires_in = 3600;
-	resp.token_type = "Bearer";
-	resp.refresh_token = refreshToken;
-	resp.scope = std::string{"mocked_scope"};
+	std::shared_ptr<GoogleAuthResponse> resp = std::make_shared<GoogleAuthResponse>();
+	resp->access_token = "mocked_access_token";
+	resp->expires_in = 3600;
+	resp->token_type = "Bearer";
+	resp->refresh_token = refreshToken;
+	resp->scope = std::string{"mocked_scope"};
 	return resp;
 }
 

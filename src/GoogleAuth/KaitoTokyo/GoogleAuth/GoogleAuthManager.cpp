@@ -47,7 +47,7 @@ GoogleAuthManager::GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> cur
 
 GoogleAuthManager::~GoogleAuthManager() noexcept = default;
 
-std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(std::string refreshToken, Jthread::stop_token stoken) const
+std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(const std::string &refreshToken, Jthread::stop_token stoken) const
 {
 	if (stoken.stop_requested())
 		throw std::runtime_error("OperationCancelled(GoogleAuthManager::fetchFreshAuthResponse)");

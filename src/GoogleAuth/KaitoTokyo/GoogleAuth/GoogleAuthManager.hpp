@@ -53,7 +53,7 @@ public:
 	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
 
 	[[nodiscard]]
-	std::shared_ptr<GoogleAuthResponse> fetchFreshAuthResponse(std::string refreshToken, Jthread::stop_token stoken) const;
+	std::shared_ptr<GoogleAuthResponse> fetchFreshAuthResponse(const std::string &refreshToken, Jthread::stop_token stoken) const;
 
 private:
 	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
