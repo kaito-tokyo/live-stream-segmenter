@@ -234,13 +234,6 @@ if(NOT Qt6Keychain_FOUND)
 endif()
 
 if(TARGET qt6keychain)
-  if(APPLE)
-    target_compile_options(qt6keychain PRIVATE -Wno-quoted-include-in-framework-header -fno-objc-arc)
-  elseif(MSVC)
-  else()
-    target_compile_options(qt6keychain PRIVATE -Wno-cast-function-type)
-  endif()
-
   add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
 endif()
 
