@@ -1,9 +1,3 @@
 [submodule "vendor/googletest"]
 	path = vendor/googletest
 	url = https://github.com/google/googletest.git
-[submodule "vendor/qtkeychain"]
-	path = vendor/qtkeychain
-	url = https://github.com/frankosterfeld/qtkeychain.git
-[submodule "vendor/qcoro"]
-	path = vendor/qcoro
-	url = https://github.com/qcoro/qcoro.git
