@@ -604,7 +604,6 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 
 	std::shared_ptr<GoogleAuth::GoogleOAuth2Flow> googleOAuth2Flow = googleOAuth2Flow_;
 
-
 	std::string codeStr = code.toStdString();
 	std::string redirectUriStr = redirectUri.toString().toStdString();
 	Jthread::stop_token stoken; // ダミーのstop_token（本来はキャンセル制御用）
@@ -627,7 +626,8 @@ void SettingsDialog::fetchStreamKeys()
 	try {
 		Jthread::stop_token stoken;
 		auto curl = std::make_shared<CurlHelper::CurlHandle>();
-		auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(authStore_->getGoogleOAuth2ClientCredentials());
+		auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(
+			authStore_->getGoogleOAuth2ClientCredentials());
 		const auto authManager =
 			std::make_shared<GoogleAuth::GoogleAuthManager>(logger_, curl, clientCredentials);
 		GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();

@@ -82,7 +82,8 @@ std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri
 	return std::string(url.get());
 }
 
-GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(Jthread::stop_token stoken, const std::string &code, const std::string &redirectUri)
+GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(Jthread::stop_token stoken, const std::string &code,
+						  const std::string &redirectUri)
 {
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 

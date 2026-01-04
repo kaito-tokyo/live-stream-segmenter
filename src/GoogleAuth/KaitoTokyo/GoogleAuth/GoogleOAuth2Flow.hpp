@@ -54,7 +54,8 @@ public:
 	std::string getAuthorizationUrl(const std::string &redirectUri) const;
 
 	[[nodiscard]]
-	GoogleAuthResponse exchangeCode(Jthread::stop_token stoken, const std::string &code, const std::string &redirectUri);
+	GoogleAuthResponse exchangeCode(Jthread::stop_token stoken, const std::string &code,
+					const std::string &redirectUri);
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<CurlHelper::CurlHandle> curl_;

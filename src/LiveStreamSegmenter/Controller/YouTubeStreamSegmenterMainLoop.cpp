@@ -276,7 +276,8 @@ std::string getAccessToken(std::shared_ptr<const Logger::ILogger> logger, std::s
 
 	std::string accessToken;
 
-	auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(authStore->getGoogleOAuth2ClientCredentials());
+	auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(
+		authStore->getGoogleOAuth2ClientCredentials());
 	GoogleAuth::GoogleAuthManager authManager(logger, curl, clientCredentials);
 
 	GoogleAuth::GoogleTokenState tokenState = authStore->getGoogleTokenState();

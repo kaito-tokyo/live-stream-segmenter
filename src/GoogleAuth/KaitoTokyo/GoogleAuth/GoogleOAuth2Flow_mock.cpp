@@ -30,13 +30,12 @@
 namespace KaitoTokyo::GoogleAuth {
 
 GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger,
-																	 std::shared_ptr<CurlHelper::CurlHandle> curl,
-																	 std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials,
-																	 std::string scopes)
-		: logger_(std::move(logger)),
-			curl_(std::move(curl)),
-			clientCredentials_(std::move(clientCredentials)),
-			scopes_(std::move(scopes))
+				   std::shared_ptr<CurlHelper::CurlHandle> curl,
+				   std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials, std::string scopes)
+	: logger_(std::move(logger)),
+	  curl_(std::move(curl)),
+	  clientCredentials_(std::move(clientCredentials)),
+	  scopes_(std::move(scopes))
 {
 }
 
@@ -48,8 +47,8 @@ std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri
 }
 
 GoogleAuthResponse GoogleOAuth2Flow::exchangeCode([[maybe_unused]] Jthread::stop_token stoken,
-                                                 [[maybe_unused]] const std::string &code,
-                                                 [[maybe_unused]] const std::string &redirectUri)
+						  [[maybe_unused]] const std::string &code,
+						  [[maybe_unused]] const std::string &redirectUri)
 {
 	GoogleAuthResponse resp;
 	resp.access_token = "mocked_access_token";
