@@ -1,30 +1,5 @@
 include_guard(GLOBAL)
 
-set(
-  CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO
-  RelWithDebInfo
-  Release
-  MinSizeRel
-  None
-  ""
-)
-set(
-  CMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL
-  MinSizeRel
-  Release
-  RelWithDebInfo
-  None
-  ""
-)
-set(
-  CMAKE_MAP_IMPORTED_CONFIG_RELEASE
-  Release
-  RelWithDebInfo
-  MinSizeRel
-  None
-  ""
-)
-
 set(BUILDSPEC_FILE "${CMAKE_CURRENT_SOURCE_DIR}/buildspec.json")
 
 if(EXISTS "${BUILDSPEC_FILE}")
