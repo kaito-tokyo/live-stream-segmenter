@@ -325,7 +325,7 @@ QCoro::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 		Jthread::stop_token stoken_;
 		std::optional<Jthread::stop_callback<std::function<void()>>> stopCallback_;
 		std::atomic<bool> completed_{false};
-		bool isCancelled_ = false;
+		std::atomic<bool> isCancelled_{false};
 
 		static void callback(obs_frontend_event event, void *data)
 		{
@@ -364,6 +364,10 @@ QCoro::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 			}
 
 			stopCallback_.emplace(stoken_, [this]() { finish(true); });
+
+			if (stoken_.stop_requested()) {
+				finish(true);
+			}
 
 			return true;
 		}

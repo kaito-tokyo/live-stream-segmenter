@@ -100,6 +100,11 @@ std::shared_ptr<GoogleAuthResponse> GoogleAuthManager::fetchFreshAuthResponse(Jt
 
 	CURLcode res = curl_easy_perform(curl_->getRaw());
 
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFODATA, nullptr);
+
 	if (res == CURLE_ABORTED_BY_CALLBACK) {
 		logger_->info("OperationCancelled");
 		throw std::runtime_error("OperationCancelled(GoogleAuthManager::fetchFreshAuthResponse)");
