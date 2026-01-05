@@ -57,6 +57,7 @@ public:
 	GoogleAuthResponse exchangeCode(Jthread::stop_token stoken, const std::string &code,
 					const std::string &redirectUri);
 
+private:
 	const std::shared_ptr<const Logger::ILogger> logger_;
 	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
 	const std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials_;

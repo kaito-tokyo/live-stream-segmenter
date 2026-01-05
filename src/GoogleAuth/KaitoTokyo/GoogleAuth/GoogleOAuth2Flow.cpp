@@ -129,6 +129,8 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(Jthread::stop_token stoken, co
 		throw std::runtime_error("CurlPerformError(exchangeCode)");
 	}
 
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, nullptr);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
