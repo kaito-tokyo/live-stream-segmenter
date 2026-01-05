@@ -49,8 +49,18 @@ namespace KaitoTokyo::YouTubeApi {
 
 namespace {
 
-std::vector<char> doGet(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
-			curl_slist *headers = nullptr)
+int progressCallback(void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t)
+{
+	auto *stoken = static_cast<Jthread::stop_token *>(clientp);
+	if (stoken && stoken->stop_requested()) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+std::vector<char> doGet(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -59,27 +69,36 @@ std::vector<char> doGet(CURL *curl, const char *url, std::shared_ptr<const Logge
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doGet)");
 	}
-	if (!url) {
-		logger->error("UrlIsNullError");
-		throw std::invalid_argument("UrlIsNullError(YouTubeApiClient::doGet)");
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doGet)");
 	}
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl);
+	curl_easy_reset(curl->getRaw());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 2L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_FOLLOWLOCATION, 2L);
 
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
 
-	CURLcode res = curl_easy_perform(curl);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
@@ -89,8 +108,8 @@ std::vector<char> doGet(CURL *curl, const char *url, std::shared_ptr<const Logge
 	return readBuffer;
 }
 
-std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
-			 curl_slist *headers = nullptr)
+std::vector<char> doPost(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			 Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -99,29 +118,38 @@ std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logg
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doPost)");
 	}
-	if (!url) {
-		logger->error("UrlIsNullError");
-		throw std::invalid_argument("UrlIsNullError(YouTubeApiClient::doPost)");
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doPost)");
 	}
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl);
+	curl_easy_reset(curl->getRaw());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDS, "");
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, 0L);
 
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
 
-	CURLcode res = curl_easy_perform(curl);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
@@ -131,8 +159,9 @@ std::vector<char> doPost(CURL *curl, const char *url, std::shared_ptr<const Logg
 	return readBuffer;
 }
 
-std::vector<char> doPostWithString(CURL *curl, const char *url, std::string_view body,
-				   std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
+std::vector<char> doPostWithString(std::shared_ptr<const Logger::ILogger> logger,
+				   std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+				   const std::string &url, std::string_view body, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -141,9 +170,9 @@ std::vector<char> doPostWithString(CURL *curl, const char *url, std::string_view
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doPostWithString)");
 	}
-	if (!url) {
-		logger->error("UrlIsNullError");
-		throw std::invalid_argument("UrlIsNullError(YouTubeApiClient::doPostWithString)");
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doPostWithString)");
 	}
 	if (body.empty()) {
 		logger->error("BodyIsEmptyError");
@@ -152,22 +181,31 @@ std::vector<char> doPostWithString(CURL *curl, const char *url, std::string_view
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl);
+	curl_easy_reset(curl->getRaw());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDS, body.data());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
 
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
 
-	CURLcode res = curl_easy_perform(curl);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
@@ -177,8 +215,10 @@ std::vector<char> doPostWithString(CURL *curl, const char *url, std::string_view
 	return readBuffer;
 }
 
-std::vector<char> doPostWithIfstream(CURL *curl, const char *url, std::ifstream &ifs, std::uintmax_t ifsSize,
-				     std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
+std::vector<char> doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logger,
+				     std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+				     const std::string &url, std::ifstream &ifs, std::uintmax_t ifsSize,
+				     curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -187,9 +227,9 @@ std::vector<char> doPostWithIfstream(CURL *curl, const char *url, std::ifstream 
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doPostWithIfstream)");
 	}
-	if (!url) {
-		logger->error("UrlIsNullError");
-		throw std::invalid_argument("UrlIsNullError(YouTubeApiClient::doPostWithIfstream)");
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doPostWithIfstream)");
 	}
 	if (!ifs.is_open()) {
 		logger->error("IfstreamIsNotOpenError");
@@ -202,23 +242,34 @@ std::vector<char> doPostWithIfstream(CURL *curl, const char *url, std::ifstream 
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl);
+	curl_easy_reset(curl->getRaw());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(ifsSize));
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POST, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(ifsSize));
 
-	curl_easy_setopt(curl, CURLOPT_READFUNCTION, CurlHelper::CurlIfstreamReadCallback);
-	curl_easy_setopt(curl, CURLOPT_READDATA, &ifs);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_READFUNCTION, CurlHelper::CurlIfstreamReadCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_READDATA, &ifs);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
 
-	CURLcode res = curl_easy_perform(curl);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_READFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_READDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
@@ -228,8 +279,9 @@ std::vector<char> doPostWithIfstream(CURL *curl, const char *url, std::ifstream 
 	return readBuffer;
 }
 
-std::vector<char> doPutWithString(CURL *curl, const char *url, std::string_view body,
-				  std::shared_ptr<const Logger::ILogger> logger, curl_slist *headers = nullptr)
+std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
+				  std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+				  const std::string &url, std::string_view body, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -239,9 +291,9 @@ std::vector<char> doPutWithString(CURL *curl, const char *url, std::string_view 
 		logger->error("CurlIsNullError");
 		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doPutWithString)");
 	}
-	if (!url) {
-		logger->error("UrlIsNullError");
-		throw std::invalid_argument("UrlIsNullError(YouTubeApiClient::doPutWithString)");
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doPutWithString)");
 	}
 	if (body.empty()) {
 		logger->error("BodyIsEmptyError");
@@ -250,22 +302,31 @@ std::vector<char> doPutWithString(CURL *curl, const char *url, std::string_view 
 
 	std::vector<char> readBuffer;
 
-	curl_easy_reset(curl);
+	curl_easy_reset(curl->getRaw());
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CUSTOMREQUEST, "PUT");
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDS, body.data());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
 
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
-	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
-	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
 
-	CURLcode res = curl_easy_perform(curl);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	if (res != CURLE_OK) {
 		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
@@ -275,24 +336,25 @@ std::vector<char> doPutWithString(CURL *curl, const char *url, std::string_view 
 	return readBuffer;
 }
 
-std::vector<nlohmann::json> performList(CURL *curl, const char *url, std::shared_ptr<const Logger::ILogger> logger,
-					curl_slist *headers = nullptr, int maxIterations = 20)
+std::vector<nlohmann::json> performList(std::shared_ptr<const Logger::ILogger> logger,
+					std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+					const std::string &url, curl_slist *headers = nullptr, int maxIterations = 20)
 {
 	std::vector<nlohmann::json> items;
 	std::string nextPageToken;
 	do {
 		CurlHelper::CurlUrlHandle urlHandle;
-		urlHandle.setUrl(url);
+		urlHandle.setUrl(url.c_str());
 
 		if (!nextPageToken.empty()) {
-			CurlHelper::CurlUrlSearchParams params(curl);
+			CurlHelper::CurlUrlSearchParams params(curl->getRaw());
 			params.append("pageToken", nextPageToken);
 			std::string qs = params.toString();
 			urlHandle.appendQuery(qs.c_str());
 		}
 
-		auto url = urlHandle.c_str();
-		std::vector<char> responseBody = doGet(curl, url.get(), logger, headers);
+		auto nextUrl = urlHandle.c_str();
+		std::vector<char> responseBody = doGet(logger, curl, stoken, nextUrl.get(), headers);
 		nlohmann::json j = nlohmann::json::parse(responseBody);
 
 		if (j.contains("error")) {
@@ -340,7 +402,8 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(const std::string &accessToken,
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken,
+								 const std::string &accessToken,
 								 std::span<const std::string> ids)
 {
 	if (accessToken.empty()) {
@@ -366,7 +429,7 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(const std::stri
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<nlohmann::json> items = performList(curl_->getRaw(), url.get(), logger_, headers.getRaw());
+	std::vector<nlohmann::json> items = performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
 	std::vector<YouTubeLiveStream> liveStreams;
 	for (const nlohmann::json &item : items) {
@@ -376,7 +439,8 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(const std::stri
 	return liveStreams;
 }
 
-std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(const std::string &accessToken,
+std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(Jthread::stop_token stoken,
+									       const std::string &accessToken,
 									       const std::string &broadcastStatus)
 {
 	if (accessToken.empty()) {
@@ -403,7 +467,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(c
 	headers.append(authHeader.c_str());
 
 	auto url = urlHandle.c_str();
-	std::vector<nlohmann::json> items = performList(curl_->getRaw(), url.get(), logger_, headers.getRaw());
+	std::vector<nlohmann::json> items = performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
 	std::vector<YouTubeLiveBroadcast> broadcasts;
 	for (const nlohmann::json &item : items) {
@@ -413,7 +477,7 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(c
 	return broadcasts;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(const std::string &accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 							   const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	if (accessToken.empty()) {
@@ -438,8 +502,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(const std::string &ac
 	nlohmann::json requestBody = insertingLiveBroadcast;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody =
-		doPostWithString(curl_->getRaw(), url.get(), bodyStr, logger_, headers.getRaw());
+	std::vector<char> responseBody = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
@@ -451,7 +514,7 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(const std::string &ac
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(const std::string &accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 							   const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
 	if (accessToken.empty()) {
@@ -476,8 +539,7 @@ YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(const std::string &ac
 	nlohmann::json requestBody = updatingLiveBroadcast;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody =
-		doPutWithString(curl_->getRaw(), url.get(), bodyStr, logger_, headers.getRaw());
+	std::vector<char> responseBody = doPutWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	if (j.contains("error")) {
@@ -488,7 +550,8 @@ YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(const std::string &ac
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(const std::string &accessToken, const std::string &broadcastId,
+YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+							 const std::string &broadcastId,
 							 const std::optional<std::string> &streamId)
 {
 	if (accessToken.empty()) {
@@ -517,7 +580,7 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(const std::string &acce
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), logger_, headers.getRaw());
+	std::vector<char> responseBody = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
@@ -529,7 +592,8 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(const std::string &acce
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(const std::string &accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_token stoken,
+							       const std::string &accessToken,
 							       const std::string &broadcastId,
 							       const std::string &broadcastStatus)
 {
@@ -563,7 +627,7 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(const std::string
 
 	logger_->info("TransitioningLiveBroadcast",
 		      {{"broadcastId", broadcastId}, {"broadcastStatus", broadcastStatus}});
-	std::vector<char> responseBody = doPost(curl_->getRaw(), url.get(), logger_, headers.getRaw());
+	std::vector<char> responseBody = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
@@ -575,8 +639,8 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(const std::string
 	return j.get<YouTubeLiveBroadcast>();
 }
 
-void YouTubeApiClient::setThumbnail(const std::string &accessToken, const std::string &videoId,
-				    const std::filesystem::path &thumbnailPath)
+void YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::string &accessToken,
+				    const std::string &videoId, const std::filesystem::path &thumbnailPath)
 {
 	constexpr std::uintmax_t kMaxThumbnailBytes = 2 * 1024 * 1024;
 
@@ -641,7 +705,7 @@ void YouTubeApiClient::setThumbnail(const std::string &accessToken, const std::s
 	}
 
 	std::vector<char> responseBody =
-		doPostWithIfstream(curl_->getRaw(), url.get(), ifs, size, logger_, headers.getRaw());
+		doPostWithIfstream(logger_, curl_, stoken, url.get(), ifs, size, headers.getRaw());
 	ifs.close();
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);

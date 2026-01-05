@@ -37,7 +37,8 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams([[maybe_unused]] const std::string &accessToken,
+std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
+								 [[maybe_unused]] const std::string &accessToken,
 								 [[maybe_unused]] std::span<const std::string> ids)
 {
 	YouTubeLiveStream stream;
@@ -47,7 +48,8 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams([[maybe_unused]
 }
 
 std::vector<YouTubeLiveBroadcast>
-YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] const std::string &accessToken,
+YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] Jthread::stop_token stoken,
+					     [[maybe_unused]] const std::string &accessToken,
 					     [[maybe_unused]] const std::string &broadcastStatus)
 {
 	YouTubeLiveBroadcast broadcast;
@@ -59,7 +61,8 @@ YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] const std::string 
 }
 
 YouTubeLiveBroadcast
-YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	YouTubeLiveBroadcast broadcast;
@@ -71,7 +74,8 @@ YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] const std::string &access
 }
 
 YouTubeLiveBroadcast
-YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
 	YouTubeLiveBroadcast broadcast;
@@ -83,7 +87,8 @@ YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] const std::string &access
 	return broadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+							 [[maybe_unused]] const std::string &accessToken,
 							 const std::string &broadcastId,
 							 [[maybe_unused]] const std::optional<std::string> &streamId)
 {
@@ -95,7 +100,8 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] const 
 	return broadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] const std::string &accessToken,
+YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+							       [[maybe_unused]] const std::string &accessToken,
 							       [[maybe_unused]] const std::string &broadcastId,
 							       [[maybe_unused]] const std::string &broadcastStatus)
 {
@@ -107,7 +113,8 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] 
 	return broadcast;
 }
 
-void YouTubeApiClient::setThumbnail([[maybe_unused]] const std::string &accessToken,
+void YouTubeApiClient::setThumbnail([[maybe_unused]] Jthread::stop_token stoken,
+				    [[maybe_unused]] const std::string &accessToken,
 				    [[maybe_unused]] const std::string &videoId,
 				    [[maybe_unused]] const std::filesystem::path &thumbnailPath)
 {

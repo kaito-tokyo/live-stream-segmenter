@@ -649,7 +649,8 @@ void SettingsDialog::fetchStreamKeys()
 			}
 		}
 
-		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys = youTubeApiClient_->listLiveStreams(accessToken);
+		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys =
+			youTubeApiClient_->listLiveStreams(stoken, accessToken);
 
 		streamKeyComboA_->clear();
 		streamKeyComboB_->clear();
