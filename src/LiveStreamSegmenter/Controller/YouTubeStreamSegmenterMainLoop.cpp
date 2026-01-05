@@ -341,7 +341,7 @@ QCoro::Task<void> ensureOBSStreamingStopped(std::shared_ptr<const Logger::ILogge
 
 		void finish(bool cancelled)
 		{
-			if (completed_.exchange(true)) {
+			if (!completed_.exchange(true)) {
 				isCancelled_ = cancelled;
 				obs_frontend_remove_event_callback(callback, this);
 				if (h_) {
