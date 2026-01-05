@@ -34,6 +34,7 @@
 #include <vector>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Jthread/Jthread.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 
 #include "YouTubeTypes.hpp"
@@ -48,24 +49,27 @@ public:
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
-	std::vector<YouTubeLiveStream> listLiveStreams(const std::string &accessToken,
+	std::vector<YouTubeLiveStream> listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
 						       std::span<const std::string> ids = {});
 
-	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(const std::string &accessToken,
+	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(Jthread::stop_token stoken,
+								     const std::string &accessToken,
 								     const std::string &broadcastStatus);
 
-	YouTubeLiveBroadcast insertLiveBroadcast(const std::string &accessToken,
+	YouTubeLiveBroadcast insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 						 const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
 
-	YouTubeLiveBroadcast updateLiveBroadcast(const std::string &accessToken,
+	YouTubeLiveBroadcast updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 						 const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 
-	YouTubeLiveBroadcast bindLiveBroadcast(const std::string &accessToken, const std::string &broadcastId,
+	YouTubeLiveBroadcast bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+					       const std::string &broadcastId,
 					       const std::optional<std::string> &streamId);
 
-	YouTubeLiveBroadcast transitionLiveBroadcast(const std::string &accessToken, const std::string &broadcastId,
+	YouTubeLiveBroadcast transitionLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+						     const std::string &broadcastId,
 						     const std::string &broadcastStatus);
-	void setThumbnail(const std::string &accessToken, const std::string &videoId,
+	void setThumbnail(Jthread::stop_token stoken, const std::string &accessToken, const std::string &videoId,
 			  const std::filesystem::path &thumbnailPath);
 
 private:

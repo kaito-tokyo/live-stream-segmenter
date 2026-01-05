@@ -5,6 +5,7 @@ target_link_libraries(
   PUBLIC
     nlohmann_json::nlohmann_json
     CurlHelper
+    Jthread
     Logger
   PRIVATE
     CURL::libcurl

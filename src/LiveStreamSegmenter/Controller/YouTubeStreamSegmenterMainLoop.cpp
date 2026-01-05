@@ -393,10 +393,12 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 				  const std::string &accessToken, std::span<const std::string> liveStreamIds,
 				  std::shared_ptr<const Logger::ILogger> logger)
 {
+	Jthread::stop_token stoken;
+
 	logger->info("YouTubeLiveBroadcastCompletingAllActive");
 
 	const std::vector<YouTubeApi::YouTubeLiveBroadcast> activeLiveBroadcasts =
-		youTubeApiClient->listLiveBroadcastsByStatus(accessToken, "active");
+		youTubeApiClient->listLiveBroadcastsByStatus(stoken, accessToken, "active");
 
 	for (const YouTubeApi::YouTubeLiveBroadcast &liveBroadcast : activeLiveBroadcasts) {
 		if (!liveBroadcast.contentDetails || !liveBroadcast.contentDetails->boundStreamId) {
@@ -423,7 +425,7 @@ void completeActiveLiveBroadcasts(std::shared_ptr<YouTubeApi::YouTubeApiClient> 
 		logger->info("YouTubeLiveBroadcastCompleting",
 			     {{"broadcastId", liveBroadcastId}, {"title", liveBroadcastTitle}});
 
-		youTubeApiClient->transitionLiveBroadcast(accessToken, liveBroadcastId, "complete");
+		youTubeApiClient->transitionLiveBroadcast(stoken, accessToken, liveBroadcastId, "complete");
 		logger->info("YouTubeLiveBroadcastCompleted",
 			     {{"broadcastId", liveBroadcastId}, {"title", liveBroadcastTitle}});
 	}
@@ -439,6 +441,8 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 						     const std::string &onSetThumbnailFunctionName,
 						     std::shared_ptr<const Logger::ILogger> logger)
 {
+	Jthread::stop_token stoken;
+
 	logger->info("YouTubeLiveBroadcastCreating");
 
 	const std::string result = context->executeFunction(onCreateLiveBroadcastFunctionName.c_str(), R"({})");
@@ -449,7 +453,7 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 	logger->info("YouTubeLiveBroadcastInserting");
 
 	const YouTubeApi::YouTubeLiveBroadcast liveBroadcast =
-		youTubeApiClient->insertLiveBroadcast(accessToken, insertingLiveBroadcast);
+		youTubeApiClient->insertLiveBroadcast(stoken, accessToken, insertingLiveBroadcast);
 	const std::string liveBroadcastId = liveBroadcast.id.value_or("(ID MISSING)");
 	const std::string liveBroadcastTitle = (liveBroadcast.snippet && liveBroadcast.snippet->title)
 						       ? *liveBroadcast.snippet->title
@@ -478,7 +482,7 @@ YouTubeApi::YouTubeLiveBroadcast createLiveBroadcast(std::shared_ptr<YouTubeApi:
 			logger->info("YouTubeLiveBroadcastThumbnailSetting",
 				     {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
 
-			youTubeApiClient->setThumbnail(accessToken, videoId, thumbnailPath);
+			youTubeApiClient->setThumbnail(stoken, accessToken, videoId, thumbnailPath);
 
 			logger->info("YouTubeLiveBroadcastThumbnailSet",
 				     {{"videoId", videoId}, {"thumbnailFile", thumbnailFile}});
@@ -501,6 +505,8 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 				 std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				 std::shared_ptr<const Logger::ILogger> logger)
 {
+	Jthread::stop_token stoken;
+
 	logger->info("StreamingStarting");
 
 	if (!nextLiveBroadcast->id) {
@@ -511,7 +517,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	logger->info("YouTubeLiveBroadcastBindingLiveStream",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
-	youTubeApiClient->bindLiveBroadcast(accessToken, *nextLiveBroadcast->id, nextLiveStream->id);
+	youTubeApiClient->bindLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, nextLiveStream->id);
 	logger->info("YouTubeLiveBroadcastBoundToLiveStream",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
 
@@ -569,7 +575,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 			     {{"liveStreamId", nextLiveStream->id}, {"attemptsLeft", maxAttemptsStr}});
 
 		const std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-			youTubeApiClient->listLiveStreams(accessToken, nextLiveStreamIdArray);
+			youTubeApiClient->listLiveStreams(stoken, accessToken, nextLiveStreamIdArray);
 
 		if (liveStreams.size() == 1 && liveStreams[0].status.has_value() &&
 		    liveStreams[0].status->streamStatus == "active") {
@@ -594,7 +600,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	logger->info("YouTubeLiveBroadcastTransitioningToTesting",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
 
-	youTubeApiClient->transitionLiveBroadcast(accessToken, *nextLiveBroadcast->id, "testing");
+	youTubeApiClient->transitionLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, "testing");
 
 	logger->info("YouTubeLiveBroadcastTransitionedToTesting",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
@@ -604,7 +610,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 	logger->info("YouTubeLiveBroadcastTransitioningToLive",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
 
-	youTubeApiClient->transitionLiveBroadcast(accessToken, *nextLiveBroadcast->id, "live");
+	youTubeApiClient->transitionLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, "live");
 
 	logger->info("YouTubeLiveBroadcastTransitionedToLive",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
@@ -706,7 +712,7 @@ Async::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> YouTubeStreamSegmen
 
 	const std::array<std::string, 1> currentLiveStreamIdArray{currentLiveStreamId};
 	std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-		youTubeApiClient->listLiveStreams(accessToken, currentLiveStreamIdArray);
+		youTubeApiClient->listLiveStreams(stoken, accessToken, currentLiveStreamIdArray);
 	if (liveStreams.empty()) {
 		logger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", currentLiveStreamId}});
 		throw std::runtime_error(
@@ -838,7 +844,7 @@ YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
 
 	const std::array<std::string, 1> incomingLiveStreamIdArray{incomingLiveStreamId};
 	const std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-		youTubeApiClient->listLiveStreams(accessToken, incomingLiveStreamIdArray);
+		youTubeApiClient->listLiveStreams(stoken, accessToken, incomingLiveStreamIdArray);
 	if (liveStreams.empty()) {
 		logger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", incomingLiveStreamId}});
 		throw std::runtime_error(
