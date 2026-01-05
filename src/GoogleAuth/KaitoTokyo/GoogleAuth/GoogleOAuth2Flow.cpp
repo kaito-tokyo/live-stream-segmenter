@@ -25,6 +25,7 @@
 
 #include "GoogleOAuth2Flow.hpp"
 
+#include <cassert>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -34,26 +35,40 @@
 #include <KaitoTokyo/CurlHelper/CurlUrlHandle.hpp>
 #include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
 #include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
+#include <KaitoTokyo/Logger/NullLogger.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<CurlHelper::CurlHandle> curl,
-				   GoogleOAuth2ClientCredentials clientCredentials, std::string scopes,
-				   std::shared_ptr<const Logger::ILogger> logger)
-	: curl_(curl ? curl : throw std::invalid_argument("CurlIsNullError(GoogleOAuth2Flow)")),
+GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger,
+				   std::shared_ptr<CurlHelper::CurlHandle> curl,
+				   std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials, std::string scopes)
+	: logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
+	  curl_(std::move(curl)),
 	  clientCredentials_(std::move(clientCredentials)),
-	  scopes_(std::move(scopes)),
-	  logger_(std::move(logger))
+	  scopes_(std::move(scopes))
 {
+	assert(logger_);
+	if (!curl_) {
+		logger_->error("CurlIsNullError");
+		throw std::invalid_argument("CurlIsNullError(GoogleOAuth2Flow)");
+	}
+	if (!clientCredentials_) {
+		logger_->error("ClientCredentialsIsNullError");
+		throw std::invalid_argument("ClientCredentialsIsNullError(GoogleOAuth2Flow)");
+	}
+	if (scopes_.empty()) {
+		logger_->error("ScopesIsEmptyError");
+		throw std::invalid_argument("ScopesIsEmptyError(GoogleOAuth2Flow)");
+	}
 }
 
 GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
 
-std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
+std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri) const
 {
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
-	params.append("client_id", clientCredentials_.client_id);
-	params.append("redirect_uri", std::move(redirectUri));
+	params.append("client_id", clientCredentials_->client_id);
+	params.append("redirect_uri", redirectUri);
 	params.append("response_type", "code");
 	params.append("scope", scopes_);
 	params.append("access_type", "offline");
@@ -68,15 +83,16 @@ std::string GoogleOAuth2Flow::getAuthorizationUrl(std::string redirectUri) const
 	return std::string(url.get());
 }
 
-GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string redirectUri)
+GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(Jthread::stop_token stoken, const std::string &code,
+						  const std::string &redirectUri)
 {
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
 
-	params.append("client_id", clientCredentials_.client_id);
-	params.append("client_secret", clientCredentials_.client_secret);
-	params.append("code", std::move(code));
+	params.append("client_id", clientCredentials_->client_id);
+	params.append("client_secret", clientCredentials_->client_secret);
+	params.append("code", code);
 	params.append("grant_type", "authorization_code");
-	params.append("redirect_uri", std::move(redirectUri));
+	params.append("redirect_uri", redirectUri);
 	const std::string postData = params.toString();
 
 	std::vector<char> readBuffer;
@@ -91,6 +107,19 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
 
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(
+		curl_->getRaw(), CURLOPT_XFERINFOFUNCTION,
+		+[](void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t) -> int {
+			auto *stoken = static_cast<Jthread::stop_token *>(clientp);
+			if (stoken && stoken->stop_requested()) {
+				return 1;
+			} else {
+				return 0;
+			}
+		});
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFODATA, &stoken);
+
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_TIMEOUT, 60L);
 	curl_easy_setopt(curl_->getRaw(), CURLOPT_NOSIGNAL, 1L);
@@ -100,6 +129,11 @@ GoogleAuthResponse GoogleOAuth2Flow::exchangeCode(std::string code, std::string 
 		logger_->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
 		throw std::runtime_error("CurlPerformError(exchangeCode)");
 	}
+
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl_->getRaw(), CURLOPT_XFERINFODATA, nullptr);
 
 	const nlohmann::json j = nlohmann::json::parse(readBuffer);
 	if (j.contains("error")) {

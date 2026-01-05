@@ -31,6 +31,7 @@
 #include <curl/curl.h>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Jthread/Jthread.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
 
 #include "GoogleAuthResponse.hpp"
@@ -40,9 +41,8 @@ namespace KaitoTokyo::GoogleAuth {
 
 class GoogleAuthManager {
 public:
-	GoogleAuthManager(std::shared_ptr<CurlHelper::CurlHandle> curl,
-			  const GoogleOAuth2ClientCredentials &clientCredentials,
-			  std::shared_ptr<const Logger::ILogger> logger);
+	GoogleAuthManager(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			  std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials);
 
 	~GoogleAuthManager() noexcept;
 
@@ -52,12 +52,13 @@ public:
 	GoogleAuthManager &operator=(GoogleAuthManager &&) = delete;
 
 	[[nodiscard]]
-	GoogleAuthResponse fetchFreshAuthResponse(std::string refreshToken) const;
+	std::shared_ptr<GoogleAuthResponse> fetchFreshAuthResponse(Jthread::stop_token stoken,
+								   const std::string &refreshToken) const;
 
 private:
-	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
-	const GoogleOAuth2ClientCredentials clientCredentials_;
 	const std::shared_ptr<const Logger::ILogger> logger_;
+	const std::shared_ptr<CurlHelper::CurlHandle> curl_;
+	const std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials_;
 };
 
 } // namespace KaitoTokyo::GoogleAuth

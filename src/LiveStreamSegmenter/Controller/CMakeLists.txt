@@ -6,10 +6,12 @@ target_link_libraries(
     Qt6::Core
     QCoro6::Core
     OBS::obs-frontend-api
+    jthread::jthread
     Async
     AsyncQt
     GoogleAuth
     CurlHelper
+    Jthread
     Logger
     ObsBridgeUtils
     YouTubeApi

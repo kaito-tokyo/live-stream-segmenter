@@ -58,6 +58,7 @@
 #include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleOAuth2ClientCredentials.hpp>
 #include <KaitoTokyo/GoogleAuth/GoogleTokenState.hpp>
+#include <KaitoTokyo/Jthread/Jthread.hpp>
 #include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
 
 #include <EventScriptingContext.hpp>
@@ -559,14 +560,14 @@ void SettingsDialog::startGoogleOAuth2Flow()
 {
 	logger_->info("GoogleOAuth2FlowStarted");
 
-	GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials;
-	clientCredentials.client_id = clientIdDisplay_->text().toStdString();
-	clientCredentials.client_secret = clientSecretDisplay_->text().toStdString();
+	auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>();
+	clientCredentials->client_id = clientIdDisplay_->text().toStdString();
+	clientCredentials->client_secret = clientSecretDisplay_->text().toStdString();
 
 	auto curl = std::make_shared<CurlHelper::CurlHandle>();
 
 	auto googleOAuth2Flow = std::make_shared<GoogleAuth::GoogleOAuth2Flow>(
-		curl, clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl", logger_);
+		logger_, curl, clientCredentials, "https://www.googleapis.com/auth/youtube.force-ssl");
 
 	auto callbackServer = new GoogleOAuth2FlowCallbackServer(this);
 	callbackServer->listen();
@@ -595,6 +596,8 @@ void SettingsDialog::startGoogleOAuth2Flow()
 
 void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri)
 {
+	Jthread::stop_token stoken;
+
 	if (code.isEmpty()) {
 		logger_->error("GoogleOAuth2FlowAuthorizationCodeEmpty");
 		QMessageBox::critical(this, tr("Error"), tr("Authorization code was empty."));
@@ -605,8 +608,7 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 
 	std::string codeStr = code.toStdString();
 	std::string redirectUriStr = redirectUri.toString().toStdString();
-
-	GoogleAuth::GoogleAuthResponse result = googleOAuth2Flow->exchangeCode(codeStr, redirectUriStr);
+	GoogleAuth::GoogleAuthResponse result = googleOAuth2Flow->exchangeCode(stoken, codeStr, redirectUriStr);
 
 	logger_->info("OAuth2AuthSuccess");
 	QMessageBox::information(this, tr("Success"), tr("Authorization successful!"));
@@ -623,11 +625,12 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 void SettingsDialog::fetchStreamKeys()
 {
 	try {
+		Jthread::stop_token stoken;
 		auto curl = std::make_shared<CurlHelper::CurlHandle>();
-		GoogleAuth::GoogleOAuth2ClientCredentials clientCredentials =
-			authStore_->getGoogleOAuth2ClientCredentials();
+		auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(
+			authStore_->getGoogleOAuth2ClientCredentials());
 		const auto authManager =
-			std::make_shared<GoogleAuth::GoogleAuthManager>(curl, clientCredentials, logger_);
+			std::make_shared<GoogleAuth::GoogleAuthManager>(logger_, curl, clientCredentials);
 		GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
 
 		std::string accessToken;
@@ -637,11 +640,11 @@ void SettingsDialog::fetchStreamKeys()
 				accessToken = tokenState.access_token;
 			} else {
 				logger_->info("YouTubeAccessTokenNotFresh");
-				GoogleAuth::GoogleAuthResponse freshAuthResponse =
-					authManager->fetchFreshAuthResponse(tokenState.refresh_token);
-				tokenState.loadAuthResponse(freshAuthResponse);
+				std::shared_ptr<GoogleAuth::GoogleAuthResponse> freshAuthResponse =
+					authManager->fetchFreshAuthResponse(stoken, tokenState.refresh_token);
+				tokenState.loadAuthResponse(*freshAuthResponse);
 				authStore_->setGoogleTokenState(tokenState);
-				accessToken = freshAuthResponse.access_token;
+				accessToken = freshAuthResponse->access_token;
 				logger_->info("YouTubeAccessTokenFetched");
 			}
 		}

@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Copyright (C) 2025 Kaito Udagawa umireon@kaito.tokyo
  * SPDX-License-Identifier: MIT
  *
- * KaitoTokyo GoogleAuth Library
+ * KaitoTokyo Jthread Library
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,20 @@
  * SOFTWARE.
  */
 
-#include "GoogleOAuth2Flow.hpp"
+#pragma once
 
-#include <utility>
+#ifdef __APPLE__
+#include <jthread.hpp>
+#else
+#include <thread>
+#endif
 
-namespace KaitoTokyo::GoogleAuth {
+namespace KaitoTokyo {
 
-GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger,
-				   std::shared_ptr<CurlHelper::CurlHandle> curl,
-				   std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials, std::string scopes)
-	: logger_(std::move(logger)),
-	  curl_(std::move(curl)),
-	  clientCredentials_(std::move(clientCredentials)),
-	  scopes_(std::move(scopes))
-{
-}
+#ifdef __APPLE__
+namespace Jthread = josuttis;
+#else
+namespace Jthread = std;
+#endif
 
-GoogleOAuth2Flow::~GoogleOAuth2Flow() noexcept = default;
-
-std::string GoogleOAuth2Flow::getAuthorizationUrl(const std::string &redirectUri) const
-{
-	return "https://mocked.example.com/oauth2/auth?redirect_uri=" + redirectUri;
-}
-
-GoogleAuthResponse GoogleOAuth2Flow::exchangeCode([[maybe_unused]] Jthread::stop_token stoken,
-						  [[maybe_unused]] const std::string &code,
-						  [[maybe_unused]] const std::string &redirectUri)
-{
-	GoogleAuthResponse resp;
-	resp.access_token = "mocked_access_token";
-	resp.expires_in = 3600;
-	resp.token_type = "Bearer";
-	resp.refresh_token = "mocked_refresh_token";
-	resp.scope = scopes_;
-	return resp;
-}
-
-} // namespace KaitoTokyo::GoogleAuth
+} // namespace KaitoTokyo

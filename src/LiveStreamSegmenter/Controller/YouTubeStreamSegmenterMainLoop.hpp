@@ -54,11 +54,11 @@ class YouTubeStreamSegmenterMainLoop : public QObject {
 	};
 
 public:
-	YouTubeStreamSegmenterMainLoop(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+	YouTubeStreamSegmenterMainLoop(std::shared_ptr<const Logger::ILogger> logger,
+				       std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 				       std::shared_ptr<Store::AuthStore> authStore,
 				       std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-				       std::shared_ptr<Store::YouTubeStore> youtubeStore,
-				       std::shared_ptr<const Logger::ILogger> logger, QWidget *parent);
+				       std::shared_ptr<Store::YouTubeStore> youtubeStore, QWidget *parent);
 
 	~YouTubeStreamSegmenterMainLoop() override;
 
