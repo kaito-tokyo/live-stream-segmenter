@@ -596,6 +596,8 @@ void SettingsDialog::startGoogleOAuth2Flow()
 
 void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri)
 {
+	Jthread::stop_token stoken;
+
 	if (code.isEmpty()) {
 		logger_->error("GoogleOAuth2FlowAuthorizationCodeEmpty");
 		QMessageBox::critical(this, tr("Error"), tr("Authorization code was empty."));
@@ -606,7 +608,7 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 
 	std::string codeStr = code.toStdString();
 	std::string redirectUriStr = redirectUri.toString().toStdString();
-	GoogleAuth::GoogleAuthResponse result = googleOAuth2Flow->exchangeCode(codeStr, redirectUriStr);
+	GoogleAuth::GoogleAuthResponse result = googleOAuth2Flow->exchangeCode(stoken, codeStr, redirectUriStr);
 
 	logger_->info("OAuth2AuthSuccess");
 	QMessageBox::information(this, tr("Success"), tr("Authorization successful!"));
