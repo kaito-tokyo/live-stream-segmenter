@@ -35,13 +35,14 @@
 #include <KaitoTokyo/CurlHelper/CurlUrlHandle.hpp>
 #include <KaitoTokyo/CurlHelper/CurlUrlSearchParams.hpp>
 #include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
+#include <KaitoTokyo/Logger/NullLogger.hpp>
 
 namespace KaitoTokyo::GoogleAuth {
 
 GoogleOAuth2Flow::GoogleOAuth2Flow(std::shared_ptr<const Logger::ILogger> logger,
 				   std::shared_ptr<CurlHelper::CurlHandle> curl,
 				   std::shared_ptr<GoogleOAuth2ClientCredentials> clientCredentials, std::string scopes)
-	: logger_(std::move(logger)),
+	: logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
 	  curl_(std::move(curl)),
 	  clientCredentials_(std::move(clientCredentials)),
 	  scopes_(std::move(scopes))
