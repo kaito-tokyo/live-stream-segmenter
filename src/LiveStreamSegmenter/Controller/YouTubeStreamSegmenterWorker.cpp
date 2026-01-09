@@ -48,11 +48,12 @@ struct EventScriptingContext {
 	const std::shared_ptr<Scripting::ScriptingDatabase> database;
 
 	EventScriptingContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-			      std::shared_ptr<const Logger::ILogger> logger, const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore)
+			      std::shared_ptr<const Logger::ILogger> logger,
+			      const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore)
 		: ctx(runtime->createContextRaw()),
 		  context(std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger)),
 		  database(std::make_shared<Scripting::ScriptingDatabase>(
-			  runtime, ctx, logger, eventHandlerStore->getEventHandlerScript(), true))
+			  runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(), true))
 	{
 		context->setupContext();
 		database->setupContext();
@@ -500,8 +501,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
-		EventScriptingContext eventScriptingContext(runtime_, taskLogger,
-							    eventHandlerStore_->getEventHandlerScript());
+		EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_);
 
 		// --- YouTube access token ---
 		const std::string accessToken = getAccessToken(stoken, logger_, curl_, authStore_);
@@ -673,8 +673,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
-		EventScriptingContext eventScriptingContext(runtime_, taskLogger,
-							    eventHandlerStore_->getEventHandlerScript());
+		EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_);
 
 		const std::string currentLiveStreamId = youtubeStore_->getLiveStreamId(currentLiveStreamIndex_);
 		const std::string incomingLiveStreamId = youtubeStore_->getLiveStreamId(1 - currentLiveStreamIndex_);
