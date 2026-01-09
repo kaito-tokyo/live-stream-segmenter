@@ -18,206 +18,63 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "YouTubeStreamSegmenterMainLoop.hpp"
+#include "YouTubeStreamSegmenterWorker.hpp"
 
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <optional>
-#include <stop_token>
-#include <string_view>
-#include <vector>
-
-#include <QMessageBox>
-#include <QObject>
-
-#include <nlohmann/json.hpp>
-#include <QCoro/QCoroFuture>
-#include <QCoro/QCoroTimer>
 #include <QCoro/QCoroThread>
-#include <quickjs.h>
 
 #include <obs-frontend-api.h>
 
-#include <KaitoTokyo/Async/Join.hpp>
-#include <KaitoTokyo/AsyncQt/ResumeOnQObject.hpp>
-#include <KaitoTokyo/AsyncQt/ResumeOnQThreadPool.hpp>
-#include <KaitoTokyo/AsyncQt/ResumeOnQTimerSingleShot.hpp>
-#include <KaitoTokyo/CurlHelper/CurlWriteCallback.hpp>
-#include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
-#include <KaitoTokyo/Logger/NullLogger.hpp>
-#include <KaitoTokyo/ObsBridgeUtils/ObsUnique.hpp>
-#include <KaitoTokyo/YouTubeApi/YouTubeTypes.hpp>
-
-#include <EventScriptingContext.hpp>
-#include <ScriptingDatabase.hpp>
+#include <GoogleAuth/GoogleAuthManager.hpp>
+#include <Logger/NullLogger.hpp>
+#include <Scripting/EventScriptingContext.hpp>
+#include <Scripting/ScriptingDatabase.hpp>
+#include <Scripting/ScriptingRuntime.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop(
-	std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-	std::shared_ptr<Store::YouTubeStore> youtubeStore, QWidget *parent)
-	: QObject(nullptr),
-	  logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
-	  runtime_(std::move(runtime)),
-	  authStore_(std::move(authStore)),
-	  eventHandlerStore_(std::move(eventHandlerStore)),
-	  youtubeStore_(std::move(youtubeStore)),
-	  parent_(parent),
-	  curl_(std::make_shared<CurlHelper::CurlHandle>()),
-	  youTubeApiClient_(std::make_shared<YouTubeApi::YouTubeApiClient>(curl_)),
-	  tickTimer_(new QTimer(this)),
-	  segmentTimer_(new QTimer(this))
-{
-	assert(logger_);
-	if (!runtime_) {
-		logger_->error("ScriptingRuntimeIsNullError");
-		throw std::invalid_argument(
-			"ScriptingRuntimeIsNullError(YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop)");
-	}
-	if (!authStore_) {
-		logger_->error("AuthStoreIsNullError");
-		throw std::invalid_argument(
-			"AuthStoreIsNullError(YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop)");
-	}
-	if (!eventHandlerStore_) {
-		logger_->error("EventHandlerStoreIsNullError");
-		throw std::invalid_argument(
-			"EventHandlerStoreIsNullError(YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop)");
-	}
-	if (!youtubeStore_) {
-		logger_->error("YouTubeStoreIsNullError");
-		throw std::invalid_argument(
-			"YouTubeStoreIsNullError(YouTubeStreamSegmenterMainLoop::YouTubeStreamSegmenterMainLoop)");
-	}
-
-	youTubeApiClient_->setLogger(logger_);
-
-	tickTimer_->setTimerType(Qt::VeryCoarseTimer);
-	segmentTimer_->setTimerType(Qt::VeryCoarseTimer);
-
-	connect(tickTimer_, &QTimer::timeout, this, [this]() { emit tick(segmentTimer_->remainingTime()); });
-	connect(segmentTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession);
-}
-
-YouTubeStreamSegmenterMainLoop::~YouTubeStreamSegmenterMainLoop()
-{
-	stopSource_.request_stop();
-	channel_.close();
-}
-
-void YouTubeStreamSegmenterMainLoop::startMainLoop()
-{
-	mainLoopTask_ = mainLoop(stopSource_.get_token(), channel_, curl_, youTubeApiClient_, runtime_, authStore_,
-				 eventHandlerStore_, youtubeStore_, logger_, parent_);
-
-	// --- Scripting ---
-	std::shared_ptr<JSContext> ctx = runtime_->createContextRaw();
-	std::shared_ptr<Scripting::EventScriptingContext> context =
-		std::make_shared<Scripting::EventScriptingContext>(runtime_, ctx, logger_);
-	Scripting::ScriptingDatabase database(runtime_, ctx, logger_, eventHandlerStore_->getEventHandlerDatabasePath(),
-					      true);
-	context->setupContext();
-	database.setupContext();
-	context->setupLocalStorage();
-
-	const std::string scriptContent = eventHandlerStore_->getEventHandlerScript();
-	context->loadEventHandler(scriptContent.c_str());
-
-	int segmentIntervalMilliseconds = 60 * 60 * 1000;
-	try {
-		std::string config = context->executeFunction("onInitYouTubeStreamSegmenter", "{}");
-		nlohmann::json jConfig = nlohmann::json::parse(config);
-		jConfig.at("segmentIntervalMilliseconds").get_to(segmentIntervalMilliseconds);
-	} catch (std::exception &e) {
-		logger_->error(
-			"YouTubeStreamSegmenterMainLoopScriptError",
-			{{"exception", e.what()},
-			 {"message",
-			  "YouTubeStreamSegmenterMainLoopScriptError: falling back to default interval of 3600000ms"},
-			 {"segmentIntervalMilliseconds", "3600000"}});
-	}
-	tickTimer_->setInterval(1000);
-	segmentTimer_->setInterval(segmentIntervalMilliseconds);
-
-	logger_->info("YouTubeStreamSegmenterMainLoopStarted");
-}
-
-void YouTubeStreamSegmenterMainLoop::onStartContinuousSession()
-{
-	tickTimer_->start();
-	segmentTimer_->start();
-	channel_.send(Message{MessageType::StartContinuousSession});
-}
-
-void YouTubeStreamSegmenterMainLoop::onStopContinuousSession()
-{
-	tickTimer_->stop();
-	segmentTimer_->stop();
-	channel_.send(Message{MessageType::StopContinuousSession});
-}
-
-void YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession()
-{
-	channel_.send(Message{MessageType::SegmentContinuousSession});
-}
-
-QCoro::Task<void> YouTubeStreamSegmenterMainLoop::mainLoop(
-	Jthread::stop_token stoken, Async::Channel<Message> &channel, std::shared_ptr<CurlHelper::CurlHandle> curl,
-	std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::shared_ptr<const Logger::ILogger> logger, QWidget *parent)
-{
-	int currentLiveStreamIndex = 0;
-	std::array<YouTubeApi::YouTubeLiveBroadcast, 2> liveBroadcasts;
-	QThread workerThread;
-	workerThread.start();
-
-	while (true) {
-		std::optional<Message> message = co_await channel.receive();
-
-		if (!message.has_value()) {
-			break;
-		}
-
-		try {
-			switch (message->type) {
-			case MessageType::StartContinuousSession: {
-				liveBroadcasts = co_await startContinuousSessionTask(
-					parent, &workerThread, stoken, curl, youTubeApiClient, runtime, authStore,
-					eventHandlerStore, youtubeStore, currentLiveStreamIndex, logger);
-				break;
-			}
-			case MessageType::StopContinuousSession: {
-				co_await stopContinuousSessionTask(parent, &workerThread, stoken, curl,
-								   youTubeApiClient, authStore, youtubeStore, logger);
-				break;
-			}
-			case MessageType::SegmentContinuousSession: {
-				liveBroadcasts = co_await segmentContinuousSessionTask(
-					parent, &workerThread, stoken, curl, youTubeApiClient, runtime, authStore,
-					eventHandlerStore, youtubeStore, currentLiveStreamIndex, liveBroadcasts[1],
-					logger);
-				currentLiveStreamIndex = (currentLiveStreamIndex + 1) % 2;
-				break;
-			}
-			default:
-				logger->warn("UnknownMessageType");
-			}
-		} catch (const std::exception &e) {
-			logger->error("MainLoopError", {{"exception", e.what()}});
-		} catch (...) {
-			logger->error("MainLoopUnknownError");
-		}
-	}
-}
-
 namespace {
+
+struct EventScriptingContext {
+	const std::shared_ptr<JSContext> ctx;
+	const std::shared_ptr<Scripting::EventScriptingContext> context;
+	const std::shared_ptr<Scripting::ScriptingDatabase> database;
+
+	EventScriptingContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+			      std::shared_ptr<const Logger::ILogger> logger, const std::string &scriptContent)
+		: ctx(runtime->createContextRaw()),
+		  context(std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger)),
+		  database(std::make_shared<Scripting::ScriptingDatabase>(runtime, ctx, logger, scriptContent, true))
+	{
+		context->setupContext();
+		database->setupContext();
+		context->setupLocalStorage();
+
+		context->loadEventHandler(scriptContent.c_str());
+	}
+};
+
+class TaskBoundLogger : public Logger::ILogger {
+public:
+	TaskBoundLogger(std::shared_ptr<const Logger::ILogger> baseLogger, std::string_view taskName)
+		: baseLogger_(std::move(baseLogger)),
+		  taskName_(taskName)
+	{
+	}
+
+	void log(Logger::LogLevel level, std::string_view name, std::source_location loc,
+		 std::span<const Logger::LogField> context) const noexcept override
+	{
+		std::vector<Logger::LogField> extendedContext;
+		extendedContext.reserve(context.size() + 1);
+		extendedContext.emplace_back("taskName", taskName_);
+		extendedContext.insert(extendedContext.end(), context.begin(), context.end());
+		baseLogger_->log(level, name, loc, std::span<const Logger::LogField>(extendedContext));
+	}
+
+private:
+	std::shared_ptr<const Logger::ILogger> baseLogger_;
+	const std::string taskName_;
+};
 
 // Must be called from a worker thread and returns on a worker thread
 std::string getAccessToken(Jthread::stop_token stoken, std::shared_ptr<const Logger::ILogger> logger,
@@ -565,52 +422,83 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 
 } // anonymous namespace
 
-QCoro::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> YouTubeStreamSegmenterMainLoop::startContinuousSessionTask(
-	QObject *parent, QThread *workerThread, Jthread::stop_token stoken,
+YouTubeStreamSegmenterWorker::YouTubeStreamSegmenterWorker(
+	QObject *mainContext, QThread *workerThread, std::shared_ptr<const Logger::ILogger> logger,
 	std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::size_t currentLiveStreamIndex, std::shared_ptr<const Logger::ILogger> baseLogger)
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore)
+	: QObject(nullptr),
+	  mainContext_(mainContext),
+	  workerThread_(workerThread),
+	  logger_(logger ? std::move(logger) : Logger::NullLogger::instance()),
+	  curl_(std::move(curl)),
+	  youTubeApiClient_(std::move(youTubeApiClient)),
+	  runtime_(std::move(runtime)),
+	  authStore_(std::move(authStore)),
+	  eventHandlerStore_(std::move(eventHandlerStore)),
+	  youtubeStore_(std::move(youtubeStore))
 {
-	co_await QCoro::moveToThread(parent->thread());
+	if (!mainContext_) {
+		throw std::invalid_argument("MainContextIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	assert(logger_);
+	if (!curl_) {
+		throw std::invalid_argument("CurlIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	if (!youTubeApiClient_) {
+		throw std::invalid_argument("YouTubeApiClientIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	if (!runtime_) {
+		throw std::invalid_argument("ScriptingRuntimeIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	if (!authStore_) {
+		throw std::invalid_argument("AuthStoreIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	if (!eventHandlerStore_) {
+		throw std::invalid_argument("EventHandlerStoreIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+	if (!youtubeStore_) {
+		throw std::invalid_argument("YouTubeStoreIsNullError(YouTubeStreamSegmenterWorker)");
+	}
+}
+
+QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
+{
+	Jthread::stop_token stoken = stopSource_.get_token();
+
+	if (QThread *mainThread = mainContext_->thread()) {
+		co_await QCoro::moveToThread(mainThread);
+	} else {
+		throw std::runtime_error("MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+	}
+
 	// on the main thread
-	const std::shared_ptr<const Logger::ILogger> logger = std::make_shared<TaskBoundLogger>(
-		baseLogger, "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask");
+	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
+		logger_, "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask");
 
-	logger->info("ContinuousYouTubeSessionStarting");
+	taskLogger->info("ContinuousYouTubeSessionStarting");
 
-	logger->info("OBSStreamingEnsuringStopped");
+	taskLogger->info("OBSStreamingEnsuringStopped");
 
-	co_await ensureOBSStreamingStopped(stoken, logger);
+	co_await ensureOBSStreamingStopped(stoken, taskLogger);
 
-	logger->info("OBSStreamingEnsuredStopped");
+	taskLogger->info("OBSStreamingEnsuredStopped");
 
-	co_await QCoro::moveToThread(workerThread);
+	co_await QCoro::moveToThread(workerThread_);
 	// on a worker thread
 
-	// --- Scripting ---
-	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-	std::shared_ptr<Scripting::EventScriptingContext> context =
-		std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger);
-	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
-					      true);
-	context->setupContext();
-	database.setupContext();
-	context->setupLocalStorage();
-
-	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
-	context->loadEventHandler(scriptContent.c_str());
+	EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_->getEventHandlerScript());
 
 	// --- YouTube access token ---
-	const std::string accessToken = getAccessToken(stoken, logger, curl, authStore);
+	const std::string accessToken = getAccessToken(stoken, logger_, curl_, authStore_);
 
 	// --- Complete active broadcasts ---
-	logger->info("YouTubeLiveBroadcastCompletingActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletingActive");
 
-	const std::string currentLiveStreamId = youtubeStore->getLiveStreamId(currentLiveStreamIndex);
-	const std::string nextLiveStreamId = youtubeStore->getLiveStreamId(1 - currentLiveStreamIndex);
+	const std::string currentLiveStreamId = youtubeStore_->getLiveStreamId(currentLiveStreamIndex_);
+	const std::string nextLiveStreamId = youtubeStore_->getLiveStreamId(1 - currentLiveStreamIndex_);
 	if (currentLiveStreamId.empty() || nextLiveStreamId.empty()) {
-		logger->error("YouTubeLiveStreamIdNotSet");
+		taskLogger->error("YouTubeLiveStreamIdNotSet");
 		throw std::runtime_error(
 			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	}
@@ -620,232 +508,226 @@ QCoro::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>> YouTubeStreamSegmen
 		nextLiveStreamId,
 	};
 
-	completeActiveLiveBroadcasts(stoken, youTubeApiClient, accessToken, liveStreamIds, logger);
+	completeActiveLiveBroadcasts(stoken, youTubeApiClient_, accessToken, liveStreamIds, taskLogger);
 
-	logger->info("YouTubeLiveBroadcastCompletedActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletedActive");
 
 	// --- Create an initial live broadcast ---
-	logger->info("YouTubeLiveBroadcastCreatingInitial");
+	taskLogger->info("YouTubeLiveBroadcastCreatingInitial");
 
 	auto initialLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(
-		createLiveBroadcast(stoken, youTubeApiClient, accessToken, context,
-				    "onCreateYouTubeLiveBroadcastInitial", "onSetYouTubeThumbnailInitial", logger));
+		createLiveBroadcast(stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
+				    "onCreateYouTubeLiveBroadcastInitial", "onSetYouTubeThumbnailInitial", taskLogger));
 
 	const std::string initialLiveBroadcastId = initialLiveBroadcast->id.value_or("(ID MISSING)");
 	const std::string initialLiveBroadcastTitle =
 		(initialLiveBroadcast->snippet && initialLiveBroadcast->snippet->title)
 			? *initialLiveBroadcast->snippet->title
 			: "(TITLE MISSING)";
-	logger->info("YouTubeLiveBroadcastCreatedInitial",
-		     {{"broadcastId", initialLiveBroadcastId}, {"title", initialLiveBroadcastTitle}});
+	taskLogger->info("YouTubeLiveBroadcastCreatedInitial",
+			 {{"broadcastId", initialLiveBroadcastId}, {"title", initialLiveBroadcastTitle}});
 
 	// --- Create the next live broadcast ---
-	logger->info("YouTubeLiveBroadcastCreatingNext");
+	taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-	const YouTubeApi::YouTubeLiveBroadcast nextLiveBroadcast = createLiveBroadcast(
-		stoken, youTubeApiClient, accessToken, context, "onCreateYouTubeLiveBroadcastInitialNext",
-		"onSetYouTubeThumbnailInitialNext", logger);
+	const auto nextLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(createLiveBroadcast(
+		stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
+		"onCreateYouTubeLiveBroadcastInitialNext", "onSetYouTubeThumbnailInitialNext", taskLogger));
 
-	const std::string nextLiveBroadcastId = nextLiveBroadcast.id.value_or("(ID MISSING)");
-	const std::string nextLiveBroadcastTitle = (nextLiveBroadcast.snippet && nextLiveBroadcast.snippet->title)
-							   ? *nextLiveBroadcast.snippet->title
+	const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
+	const std::string nextLiveBroadcastTitle = (nextLiveBroadcast->snippet && nextLiveBroadcast->snippet->title)
+							   ? *nextLiveBroadcast->snippet->title
 							   : "(TITLE MISSING)";
 
-	logger->info("YouTubeLiveBroadcastCreatedNext",
-		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
+	taskLogger->info("YouTubeLiveBroadcastCreatedNext",
+			 {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
 	// --- Get the next live stream ---
-	logger->info("YouTubeLiveStreamGettingCurrent", {{"liveStreamId", currentLiveStreamId}});
+	taskLogger->info("YouTubeLiveStreamGettingCurrent", {{"liveStreamId", currentLiveStreamId}});
 
 	const std::array<std::string, 1> currentLiveStreamIdArray{currentLiveStreamId};
 	std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-		youTubeApiClient->listLiveStreams(stoken, accessToken, currentLiveStreamIdArray);
+		youTubeApiClient_->listLiveStreams(stoken, accessToken, currentLiveStreamIdArray);
 	if (liveStreams.empty()) {
-		logger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", currentLiveStreamId}});
+		taskLogger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", currentLiveStreamId}});
 		throw std::runtime_error(
 			"YouTubeLiveStreamNotFound(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 	} else if (liveStreams.size() > 1) {
-		logger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", currentLiveStreamId}});
+		taskLogger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", currentLiveStreamId}});
 	}
 	auto currentLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(liveStreams[0]);
 
-	logger->info("YouTubeLiveStreamGottenCurrent", {{"liveStreamId", currentLiveStreamId}});
+	taskLogger->info("YouTubeLiveStreamGottenCurrent", {{"liveStreamId", currentLiveStreamId}});
 
 	// --- Start streaming the initial live broadcast ---
-	logger->info("StreamingStarting");
+	taskLogger->info("StreamingStarting");
 
-	co_await startStreaming(youTubeApiClient, accessToken, parent, initialLiveBroadcast, currentLiveStream, logger);
+	co_await startStreaming(youTubeApiClient_, accessToken, mainContext_, initialLiveBroadcast, currentLiveStream,
+				taskLogger);
 
-	logger->info("StreamingStarted");
+	taskLogger->info("StreamingStarted");
 
 	// --- Start completed ---
-	logger->info("ContinuousYouTubeSessionStarted");
+	taskLogger->info("ContinuousYouTubeSessionStarted");
 
-	co_return {*initialLiveBroadcast, nextLiveBroadcast};
+	liveBroadcasts_[0] = initialLiveBroadcast;
+	liveBroadcasts_[1] = nextLiveBroadcast;
+
+	currentLiveStreamIndex_ = (currentLiveStreamIndex_ + 1) % 2;
 }
 
-QCoro::Task<void> YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask(
-	QObject *parent, QThread *workerThread, Jthread::stop_token stoken,
-	std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::shared_ptr<const Logger::ILogger> baseLogger)
+QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 {
-	co_await QCoro::moveToThread(parent->thread());
+	Jthread::stop_token stoken = stopSource_.get_token();
+
+	if (QThread *mainThread = mainContext_->thread()) {
+		co_await QCoro::moveToThread(mainThread);
+	} else {
+		throw std::runtime_error("MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+	}
+
 	// on the main thread
-	const std::shared_ptr<const Logger::ILogger> logger = std::make_shared<TaskBoundLogger>(
-		baseLogger, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
+	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
+		logger_, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
 
-	logger->info("ContinuousYouTubeSessionStopping");
+	taskLogger->info("ContinuousYouTubeSessionStopping");
 
-	logger->info("OBSStreamingEnsuringStopped");
+	taskLogger->info("OBSStreamingEnsuringStopped");
 
-	co_await ensureOBSStreamingStopped(stoken, logger);
+	co_await ensureOBSStreamingStopped(stoken, taskLogger);
 
-	logger->info("OBSStreamingEnsuredStopped");
+	taskLogger->info("OBSStreamingEnsuredStopped");
 
-	co_await QCoro::moveToThread(workerThread);
+	co_await QCoro::moveToThread(workerThread_);
 	// on a worker thread
 
 	// --- YouTube access token ---
-	const std::string accessToken = getAccessToken(stoken, logger, curl, authStore);
+	const std::string accessToken = getAccessToken(stoken, taskLogger, curl_, authStore_);
 
 	// --- Complete active broadcasts ---
-	logger->info("YouTubeLiveBroadcastCompletingActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletingActive");
 
 	const std::array<std::string, 2> liveStreamIds{
-		youtubeStore->getLiveStreamId(0),
-		youtubeStore->getLiveStreamId(1),
+		youtubeStore_->getLiveStreamId(0),
+		youtubeStore_->getLiveStreamId(1),
 	};
 	if (liveStreamIds[0].empty() || liveStreamIds[1].empty()) {
-		logger->error("YouTubeLiveStreamIdNotSet");
+		taskLogger->error("YouTubeLiveStreamIdNotSet");
 		throw std::runtime_error(
 			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask)");
 	}
 
-	completeActiveLiveBroadcasts(stoken, youTubeApiClient, accessToken, liveStreamIds, logger);
+	completeActiveLiveBroadcasts(stoken, youTubeApiClient_, accessToken, liveStreamIds, taskLogger);
 
-	logger->info("YouTubeLiveBroadcastCompletedActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletedActive");
 
 	// --- Stop completed ---
-	logger->info("ContinuousYouTubeSessionStopped");
+	taskLogger->info("ContinuousYouTubeSessionStopped");
 }
 
-QCoro::Task<std::array<YouTubeApi::YouTubeLiveBroadcast, 2>>
-YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask(
-	QObject *parent, QThread *workerThread, Jthread::stop_token stoken,
-	std::shared_ptr<CurlHelper::CurlHandle> curl, std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
-	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
-	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	std::size_t currentLiveStreamIndex, YouTubeApi::YouTubeLiveBroadcast incomingLiveBroadcast,
-	std::shared_ptr<const Logger::ILogger> baseLogger)
+QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 {
-	const std::shared_ptr<const Logger::ILogger> logger = std::make_shared<TaskBoundLogger>(
-		baseLogger, "YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask");
+	Jthread::stop_token stoken = stopSource_.get_token();
 
-	logger->info("ContinuousYouTubeSessionSegmenting");
+	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
+		logger_, "YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask");
 
-	co_await QCoro::moveToThread(workerThread);
+	taskLogger->info("ContinuousYouTubeSessionSegmenting");
+
+	co_await QCoro::moveToThread(workerThread_);
 	// on a worker thread
 
-	const std::string currentLiveStreamId = youtubeStore->getLiveStreamId(currentLiveStreamIndex);
-	const std::string incomingLiveStreamId = youtubeStore->getLiveStreamId(1 - currentLiveStreamIndex);
+	EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_->getEventHandlerScript());
+
+	const std::string currentLiveStreamId = youtubeStore_->getLiveStreamId(currentLiveStreamIndex_);
+	const std::string incomingLiveStreamId = youtubeStore_->getLiveStreamId(1 - currentLiveStreamIndex_);
 	if (currentLiveStreamId.empty() || incomingLiveStreamId.empty()) {
-		logger->error("YouTubeLiveStreamIdNotSet");
+		logger_->error("YouTubeLiveStreamIdNotSet");
 		throw std::runtime_error(
 			"YouTubeLiveStreamIdNotSet(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	}
 
-	// --- Scripting ---
-	std::shared_ptr<JSContext> ctx = runtime->createContextRaw();
-	std::shared_ptr<Scripting::EventScriptingContext> context =
-		std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger);
-	Scripting::ScriptingDatabase database(runtime, ctx, logger, eventHandlerStore->getEventHandlerDatabasePath(),
-					      true);
-	context->setupContext();
-	database.setupContext();
-	context->setupLocalStorage();
-
-	const std::string scriptContent = eventHandlerStore->getEventHandlerScript();
-	context->loadEventHandler(scriptContent.c_str());
-
 	// --- YouTube access token ---
-	const std::string accessToken = getAccessToken(stoken, logger, curl, authStore);
+	const std::string accessToken = getAccessToken(stoken, taskLogger, curl_, authStore_);
 
 	// --- Create the next live broadcast ---
-	logger->info("YouTubeLiveBroadcastCreatingNext");
+	taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-	const YouTubeApi::YouTubeLiveBroadcast nextLiveBroadcast =
-		createLiveBroadcast(stoken, youTubeApiClient, accessToken, context, "onCreateYouTubeLiveBroadcastNext",
-				    "onSetYouTubeThumbnailNext", logger);
+	const auto nextLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(
+		createLiveBroadcast(stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
+				    "onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger));
 
-	const std::string nextLiveBroadcastId = nextLiveBroadcast.id.value_or("(ID MISSING)");
-	const std::string nextLiveBroadcastTitle = (nextLiveBroadcast.snippet && nextLiveBroadcast.snippet->title)
-							   ? *nextLiveBroadcast.snippet->title
+	const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
+	const std::string nextLiveBroadcastTitle = (nextLiveBroadcast->snippet && nextLiveBroadcast->snippet->title)
+							   ? *nextLiveBroadcast->snippet->title
 							   : "(TITLE MISSING)";
 
-	logger->info("YouTubeLiveBroadcastCreatedNext",
+	taskLogger->info("YouTubeLiveBroadcastCreatedNext",
 		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
 	// --- Get the incoming live stream ---
-	logger->info("YouTubeLiveStreamGettingIncoming", {{"liveStreamId", incomingLiveStreamId}});
+	taskLogger->info("YouTubeLiveStreamGettingIncoming", {{"liveStreamId", incomingLiveStreamId}});
 
 	const std::array<std::string, 1> incomingLiveStreamIdArray{incomingLiveStreamId};
 	const std::vector<YouTubeApi::YouTubeLiveStream> liveStreams =
-		youTubeApiClient->listLiveStreams(stoken, accessToken, incomingLiveStreamIdArray);
+		youTubeApiClient_->listLiveStreams(stoken, accessToken, incomingLiveStreamIdArray);
 	if (liveStreams.empty()) {
-		logger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", incomingLiveStreamId}});
+		taskLogger->error("YouTubeLiveStreamNotFound", {{"liveStreamId", incomingLiveStreamId}});
 		throw std::runtime_error(
 			"YouTubeLiveStreamNotFound(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	} else if (liveStreams.size() > 1) {
-		logger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", incomingLiveStreamId}});
+		taskLogger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", incomingLiveStreamId}});
 	}
 	const auto incomingLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(liveStreams[0]);
 
-	logger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
+	taskLogger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
 
 	// --- Ensure OBS streaming is stopped ---
-	logger->info("OBSStreamingEnsuringStopped");
+	taskLogger->info("OBSStreamingEnsuringStopped");
 
-	co_await ensureOBSStreamingStopped(stoken, logger);
+	co_await ensureOBSStreamingStopped(stoken, taskLogger);
 
-	logger->info("OBSStreamingEnsuredStopped");
+	taskLogger->info("OBSStreamingEnsuredStopped");
 
 	// --- Start streaming the initial live broadcast ---
-	logger->info("StreamingStarting");
+	taskLogger->info("StreamingStarting");
 
-	auto incomingLiveBroadcastShared = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(incomingLiveBroadcast);
-	co_await startStreaming(youTubeApiClient, accessToken, parent, incomingLiveBroadcastShared, incomingLiveStream,
-				logger);
+	const auto incomingLiveBroadcast = liveBroadcasts_[1 - currentLiveStreamIndex_];
+	co_await startStreaming(youTubeApiClient_, accessToken, mainContext_, incomingLiveBroadcast, incomingLiveStream,
+				taskLogger);
 
-	logger->info("StreamingStarted");
+	taskLogger->info("StreamingStarted");
 
 	// --- Complete active broadcasts ---
-	logger->info("YouTubeLiveBroadcastCompletingActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletingActive");
 
 	const std::array<std::string, 2> liveStreamIds{
 		currentLiveStreamId,
 		incomingLiveStreamId,
 	};
 
-	completeActiveLiveBroadcasts(stoken, youTubeApiClient, accessToken, liveStreamIds, logger);
+	completeActiveLiveBroadcasts(stoken, youTubeApiClient_, accessToken, liveStreamIds, taskLogger);
 
-	logger->info("YouTubeLiveBroadcastCompletedActive");
+	taskLogger->info("YouTubeLiveBroadcastCompletedActive");
 
 	// --- Segment completed ---
 	if (!incomingLiveBroadcast.id) {
-		logger->error("YouTubeLiveBroadcastIncomingIdMissing");
+		taskLogger->error("YouTubeLiveBroadcastIncomingIdMissing");
 		throw std::runtime_error(
 			"YouTubeLiveBroadcastIncomingIdMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	}
 	if (!incomingLiveBroadcast.snippet || !incomingLiveBroadcast.snippet->title) {
-		logger->error("YouTubeLiveBroadcastIncomingTitleMissing");
+		taskLogger->error("YouTubeLiveBroadcastIncomingTitleMissing");
 		throw std::runtime_error(
 			"YouTubeLiveBroadcastIncomingTitleMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	}
-	logger->info("ContinuousYouTubeSessionSegmented",
+	taskLogger->info("ContinuousYouTubeSessionSegmented",
 		     {{"broadcastId", *incomingLiveBroadcast.id}, {"title", *incomingLiveBroadcast.snippet->title}});
 
-	co_return {incomingLiveBroadcast, nextLiveBroadcast};
+	liveBroadcasts_[0] = incomingLiveBroadcast;
+	liveBroadcasts_[1] = nextLiveBroadcast;
+
+	currentLiveStreamIndex_ = (currentLiveStreamIndex_ + 1) % 2;
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller
