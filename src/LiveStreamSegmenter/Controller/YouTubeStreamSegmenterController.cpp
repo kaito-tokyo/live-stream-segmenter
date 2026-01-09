@@ -32,9 +32,10 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	  logger_(logger)
 {
 	auto curl = std::make_shared<CurlHelper::CurlHandle>();
-	auto youtubeApiClient = std::make_shared<YouTubeApi::YouTubeApiClient>(curl);
+	auto youTubeApiClient = std::make_shared<YouTubeApi::YouTubeApiClient>(curl);
+	youTubeApiClient->setLogger(logger_);
 
-	worker_ = new YouTubeStreamSegmenterWorker(parent, &workerThread_, logger, curl, youtubeApiClient, runtime,
+	worker_ = new YouTubeStreamSegmenterWorker(parent, &workerThread_, logger, curl, youTubeApiClient, runtime,
 						   authStore, eventHandlerStore, youtubeStore);
 	worker_->moveToThread(&workerThread_);
 
@@ -76,7 +77,7 @@ YouTubeStreamSegmenterController::~YouTubeStreamSegmenterController() noexcept
 void YouTubeStreamSegmenterController::start()
 {
 	tickTimer_->start(1000);
-	segmentTimer_->start(3600 * 1000);
+	segmentTimer_->start(6 * 3600 * 1000);
 
 	emit requestStartSession();
 }

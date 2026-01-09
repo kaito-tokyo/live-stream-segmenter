@@ -36,7 +36,7 @@ namespace KaitoTokyo::LiveStreamSegmenter::Scripting {
 
 namespace {
 
-sqlite3 *openSqlite3(const std::filesystem::path &dbPath, bool write)
+sqlite3 *openSqlite3(const std::filesystem::path &dbPath, bool write, std::shared_ptr<const Logger::ILogger> logger)
 {
 	sqlite3 *db = nullptr;
 	std::u8string dbPathU8 = dbPath.u8string();
@@ -45,8 +45,9 @@ sqlite3 *openSqlite3(const std::filesystem::path &dbPath, bool write)
 	if (write) {
 		if (sqlite3_open_v2(dbPathCStr, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) !=
 		    SQLITE_OK) {
-			throw std::runtime_error(fmt::format(
-				"ReadWriteInitError(ScriptingDatabase::ScriptingDatabase):{}", sqlite3_errmsg(db)));
+			sqlite3_close_v2(db);
+			logger->error("ReadWriteInitError", {{"message", sqlite3_errmsg(db)}});
+			throw std::runtime_error("ReadWriteInitError(ScriptingDatabase::ScriptingDatabase)");
 		}
 	} else {
 		int result = sqlite3_open_v2(dbPathCStr, &db, SQLITE_OPEN_READONLY, nullptr);
@@ -59,8 +60,8 @@ sqlite3 *openSqlite3(const std::filesystem::path &dbPath, bool write)
 		}
 
 		if (result != SQLITE_OK) {
-			throw std::runtime_error(fmt::format(
-				"ReadOnlyInitError(ScriptingDatabase::ScriptingDatabase):{}", sqlite3_errmsg(db)));
+			logger->error("ReadOnlyInitError", {{"message", sqlite3_errmsg(db)}});
+			throw std::runtime_error("ReadOnlyInitError(ScriptingDatabase::ScriptingDatabase)");
 		}
 	}
 
@@ -150,7 +151,7 @@ ScriptingDatabase::ScriptingDatabase(std::shared_ptr<ScriptingRuntime> runtime, 
 		   : throw std::invalid_argument("ContextNullError(ScriptingDatabase::ScriptingDatabase)")),
 	  logger_(logger ? std::move(logger)
 			 : throw std::invalid_argument("LoggerNullError(ScriptingDatabase::ScriptingDatabase)")),
-	  db_(openSqlite3(dbPath, write), sqlite3_close_v2)
+	  db_(openSqlite3(dbPath, write, logger_), sqlite3_close_v2)
 {
 }
 

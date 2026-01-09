@@ -50,7 +50,8 @@ struct EventScriptingContext {
 			      std::shared_ptr<const Logger::ILogger> logger, const std::string &scriptContent)
 		: ctx(runtime->createContextRaw()),
 		  context(std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger)),
-		  database(std::make_shared<Scripting::ScriptingDatabase>(runtime, ctx, logger, scriptContent, true))
+		  database(std::make_shared<Scripting::ScriptingDatabase>(
+			  runtime, ctx, logger, "live-stream-segmenter_EventHandlerStore_db.sqlite", true))
 	{
 		context->setupContext();
 		database->setupContext();
@@ -585,8 +586,6 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		liveBroadcasts_[0] = initialLiveBroadcast;
 		liveBroadcasts_[1] = nextLiveBroadcast;
 
-		currentLiveStreamIndex_ = (currentLiveStreamIndex_ + 1) % 2;
-
 		emit sessionStarted();
 	} catch (const std::exception &e) {
 		taskLogger->error("ContinuousYouTubeSessionStartFailed", {{"error", e.what()}});
@@ -609,7 +608,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 		if (QThread *mainThread = mainContext_->thread()) {
 			co_await QCoro::moveToThread(mainThread);
 		} else {
-			throw std::runtime_error("MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+			throw std::runtime_error(
+				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
 		}
 
 		// on the main thread
@@ -671,7 +671,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
-		EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_->getEventHandlerScript());
+		EventScriptingContext eventScriptingContext(runtime_, taskLogger,
+							    eventHandlerStore_->getEventHandlerScript());
 
 		const std::string currentLiveStreamId = youtubeStore_->getLiveStreamId(currentLiveStreamIndex_);
 		const std::string incomingLiveStreamId = youtubeStore_->getLiveStreamId(1 - currentLiveStreamIndex_);
@@ -687,17 +688,18 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		// --- Create the next live broadcast ---
 		taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-		const auto nextLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(
-			createLiveBroadcast(stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
-					"onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger));
+		const auto nextLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(createLiveBroadcast(
+			stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
+			"onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger));
 
 		const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
-		const std::string nextLiveBroadcastTitle = (nextLiveBroadcast->snippet && nextLiveBroadcast->snippet->title)
-								? *nextLiveBroadcast->snippet->title
-								: "(TITLE MISSING)";
+		const std::string nextLiveBroadcastTitle =
+			(nextLiveBroadcast->snippet && nextLiveBroadcast->snippet->title)
+				? *nextLiveBroadcast->snippet->title
+				: "(TITLE MISSING)";
 
 		taskLogger->info("YouTubeLiveBroadcastCreatedNext",
-				{{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
+				 {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
 		// --- Get the incoming live stream ---
 		taskLogger->info("YouTubeLiveStreamGettingIncoming", {{"liveStreamId", incomingLiveStreamId}});
@@ -755,8 +757,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 			throw std::runtime_error(
 				"YouTubeLiveBroadcastIncomingTitleMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 		}
-		taskLogger->info("ContinuousYouTubeSessionSegmented", {{"broadcastId", *incomingLiveBroadcast->id},
-								{"title", *incomingLiveBroadcast->snippet->title}});
+		taskLogger->info("ContinuousYouTubeSessionSegmented",
+				 {{"broadcastId", *incomingLiveBroadcast->id},
+				  {"title", *incomingLiveBroadcast->snippet->title}});
 
 		liveBroadcasts_[0] = incomingLiveBroadcast;
 		liveBroadcasts_[1] = nextLiveBroadcast;
