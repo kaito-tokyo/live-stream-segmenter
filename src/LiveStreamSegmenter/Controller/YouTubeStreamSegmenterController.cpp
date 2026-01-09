@@ -29,16 +29,12 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	std::shared_ptr<YouTubeApi::YouTubeApiClient> youtubeApiClient,
 	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore,
-	QObject *parent = nullptr)
+	QObject *parent)
 	: QObject(parent),
 	  logger_(logger)
 {
-	auto curl = std::make_shared<CurlHelper::CurlHandle>();
-	auto apiClient = std::make_shared<YouTubeApi::YouTubeApiClient>(curl);
-	apiClient->setLogger(logger);
-
-	worker_ = new YouTubeStreamSegmenterWorker(parent, &workerThread_, logger, curl, apiClient, runtime, authStore,
-						   eventHandlerStore, youtubeStore);
+	worker_ = new YouTubeStreamSegmenterWorker(parent, &workerThread_, logger, curl, youtubeApiClient, runtime,
+						   authStore, eventHandlerStore, youtubeStore);
 	worker_->moveToThread(&workerThread_);
 
 	connect(this, &YouTubeStreamSegmenterController::requestStartSession, worker_,
@@ -61,7 +57,7 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	connect(segmentTimer_, &QTimer::timeout, this, &YouTubeStreamSegmenterController::onSegmentTimeout);
 }
 
-YouTubeStreamSegmenterController::~YouTubeStreamSegmenterController()
+YouTubeStreamSegmenterController::~YouTubeStreamSegmenterController() noexcept
 {
 	workerThread_.quit();
 	workerThread_.wait();

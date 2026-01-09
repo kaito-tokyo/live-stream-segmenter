@@ -34,7 +34,7 @@
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 
-#include "YouTubeStreamSegmenterMainLoop.hpp"
+#include "YouTubeStreamSegmenterController.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -59,7 +59,7 @@ private:
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<YouTubeStreamSegmenterMainLoop> youTubeStreamSegmenterMainLoop_;
+	std::shared_ptr<YouTubeStreamSegmenterController> youTubeStreamSegmenterController_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

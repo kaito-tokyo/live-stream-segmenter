@@ -20,15 +20,22 @@
 
 #include "YouTubeStreamSegmenterWorker.hpp"
 
+#include <chrono>
+
 #include <QCoro/QCoroThread>
+#include <QCoro/QCoroTimer>
 
 #include <obs-frontend-api.h>
 
-#include <GoogleAuth/GoogleAuthManager.hpp>
-#include <Logger/NullLogger.hpp>
-#include <Scripting/EventScriptingContext.hpp>
-#include <Scripting/ScriptingDatabase.hpp>
-#include <Scripting/ScriptingRuntime.hpp>
+#include <nlohmann/json.hpp>
+
+#include <KaitoTokyo/GoogleAuth/GoogleAuthManager.hpp>
+#include <KaitoTokyo/Logger/NullLogger.hpp>
+#include <KaitoTokyo/ObsBridgeUtils/ObsUnique.hpp>
+
+#include <EventScriptingContext.hpp>
+#include <ScriptingDatabase.hpp>
+#include <ScriptingRuntime.hpp>
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
@@ -303,13 +310,14 @@ createLiveBroadcast(Jthread::stop_token stoken, std::shared_ptr<YouTubeApi::YouT
 }
 
 // Must be called from a worker thread and returns on the main thread
-QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
+QCoro::Task<void> startStreaming(Jthread::stop_token stoken,
+				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 				 const std::string &accessToken, QObject *parent,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> nextLiveBroadcast,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveStream> nextLiveStream,
 				 std::shared_ptr<const Logger::ILogger> logger)
 {
-	Jthread::stop_token stoken;
+	using namespace std::chrono_literals;
 
 	logger->info("StreamingStarting");
 
@@ -371,8 +379,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 
 	const std::array<std::string, 1> nextLiveStreamIdArray{nextLiveStream->id};
 	for (int maxAttempts = 20; true; --maxAttempts) {
-		co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
-		co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+		co_await QCoro::sleepFor(5s);
 
 		const std::string maxAttemptsStr = std::to_string(maxAttempts);
 		logger->info("YouTubeLiveStreamCheckingIfActive",
@@ -408,8 +415,7 @@ QCoro::Task<void> startStreaming(std::shared_ptr<YouTubeApi::YouTubeApiClient> y
 
 	logger->info("YouTubeLiveBroadcastTransitionedToTesting",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
-	co_await AsyncQt::ResumeOnQTimerSingleShot{5000, parent};
-	co_await AsyncQt::ResumeOnQThreadPool{QThreadPool::globalInstance()};
+	co_await QCoro::sleepFor(5s);
 
 	logger->info("YouTubeLiveBroadcastTransitioningToLive",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
@@ -562,8 +568,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 	// --- Start streaming the initial live broadcast ---
 	taskLogger->info("StreamingStarting");
 
-	co_await startStreaming(youTubeApiClient_, accessToken, mainContext_, initialLiveBroadcast, currentLiveStream,
-				taskLogger);
+	co_await startStreaming(stoken, youTubeApiClient_, accessToken, mainContext_, initialLiveBroadcast,
+				currentLiveStream, taskLogger);
 
 	taskLogger->info("StreamingStarted");
 
@@ -663,7 +669,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 							   : "(TITLE MISSING)";
 
 	taskLogger->info("YouTubeLiveBroadcastCreatedNext",
-		     {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
+			 {{"broadcastId", nextLiveBroadcastId}, {"title", nextLiveBroadcastTitle}});
 
 	// --- Get the incoming live stream ---
 	taskLogger->info("YouTubeLiveStreamGettingIncoming", {{"liveStreamId", incomingLiveStreamId}});
@@ -693,8 +699,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 	taskLogger->info("StreamingStarting");
 
 	const auto incomingLiveBroadcast = liveBroadcasts_[1 - currentLiveStreamIndex_];
-	co_await startStreaming(youTubeApiClient_, accessToken, mainContext_, incomingLiveBroadcast, incomingLiveStream,
-				taskLogger);
+	co_await startStreaming(stoken, youTubeApiClient_, accessToken, mainContext_, incomingLiveBroadcast,
+				incomingLiveStream, taskLogger);
 
 	taskLogger->info("StreamingStarted");
 
@@ -721,8 +727,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		throw std::runtime_error(
 			"YouTubeLiveBroadcastIncomingTitleMissing(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 	}
-	taskLogger->info("ContinuousYouTubeSessionSegmented",
-		     {{"broadcastId", *incomingLiveBroadcast.id}, {"title", *incomingLiveBroadcast.snippet->title}});
+	taskLogger->info("ContinuousYouTubeSessionSegmented", {{"broadcastId", *incomingLiveBroadcast.id},
+							       {"title", *incomingLiveBroadcast.snippet->title}});
 
 	liveBroadcasts_[0] = incomingLiveBroadcast;
 	liveBroadcasts_[1] = nextLiveBroadcast;

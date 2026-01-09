@@ -28,13 +28,14 @@
 
 #include <QCoro/QCoroTask>
 
-#include <CurlHelper/CurlHandle.hpp>
-#include <Logger/ILogger.hpp>
-#include <Scripting/ScriptingRuntime.hpp>
-#include <Store/AuthStore.hpp>
-#include <Store/EventHandlerStore.hpp>
-#include <Store/YouTubeStore.hpp>
-#include <YouTubeApi/YouTubeApiClient.hpp>
+#include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
+#include <KaitoTokyo/Logger/ILogger.hpp>
+#include <KaitoTokyo/YouTubeApi/YouTubeApiClient.hpp>
+
+#include <AuthStore.hpp>
+#include <EventHandlerStore.hpp>
+#include <ScriptingRuntime.hpp>
+#include <YouTubeStore.hpp>
 
 #include "YouTubeStreamSegmenterWorker.hpp"
 
