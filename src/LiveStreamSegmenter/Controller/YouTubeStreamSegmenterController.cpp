@@ -28,7 +28,7 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
 	std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent)
-	: QObject(parent),
+	: QObject(nullptr),
 	  logger_(logger)
 {
 	auto curl = std::make_shared<CurlHelper::CurlHandle>();
