@@ -33,6 +33,7 @@
 #include <KaitoTokyo/Logger/NullLogger.hpp>
 #include <KaitoTokyo/ObsBridgeUtils/ObsUnique.hpp>
 
+#include <EventHandlerStore.hpp>
 #include <EventScriptingContext.hpp>
 #include <ScriptingDatabase.hpp>
 #include <ScriptingRuntime.hpp>
@@ -47,16 +48,17 @@ struct EventScriptingContext {
 	const std::shared_ptr<Scripting::ScriptingDatabase> database;
 
 	EventScriptingContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-			      std::shared_ptr<const Logger::ILogger> logger, const std::string &scriptContent)
+			      std::shared_ptr<const Logger::ILogger> logger, const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore)
 		: ctx(runtime->createContextRaw()),
 		  context(std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger)),
 		  database(std::make_shared<Scripting::ScriptingDatabase>(
-			  runtime, ctx, logger, "live-stream-segmenter_EventHandlerStore_db.sqlite", true))
+			  runtime, ctx, logger, eventHandlerStore->getEventHandlerScript(), true))
 	{
 		context->setupContext();
 		database->setupContext();
 		context->setupLocalStorage();
 
+		std::string scriptContent = eventHandlerStore->getEventHandlerScript();
 		context->loadEventHandler(scriptContent.c_str());
 	}
 };
