@@ -20,9 +20,13 @@
 
 #pragma once
 
-#include <curl/curl.h>
+#include <array>
 
-#include <obs-frontend-api.h>
+#include <QObject>
+#include <QThread>
+#include <QTimer>
+
+#include <QCoro/QCoroTask>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
 #include <KaitoTokyo/Logger/ILogger.hpp>
@@ -30,36 +34,53 @@
 
 #include <AuthStore.hpp>
 #include <EventHandlerStore.hpp>
-#include <YouTubeStore.hpp>
 #include <ScriptingRuntime.hpp>
-#include <StreamSegmenterDock.hpp>
+#include <YouTubeStore.hpp>
 
-#include "YouTubeStreamSegmenterController.hpp"
+#include "YouTubeStreamSegmenterWorker.hpp"
 
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
-class ProfileContext {
+class YouTubeStreamSegmenterController : public QObject {
+	Q_OBJECT
 public:
-	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock);
+	YouTubeStreamSegmenterController(std::shared_ptr<const Logger::ILogger> logger,
+					 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
+					 std::shared_ptr<Store::AuthStore> authStore,
+					 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
+					 std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent);
 
-	~ProfileContext() noexcept;
+	~YouTubeStreamSegmenterController() noexcept;
 
-	ProfileContext(const ProfileContext &) = delete;
-	ProfileContext &operator=(const ProfileContext &) = delete;
-	ProfileContext(ProfileContext &&) = delete;
-	ProfileContext &operator=(ProfileContext &&) = delete;
+	void start();
+	void stop();
+	void segmentNow();
+
+signals:
+	void requestStartSession();
+	void requestStopSession();
+	void requestSegmentSession();
+
+	void sessionStarted();
+	void sessionStopped();
+	void sessionSegmented();
+	void errorOccurred(QString message);
+
+	void tick(int remainingTime);
+
+private slots:
+	void onTick();
+	void onSegmentTimeout();
 
 private:
-	const std::shared_ptr<Scripting::ScriptingRuntime> runtime_;
-	UI::StreamSegmenterDock *const dock_;
+	std::shared_ptr<const Logger::ILogger> logger_;
 
-	const std::shared_ptr<Store::AuthStore> authStore_;
-	const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
-	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
+	QThread workerThread_;
+	YouTubeStreamSegmenterWorker *worker_ = nullptr;
 
-	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<YouTubeStreamSegmenterController> youTubeStreamSegmenterController_;
+private:
+	QTimer *tickTimer_;
+	QTimer *segmentTimer_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

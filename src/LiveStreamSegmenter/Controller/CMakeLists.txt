@@ -26,14 +26,16 @@ target_sources(
   FILES
     MainPluginContext.hpp
     ProfileContext.hpp
-    YouTubeStreamSegmenterMainLoop.hpp
+    YouTubeStreamSegmenterController.hpp
+    YouTubeStreamSegmenterWorker.hpp
 )
 target_sources(
   ${CMAKE_PROJECT_NAME}_Controller
   PRIVATE
     MainPluginContext.cpp
     ProfileContext.cpp
-    YouTubeStreamSegmenterMainLoop.cpp
+    YouTubeStreamSegmenterController.cpp
+    YouTubeStreamSegmenterWorker.cpp
 )
 set_target_properties(${CMAKE_PROJECT_NAME}_Controller PROPERTIES AUTOMOC ON)
 # gersemi: on

@@ -33,8 +33,6 @@
 #include <ScriptingRuntime.hpp>
 #include <StreamSegmenterDock.hpp>
 
-#include "YouTubeStreamSegmenterMainLoop.hpp"
-
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
@@ -45,7 +43,7 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
 	  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
 	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(ProfileContext)")),
-	  youTubeStreamSegmenterMainLoop_(std::make_shared<YouTubeStreamSegmenterMainLoop>(
+	  youTubeStreamSegmenterController_(std::make_shared<YouTubeStreamSegmenterController>(
 		  logger_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, dock_))
 {
 	authStore_->setLogger(logger_);
@@ -60,20 +58,15 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	dock_->setEventHandlerStore(eventHandlerStore_);
 	dock_->setYouTubeStore(youTubeStore_);
 
-	QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::onStartContinuousSession);
-
-	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::onStopContinuousSession);
-
+	QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenterController_.get(),
+			 &YouTubeStreamSegmenterController::start);
+	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterController_.get(),
+			 &YouTubeStreamSegmenterController::stop);
 	QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
-			 youTubeStreamSegmenterMainLoop_.get(),
-			 &YouTubeStreamSegmenterMainLoop::onSegmentContinuousSession);
+			 youTubeStreamSegmenterController_.get(), &YouTubeStreamSegmenterController::segmentNow);
 
-	QObject::connect(youTubeStreamSegmenterMainLoop_.get(), &YouTubeStreamSegmenterMainLoop::tick, dock_,
+	QObject::connect(youTubeStreamSegmenterController_.get(), &YouTubeStreamSegmenterController::tick, dock_,
 			 &UI::StreamSegmenterDock::onMainLoopTimerTick);
-
-	youTubeStreamSegmenterMainLoop_->startMainLoop();
 }
 
 ProfileContext::~ProfileContext() noexcept = default;
