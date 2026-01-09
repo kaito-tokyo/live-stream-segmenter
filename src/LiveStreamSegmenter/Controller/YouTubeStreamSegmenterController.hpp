@@ -45,22 +45,25 @@ class YouTubeStreamSegmenterController : public QObject {
 	Q_OBJECT
 public:
 	YouTubeStreamSegmenterController(std::shared_ptr<const Logger::ILogger> logger,
-					 std::shared_ptr<CurlHelper::CurlHandle> curl,
-					 std::shared_ptr<YouTubeApi::YouTubeApiClient> youtubeApiClient,
 					 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					 std::shared_ptr<Store::AuthStore> authStore,
 					 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-					 std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent = nullptr);
+					 std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent);
 
 	~YouTubeStreamSegmenterController() noexcept;
 
 	void start();
 	void stop();
+	void segmentNow();
 
 signals:
 	void requestStartSession();
 	void requestStopSession();
 	void requestSegmentSession();
+
+	void sessionStarted();
+	void sessionStopped();
+	void errorOccurred(QString message);
 
 	void tick(int remainingTime);
 
