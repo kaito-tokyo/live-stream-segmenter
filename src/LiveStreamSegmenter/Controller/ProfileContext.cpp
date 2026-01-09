@@ -44,7 +44,7 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
 	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(ProfileContext)")),
 	  youTubeStreamSegmenterController_(std::make_shared<YouTubeStreamSegmenterController>(
-		  logger, runtime, authStore_, eventHandlerStore_, youTubeStore_, dock))
+		  logger_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, dock_))
 {
 	authStore_->setLogger(logger_);
 	eventHandlerStore_->setLogger(logger_);
@@ -60,10 +60,8 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 
 	QObject::connect(dock_, &UI::StreamSegmenterDock::startButtonClicked, youTubeStreamSegmenterController_.get(),
 			 &YouTubeStreamSegmenterController::start);
-
 	QObject::connect(dock_, &UI::StreamSegmenterDock::stopButtonClicked, youTubeStreamSegmenterController_.get(),
 			 &YouTubeStreamSegmenterController::stop);
-
 	QObject::connect(dock_, &UI::StreamSegmenterDock::segmentNowButtonClicked,
 			 youTubeStreamSegmenterController_.get(), &YouTubeStreamSegmenterController::segmentNow);
 

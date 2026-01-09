@@ -63,6 +63,7 @@ signals:
 
 	void sessionStarted();
 	void sessionStopped();
+	void sessionSegmented();
 	void errorOccurred(QString message);
 
 	void tick(int remainingTime);

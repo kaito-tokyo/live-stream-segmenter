@@ -60,6 +60,7 @@ public slots:
 signals:
 	void sessionStarted();
 	void sessionStopped();
+	void sessionSegmented();
 	void errorOccurred(QString message);
 
 private:

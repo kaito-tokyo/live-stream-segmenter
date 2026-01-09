@@ -49,6 +49,8 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 		&YouTubeStreamSegmenterController::sessionStarted, Qt::QueuedConnection);
 	connect(worker_, &YouTubeStreamSegmenterWorker::sessionStopped, this,
 		&YouTubeStreamSegmenterController::sessionStopped, Qt::QueuedConnection);
+	connect(worker_, &YouTubeStreamSegmenterWorker::sessionSegmented, this,
+		&YouTubeStreamSegmenterController::sessionSegmented, Qt::QueuedConnection);
 	connect(worker_, &YouTubeStreamSegmenterWorker::errorOccurred, this,
 		&YouTubeStreamSegmenterController::errorOccurred, Qt::QueuedConnection);
 
@@ -85,6 +87,11 @@ void YouTubeStreamSegmenterController::stop()
 	segmentTimer_->stop();
 
 	emit requestStopSession();
+}
+
+void YouTubeStreamSegmenterController::segmentNow()
+{
+	emit requestSegmentSession();
 }
 
 void YouTubeStreamSegmenterController::onTick()
