@@ -575,6 +575,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		taskLogger->info("YouTubeLiveStreamGottenCurrent", {{"liveStreamId", currentLiveStreamId}});
 
 		// --- Start streaming the initial live broadcast ---
+		co_await QCoro::moveToThread(mainContext_->thread());
+
 		taskLogger->info("StreamingStarting");
 
 		co_await startStreaming(stoken, youTubeApiClient_, accessToken, mainContext_, initialLiveBroadcast,
@@ -727,6 +729,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		taskLogger->info("OBSStreamingEnsuredStopped");
 
 		// --- Start streaming the initial live broadcast ---
+		co_await QCoro::moveToThread(mainContext_->thread());
+
 		taskLogger->info("StreamingStarting");
 
 		const auto incomingLiveBroadcast = liveBroadcasts_[1 - currentLiveStreamIndex_];
