@@ -49,7 +49,7 @@ struct EventScriptingContext {
 
 	EventScriptingContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 			      std::shared_ptr<const Logger::ILogger> logger,
-			      const std::shared_ptr<Store::EventHandlerStore> eventHandlerStore)
+			      std::shared_ptr<Store::EventHandlerStore> eventHandlerStore)
 		: ctx(runtime->createContextRaw()),
 		  context(std::make_shared<Scripting::EventScriptingContext>(runtime, ctx, logger)),
 		  database(std::make_shared<Scripting::ScriptingDatabase>(
