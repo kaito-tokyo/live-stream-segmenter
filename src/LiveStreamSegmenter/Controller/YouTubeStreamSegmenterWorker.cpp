@@ -480,6 +480,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		logger_, "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask");
 
 	try {
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
 
 		if (QThread *mainThread = mainContext_->thread()) {
@@ -612,6 +615,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 		logger_, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
 
 	try {
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
 
 		if (QThread *mainThread = mainContext_->thread()) {
@@ -673,6 +679,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		logger_, "YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask");
 
 	try {
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
 
 		taskLogger->info("ContinuousYouTubeSessionSegmenting");

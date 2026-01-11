@@ -68,8 +68,20 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 
 YouTubeStreamSegmenterController::~YouTubeStreamSegmenterController() noexcept
 {
+	if (worker_) {
+		QMetaObject::invokeMethod(worker_, "cancelCurrentTask", Qt::DirectConnection);
+	}
+
+	tickTimer_->stop();
+	segmentTimer_->stop();
+
 	workerThread_.quit();
-	workerThread_.wait();
+
+	if (!workerThread_.wait(3000)) {
+		workerThread_.terminate();
+		workerThread_.wait();
+	}
+
 	delete worker_;
 }
 
