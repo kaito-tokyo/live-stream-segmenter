@@ -346,8 +346,8 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
 		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
-		obs_service_t *service =
-			obs_service_create("rtmp_common", "Live Stream Segmenter YouTube RTMP Service", settings.get(), nullptr);
+		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube RTMP Service",
+							    settings.get(), nullptr);
 
 		obs_frontend_set_streaming_service(service);
 		obs_service_release(service);
@@ -364,7 +364,8 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
 		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
-		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube HLS Service", settings.get(), nullptr);
+		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube HLS Service",
+							    settings.get(), nullptr);
 
 		obs_frontend_set_streaming_service(service);
 		obs_service_release(service);
