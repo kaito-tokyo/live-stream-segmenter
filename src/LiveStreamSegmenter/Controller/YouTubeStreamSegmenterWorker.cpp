@@ -341,12 +341,13 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		logger->info("OBSStreamingYouTubeRTMPServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
-		obs_data_set_string(settings.get(), "service", "YouTube - RTMP");
+		obs_data_set_string(settings.get(), "service", "Custom");
+		obs_data_set_string(settings.get(), "protocol", "RTMPS");
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
 		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
 		obs_service_t *service =
-			obs_service_create("rtmp_common", "YouTube RTMP Service", settings.get(), NULL);
+			obs_service_create("rtmp_common", "Live Stream Segmenter YouTube RTMP Service", settings.get(), nullptr);
 
 		obs_frontend_set_streaming_service(service);
 		obs_service_release(service);
@@ -356,15 +357,17 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		logger->info("OBSStreamingYouTubeHLSServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
-		obs_data_set_string(settings.get(), "service", "YouTube - HLS");
+		obs_data_set_string(settings.get(), "service", "Custom");
+		obs_data_set_string(settings.get(), "protocol", "HLS");
 		obs_data_set_string(
 			settings.get(), "server",
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
 		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
 
-		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
+		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube HLS Service", settings.get(), nullptr);
 
 		obs_frontend_set_streaming_service(service);
+		obs_service_release(service);
 
 		logger->info("OBSStreamingYouTubeHLSServiceCreated");
 	} else {
