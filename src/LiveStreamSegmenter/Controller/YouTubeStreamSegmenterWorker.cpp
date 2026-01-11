@@ -313,8 +313,8 @@ createLiveBroadcast(Jthread::stop_token stoken, std::shared_ptr<YouTubeApi::YouT
 	return liveBroadcast;
 }
 
-// Must be called from a worker thread and returns on the main thread
-QCoro::Task<void> startStreaming(Jthread::stop_token stoken,
+// Must be called from the main thread and returns on a worker thread
+QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stoken,
 				 std::shared_ptr<YouTubeApi::YouTubeApiClient> youTubeApiClient,
 				 const std::string &accessToken, [[maybe_unused]] QObject *parent,
 				 std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> nextLiveBroadcast,
@@ -380,6 +380,8 @@ QCoro::Task<void> startStreaming(Jthread::stop_token stoken,
 	logger->info("OBSStreamingStarted");
 
 	logger->info("YouTubeLiveStreamWaitingForActive", {{"liveStreamId", nextLiveStream->id}});
+	co_await QCoro::moveToThread(workerThread);
+	// on a worker thread
 
 	const std::array<std::string, 1> nextLiveStreamIdArray{nextLiveStream->id};
 	for (int maxAttempts = 20; true; --maxAttempts) {
@@ -476,11 +478,21 @@ YouTubeStreamSegmenterWorker::~YouTubeStreamSegmenterWorker() noexcept {}
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 {
-	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
-		logger_, "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask");
+	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
+		taskLogger = std::make_shared<TaskBoundLogger>(
+			logger_, "YouTubeStreamSegmenterMainLoop::startContinuousSessionTask");
+
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
+
+		taskLogger->info("ContinuousYouTubeSessionStarting");
+
+		// --- Stopping OBS streaming ---
+		taskLogger->info("OBSStreamingEnsuringStopped");
 
 		if (QThread *mainThread = mainContext_->thread()) {
 			co_await QCoro::moveToThread(mainThread);
@@ -488,16 +500,13 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 			throw std::runtime_error(
 				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
 		}
-
 		// on the main thread
-		taskLogger->info("ContinuousYouTubeSessionStarting");
-
-		taskLogger->info("OBSStreamingEnsuringStopped");
 
 		co_await ensureOBSStreamingStopped(stoken, taskLogger);
 
 		taskLogger->info("OBSStreamingEnsuredStopped");
 
+		// --- Initializing scripting context ---
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
@@ -575,12 +584,19 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		taskLogger->info("YouTubeLiveStreamGottenCurrent", {{"liveStreamId", currentLiveStreamId}});
 
 		// --- Start streaming the initial live broadcast ---
-		co_await QCoro::moveToThread(mainContext_->thread());
-
 		taskLogger->info("StreamingStarting");
 
-		co_await startStreaming(stoken, youTubeApiClient_, accessToken, mainContext_, initialLiveBroadcast,
-					currentLiveStream, taskLogger);
+		if (QThread *mainThread = mainContext_->thread()) {
+			co_await QCoro::moveToThread(mainThread);
+		} else {
+			throw std::runtime_error(
+				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+		}
+		// on the main thread
+
+		co_await startStreaming(workerThread_, stoken, youTubeApiClient_, accessToken, mainContext_,
+					initialLiveBroadcast, currentLiveStream, taskLogger);
+		// on a worker thread
 
 		taskLogger->info("StreamingStarted");
 
@@ -603,11 +619,22 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 {
-	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
-		logger_, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
+	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
+		taskLogger = std::make_shared<TaskBoundLogger>(
+			logger_, "YouTubeStreamSegmenterMainLoop::StopContinuousYouTubeSessionTask");
+
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
+
+		taskLogger->info("ContinuousYouTubeSessionStopping");
+
+		// --- Stopping OBS streaming ---
+
+		taskLogger->info("OBSStreamingEnsuringStopped");
 
 		if (QThread *mainThread = mainContext_->thread()) {
 			co_await QCoro::moveToThread(mainThread);
@@ -615,20 +642,16 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 			throw std::runtime_error(
 				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
 		}
-
 		// on the main thread
-		taskLogger->info("ContinuousYouTubeSessionStopping");
-
-		taskLogger->info("OBSStreamingEnsuringStopped");
 
 		co_await ensureOBSStreamingStopped(stoken, taskLogger);
 
 		taskLogger->info("OBSStreamingEnsuredStopped");
 
+		// --- YouTube access token ---
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
-		// --- YouTube access token ---
 		const std::string accessToken = getAccessToken(stoken, taskLogger, curl_, authStore_);
 
 		// --- Complete active broadcasts ---
@@ -664,18 +687,27 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 {
-	const std::shared_ptr<const Logger::ILogger> taskLogger = std::make_shared<TaskBoundLogger>(
-		logger_, "YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask");
+	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
+		taskLogger = std::make_shared<TaskBoundLogger>(
+			logger_, "YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask");
+
+		if (stopSource_.stop_requested()) {
+			stopSource_ = Jthread::stop_source();
+		}
 		Jthread::stop_token stoken = stopSource_.get_token();
 
 		taskLogger->info("ContinuousYouTubeSessionSegmenting");
+
+		// --- Initializing scripting context ---
 
 		co_await QCoro::moveToThread(workerThread_);
 		// on a worker thread
 
 		EventScriptingContext eventScriptingContext(runtime_, taskLogger, eventHandlerStore_);
+
+		// --- Getting live stream IDs ---
 
 		const std::string currentLiveStreamId = youtubeStore_->getLiveStreamId(currentLiveStreamIndex_);
 		const std::string incomingLiveStreamId = youtubeStore_->getLiveStreamId(1 - currentLiveStreamIndex_);
@@ -722,6 +754,14 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		taskLogger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
 
 		// --- Ensure OBS streaming is stopped ---
+		if (QThread *mainThread = mainContext_->thread()) {
+			co_await QCoro::moveToThread(mainThread);
+		} else {
+			throw std::runtime_error(
+				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+		}
+		// on the main thread
+
 		taskLogger->info("OBSStreamingEnsuringStopped");
 
 		co_await ensureOBSStreamingStopped(stoken, taskLogger);
@@ -729,13 +769,12 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		taskLogger->info("OBSStreamingEnsuredStopped");
 
 		// --- Start streaming the initial live broadcast ---
-		co_await QCoro::moveToThread(mainContext_->thread());
-
 		taskLogger->info("StreamingStarting");
 
 		const auto incomingLiveBroadcast = liveBroadcasts_[1 - currentLiveStreamIndex_];
-		co_await startStreaming(stoken, youTubeApiClient_, accessToken, mainContext_, incomingLiveBroadcast,
-					incomingLiveStream, taskLogger);
+		co_await startStreaming(workerThread_, stoken, youTubeApiClient_, accessToken, mainContext_,
+					incomingLiveBroadcast, incomingLiveStream, taskLogger);
+		// on a worker thread
 
 		taskLogger->info("StreamingStarted");
 

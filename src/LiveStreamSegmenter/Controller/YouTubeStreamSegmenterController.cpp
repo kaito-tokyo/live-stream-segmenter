@@ -25,9 +25,9 @@
 namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
-	std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<Scripting::ScriptingRuntime> runtime,
-	std::shared_ptr<Store::AuthStore> authStore, std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-	std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent)
+	QObject *mainContext, std::shared_ptr<const Logger::ILogger> logger,
+	std::shared_ptr<Scripting::ScriptingRuntime> runtime, std::shared_ptr<Store::AuthStore> authStore,
+	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore, std::shared_ptr<Store::YouTubeStore> youtubeStore)
 	: QObject(nullptr),
 	  logger_(logger)
 {
@@ -35,7 +35,7 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	auto youTubeApiClient = std::make_shared<YouTubeApi::YouTubeApiClient>(curl);
 	youTubeApiClient->setLogger(logger_);
 
-	worker_ = new YouTubeStreamSegmenterWorker(parent, &workerThread_, logger, curl, youTubeApiClient, runtime,
+	worker_ = new YouTubeStreamSegmenterWorker(mainContext, &workerThread_, logger, curl, youTubeApiClient, runtime,
 						   authStore, eventHandlerStore, youtubeStore);
 	worker_->moveToThread(&workerThread_);
 
@@ -55,8 +55,6 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 	connect(worker_, &YouTubeStreamSegmenterWorker::errorOccurred, this,
 		&YouTubeStreamSegmenterController::errorOccurred, Qt::QueuedConnection);
 
-	connect(&workerThread_, &QThread::finished, worker_, &QObject::deleteLater);
-
 	workerThread_.start();
 
 	tickTimer_ = new QTimer(this);
@@ -70,8 +68,21 @@ YouTubeStreamSegmenterController::YouTubeStreamSegmenterController(
 
 YouTubeStreamSegmenterController::~YouTubeStreamSegmenterController() noexcept
 {
+	if (worker_) {
+		QMetaObject::invokeMethod(worker_, "cancelCurrentTask", Qt::DirectConnection);
+	}
+
+	tickTimer_->stop();
+	segmentTimer_->stop();
+
 	workerThread_.quit();
-	workerThread_.wait();
+
+	if (!workerThread_.wait(3000)) {
+		workerThread_.terminate();
+		workerThread_.wait();
+	}
+
+	delete worker_;
 }
 
 void YouTubeStreamSegmenterController::start()

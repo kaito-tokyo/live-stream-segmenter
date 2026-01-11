@@ -52,6 +52,8 @@ public:
 
 	~YouTubeStreamSegmenterWorker() noexcept;
 
+	void cancelCurrentTask() { stopSource_.request_stop(); }
+
 public slots:
 	QCoro::Task<> onStartSession();
 	QCoro::Task<> onStopSession();

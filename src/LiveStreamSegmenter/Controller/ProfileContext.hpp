@@ -59,7 +59,7 @@ private:
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<YouTubeStreamSegmenterController> youTubeStreamSegmenterController_;
+	std::unique_ptr<YouTubeStreamSegmenterController> youTubeStreamSegmenterController_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

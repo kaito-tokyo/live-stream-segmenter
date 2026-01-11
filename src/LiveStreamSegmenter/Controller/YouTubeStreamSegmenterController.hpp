@@ -44,11 +44,11 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 class YouTubeStreamSegmenterController : public QObject {
 	Q_OBJECT
 public:
-	YouTubeStreamSegmenterController(std::shared_ptr<const Logger::ILogger> logger,
+	YouTubeStreamSegmenterController(QObject *mainContext, std::shared_ptr<const Logger::ILogger> logger,
 					 std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 					 std::shared_ptr<Store::AuthStore> authStore,
 					 std::shared_ptr<Store::EventHandlerStore> eventHandlerStore,
-					 std::shared_ptr<Store::YouTubeStore> youtubeStore, QObject *parent);
+					 std::shared_ptr<Store::YouTubeStore> youtubeStore);
 
 	~YouTubeStreamSegmenterController() noexcept;
 
