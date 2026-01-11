@@ -40,6 +40,14 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 
 class ProfileContext {
 public:
+	struct QObjectDeleter {
+		void operator()(QObject *obj)
+		{
+			if (obj)
+				obj->deleteLater();
+		}
+	};
+
 	ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runtime,
 		       std::shared_ptr<const Logger::ILogger> logger, UI::StreamSegmenterDock *dock);
 
@@ -59,7 +67,7 @@ private:
 	const std::shared_ptr<Store::YouTubeStore> youTubeStore_;
 
 	const std::shared_ptr<const Logger::ILogger> logger_;
-	std::shared_ptr<YouTubeStreamSegmenterController> youTubeStreamSegmenterController_;
+	std::unique_ptr<YouTubeStreamSegmenterController, QObjectDeleter> youTubeStreamSegmenterController_;
 };
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Controller

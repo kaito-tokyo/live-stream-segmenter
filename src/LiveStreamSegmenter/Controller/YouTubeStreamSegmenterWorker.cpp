@@ -575,7 +575,12 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		taskLogger->info("YouTubeLiveStreamGottenCurrent", {{"liveStreamId", currentLiveStreamId}});
 
 		// --- Start streaming the initial live broadcast ---
-		co_await QCoro::moveToThread(mainContext_->thread());
+		if (QThread *mainThread = mainContext_->thread()) {
+			co_await QCoro::moveToThread(mainThread);
+		} else {
+			throw std::runtime_error(
+				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+		}
 
 		taskLogger->info("StreamingStarting");
 
@@ -729,7 +734,12 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		taskLogger->info("OBSStreamingEnsuredStopped");
 
 		// --- Start streaming the initial live broadcast ---
-		co_await QCoro::moveToThread(mainContext_->thread());
+		if (QThread *mainThread = mainContext_->thread()) {
+			co_await QCoro::moveToThread(mainThread);
+		} else {
+			throw std::runtime_error(
+				"MainContextHasNoThreadError(YouTubeStreamSegmenterWorker::onStartSession)");
+		}
 
 		taskLogger->info("StreamingStarting");
 

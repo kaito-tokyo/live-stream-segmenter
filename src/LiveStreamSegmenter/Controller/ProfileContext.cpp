@@ -43,7 +43,7 @@ ProfileContext::ProfileContext(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  eventHandlerStore_(std::make_shared<Store::EventHandlerStore>()),
 	  youTubeStore_(std::make_shared<Store::YouTubeStore>()),
 	  logger_(logger ? std::move(logger) : throw std::invalid_argument("LoggerIsNullError(ProfileContext)")),
-	  youTubeStreamSegmenterController_(std::make_shared<YouTubeStreamSegmenterController>(
+	  youTubeStreamSegmenterController_(std::make_unique<YouTubeStreamSegmenterController>(
 		  logger_, runtime_, authStore_, eventHandlerStore_, youTubeStore_, dock_))
 {
 	authStore_->setLogger(logger_);
