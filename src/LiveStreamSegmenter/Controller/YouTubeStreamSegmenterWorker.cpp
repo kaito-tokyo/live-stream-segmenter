@@ -365,7 +365,6 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		obs_service_t *service = obs_service_create("rtmp_common", "YouTube HLS Service", settings.get(), NULL);
 
 		obs_frontend_set_streaming_service(service);
-		obs_service_release(service);
 
 		logger->info("OBSStreamingYouTubeHLSServiceCreated");
 	} else {
