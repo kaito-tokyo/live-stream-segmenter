@@ -481,6 +481,8 @@ YouTubeStreamSegmenterWorker::~YouTubeStreamSegmenterWorker() noexcept {}
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 {
+	using namespace std::chrono_literals;
+
 	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
@@ -773,6 +775,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 
 		// --- Start streaming the initial live broadcast ---
 		taskLogger->info("StreamingStarting");
+
+		co_await QCoro::sleepFor(5s);
 
 		const auto incomingLiveBroadcast = liveBroadcasts_[1 - currentLiveStreamIndex_];
 		co_await startStreaming(workerThread_, stoken, youTubeApiClient_, accessToken, mainContext_,
