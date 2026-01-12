@@ -481,8 +481,6 @@ YouTubeStreamSegmenterWorker::~YouTubeStreamSegmenterWorker() noexcept {}
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 {
-	using namespace std::chrono_literals;
-
 	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
@@ -692,6 +690,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 
 QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 {
+	using namespace std::chrono_literals;
+
 	std::shared_ptr<const Logger::ILogger> taskLogger = Logger::NullLogger::instance();
 
 	try {
