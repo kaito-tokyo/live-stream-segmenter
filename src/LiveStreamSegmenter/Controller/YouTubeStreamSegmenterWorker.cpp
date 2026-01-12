@@ -420,14 +420,19 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 	logger->info("YouTubeLiveBroadcastTransitioningToTesting",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
 
+	// Wait a bit before transitioning to "testing"
+	co_await QCoro::sleepFor(5s);
+
 	youTubeApiClient->transitionLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, "testing");
 
 	logger->info("YouTubeLiveBroadcastTransitionedToTesting",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
-	co_await QCoro::sleepFor(5s);
 
 	logger->info("YouTubeLiveBroadcastTransitioningToLive",
 		     {{"broadcastId", *nextLiveBroadcast->id}, {"title", nextLiveBroadcastTitle}});
+
+	// Wait a bit before transitioning to "live"
+	co_await QCoro::sleepFor(5s);
 
 	youTubeApiClient->transitionLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, "live");
 
