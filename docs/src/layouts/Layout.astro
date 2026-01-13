@@ -62,31 +62,6 @@ const runId = GITHUB_RUN_ID ?? "undefined";
 
     <title>{title}</title>
     <slot name="head-info" />
-    <link
-      rel="alternate"
-      type="text/markdown"
-      href={joinURL(BASE_URL, "llms.txt")}
-      title="LLM Context"
-    />
-
-    <link
-      rel="icon"
-      type="image/png"
-      href={joinURL(BASE_URL, "favicon-96x96.png")}
-      sizes="96x96"
-    />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href={joinURL(BASE_URL, "favicon.svg")}
-    />
-    <link rel="shortcut icon" href={joinURL(BASE_URL, "favicon.ico")} />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href={joinURL(BASE_URL, "apple-touch-icon.png")}
-    />
-    <link rel="manifest" href={joinURL(BASE_URL, "site.webmanifest")} />
 
     <meta name="revision" content={revision} />
     <meta name="github-repo" content={`${GITHUB_OWNER}/${GITHUB_REPO}`} />
@@ -99,22 +74,6 @@ const runId = GITHUB_RUN_ID ?? "undefined";
       <slot />
       <footer>
         <div>
-          <a
-            href="https://github.com/kaito-tokyo/live-backgroundremoval-lite/actions/workflows/daily-website-security-check.yaml"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><img
-              src="https://github.com/kaito-tokyo/live-backgroundremoval-lite/actions/workflows/daily-website-security-check.yaml/badge.svg"
-              alt="Daily Website Security Check"
-            /></a
-          >
-          <a
-            href={joinURL(BASE_URL, "llms.txt")}
-            target="_blank"
-            rel="noopener noreferrer">llms.txt</a
-          >
-        </div>
-        <div>
           Commit: <a
             href={revision === "undefined"
               ? "#"
@@ -123,6 +82,7 @@ const runId = GITHUB_RUN_ID ?? "undefined";
             rel="noopener noreferrer">{shortRevision}</a
           >
         </div>
+        <slot name="footer-langs" />
         <div>&copy; 2025 Kaito Udagawa</div>
       </footer>
     </div>
