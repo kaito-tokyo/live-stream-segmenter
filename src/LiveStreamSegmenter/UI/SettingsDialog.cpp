@@ -655,7 +655,7 @@ void SettingsDialog::fetchStreamKeys()
 
 		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-			logger_->error("FetchStreamKeysApiError", {{"code", error->code}, {"message", error->message}});
+			logger_->error("FetchStreamKeysApiError", {{"code", std::to_string(error->code)}, {"message", error->message}});
 			throw std::runtime_error("YouTubeApiError(FetchStreamKeys)");
 		}
 
