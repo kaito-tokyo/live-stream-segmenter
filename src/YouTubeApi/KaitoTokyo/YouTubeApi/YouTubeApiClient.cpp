@@ -434,12 +434,14 @@ YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken, const std::string 
 	std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeError>> listResult =
 		performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	if (listResult.index() == 1) {
-		return std::get<1>(listResult);
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult)) {
+		return std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult);
 	}
 
+	const auto &items = std::get<std::vector<nlohmann::json>>(listResult);
+
 	std::vector<std::shared_ptr<YouTubeLiveStream>> liveStreams;
-	for (const nlohmann::json &item : std::get<0>(listResult)) {
+	for (const nlohmann::json &item : items) {
 		auto newLiveStream = std::make_shared<YouTubeLiveStream>();
 		item.get_to(*newLiveStream);
 		liveStreams.push_back(newLiveStream);
@@ -479,12 +481,14 @@ YouTubeApiClient::listLiveBroadcastsByStatus(Jthread::stop_token stoken, const s
 	std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeError>> listResult =
 		performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	if (listResult.index() == 1) {
-		return std::get<1>(listResult);
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult)) {
+		return std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult);
 	}
 
+	const auto &items = std::get<std::vector<nlohmann::json>>(listResult);
+
 	std::vector<std::shared_ptr<YouTubeLiveBroadcast>> broadcasts;
-	for (const nlohmann::json &item : std::get<0>(listResult)) {
+	for (const nlohmann::json &item : items) {
 		auto newBroadcast = std::make_shared<YouTubeLiveBroadcast>();
 		item.get_to(*newBroadcast);
 		broadcasts.push_back(newBroadcast);
