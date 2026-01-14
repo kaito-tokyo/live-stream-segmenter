@@ -297,7 +297,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastThumbnail &p)
 {
-	j = nlohmann::json;
+	j = nlohmann::json{};
 	if (p.url)
 		j["url"] = *p.url;
 	if (p.width)
