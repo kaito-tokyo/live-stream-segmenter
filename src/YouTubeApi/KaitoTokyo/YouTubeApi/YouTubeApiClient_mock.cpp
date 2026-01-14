@@ -37,88 +37,89 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
-								 [[maybe_unused]] const std::string &accessToken,
-								 [[maybe_unused]] std::span<const std::string> ids)
+std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
+				  [[maybe_unused]] const std::string &accessToken,
+				  [[maybe_unused]] std::span<const std::string> ids)
 {
-	YouTubeLiveStream stream;
-	stream.id = "mocked_stream_id";
-	stream.snippet.title = "Mocked Stream";
-	return {stream};
+	std::vector<std::shared_ptr<YouTubeLiveStream>> liveStreams{std::make_shared<YouTubeLiveStream>()};
+	liveStreams[0]->id = "mocked_stream_id";
+	liveStreams[0]->snippet.title = "Mocked Stream";
+	return liveStreams;
 }
 
-std::vector<YouTubeLiveBroadcast>
+std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeError>>
 YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] Jthread::stop_token stoken,
 					     [[maybe_unused]] const std::string &accessToken,
 					     [[maybe_unused]] const std::string &broadcastStatus)
 {
-	YouTubeLiveBroadcast broadcast;
-	broadcast.id = "mocked_broadcast_id";
-	if (!broadcast.snippet)
-		broadcast.snippet.emplace();
-	broadcast.snippet->title = "Mocked Broadcast";
-	return {broadcast};
+	std::vector<std::shared_ptr<YouTubeLiveBroadcast>> liveBroadcasts{std::make_shared<YouTubeLiveBroadcast>()};
+	liveBroadcasts[0]->id = "mocked_broadcast_id";
+	if (!liveBroadcasts[0]->snippet)
+		liveBroadcasts[0]->snippet.emplace();
+	liveBroadcasts[0]->snippet->title = "Mocked Broadcast";
+	return liveBroadcasts;
 }
 
-YouTubeLiveBroadcast
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
 YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
-	YouTubeLiveBroadcast broadcast;
-	broadcast.id = "mocked_inserted_broadcast_id";
-	if (!broadcast.snippet)
-		broadcast.snippet.emplace();
-	broadcast.snippet->title = insertingLiveBroadcast.snippet.title;
-	return broadcast;
+	std::shared_ptr<YouTubeLiveBroadcast> liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	liveBroadcast->id = "mocked_inserted_broadcast_id";
+	if (!liveBroadcast->snippet)
+		liveBroadcast->snippet.emplace();
+	liveBroadcast->snippet->title = insertingLiveBroadcast.snippet.title;
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
 YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
-	YouTubeLiveBroadcast broadcast;
-	broadcast.id = updatingLiveBroadcast.id;
-	if (!broadcast.snippet)
-		broadcast.snippet.emplace();
+	std::shared_ptr<YouTubeLiveBroadcast> liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	liveBroadcast->id = updatingLiveBroadcast.id;
+	if (!liveBroadcast->snippet)
+		liveBroadcast->snippet.emplace();
 	if (updatingLiveBroadcast.snippet.title)
-		broadcast.snippet->title = *updatingLiveBroadcast.snippet.title;
-	return broadcast;
+		liveBroadcast->snippet->title = *updatingLiveBroadcast.snippet.title;
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
-							 [[maybe_unused]] const std::string &accessToken,
-							 const std::string &broadcastId,
-							 [[maybe_unused]] const std::optional<std::string> &streamId)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+				    [[maybe_unused]] const std::string &accessToken, const std::string &broadcastId,
+				    [[maybe_unused]] const std::optional<std::string> &streamId)
 {
-	YouTubeLiveBroadcast broadcast;
-	broadcast.id = broadcastId;
-	if (!broadcast.snippet)
-		broadcast.snippet.emplace();
-	broadcast.snippet->title = "Bound Broadcast";
-	return broadcast;
+	std::shared_ptr<YouTubeLiveBroadcast> liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	liveBroadcast->id = broadcastId;
+	if (!liveBroadcast->snippet)
+		liveBroadcast->snippet.emplace();
+	liveBroadcast->snippet->title = "Bound Broadcast";
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
-							       [[maybe_unused]] const std::string &accessToken,
-							       [[maybe_unused]] const std::string &broadcastId,
-							       [[maybe_unused]] const std::string &broadcastStatus)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
+					  [[maybe_unused]] const std::string &accessToken,
+					  [[maybe_unused]] const std::string &broadcastId,
+					  [[maybe_unused]] const std::string &broadcastStatus)
 {
-	YouTubeLiveBroadcast broadcast;
-	broadcast.id = broadcastId;
-	if (!broadcast.snippet)
-		broadcast.snippet.emplace();
-	broadcast.snippet->title = "Transitioned Broadcast";
-	return broadcast;
+	std::shared_ptr<YouTubeLiveBroadcast> liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	liveBroadcast->id = broadcastId;
+	if (!liveBroadcast->snippet)
+		liveBroadcast->snippet.emplace();
+	liveBroadcast->snippet->title = "Transitioned Broadcast";
+	return liveBroadcast;
 }
 
-void YouTubeApiClient::setThumbnail([[maybe_unused]] Jthread::stop_token stoken,
-				    [[maybe_unused]] const std::string &accessToken,
-				    [[maybe_unused]] const std::string &videoId,
-				    [[maybe_unused]] const std::filesystem::path &thumbnailPath)
+std::variant<std::monostate, std::shared_ptr<YouTubeError>> YouTubeApiClient::setThumbnail(
+	[[maybe_unused]] Jthread::stop_token stoken, [[maybe_unused]] const std::string &accessToken,
+	[[maybe_unused]] const std::string &videoId, [[maybe_unused]] const std::filesystem::path &thumbnailPath)
 {
-	// Mock implementation does nothing
+	return std::monostate{};
 }
 
 } // namespace KaitoTokyo::YouTubeApi

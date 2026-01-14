@@ -29,6 +29,37 @@
 
 namespace KaitoTokyo::YouTubeApi {
 
+void to_json(nlohmann::json &j, const YouTubeError &p)
+{
+	j = nlohmann::json{};
+	j["code"] = p.code;
+	j["message"] = p.message;
+	j["errors"] = nlohmann::json::array();
+	for (const auto &err : p.errors) {
+		nlohmann::json errJson;
+		errJson["domain"] = err.domain;
+		errJson["reason"] = err.reason;
+		errJson["message"] = err.message;
+		j["errors"].push_back(std::move(errJson));
+	}
+}
+
+void from_json(const nlohmann::json &j, YouTubeError &p)
+{
+	j.at("code").get_to(p.code);
+	j.at("message").get_to(p.message);
+	p.errors.clear();
+	if (j.contains("errors")) {
+		for (const auto &errJson : j.at("errors")) {
+			YouTubeError::ErrorDetail err;
+			errJson.at("domain").get_to(err.domain);
+			errJson.at("reason").get_to(err.reason);
+			errJson.at("message").get_to(err.message);
+			p.errors.push_back(std::move(err));
+		}
+	}
+}
+
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
 	j = nlohmann::json{{"kind", p.kind}, {"etag", p.etag}, {"id", p.id}};

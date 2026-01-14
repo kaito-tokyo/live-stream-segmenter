@@ -491,14 +491,14 @@ void SettingsDialog::saveSettings()
 	// Save YouTubeStore
 	int streamKeyAIndex = streamKeyComboA_->currentIndex();
 	if (streamKeyAIndex >= 0) {
-		youTubeStore_->setLiveStreamId(0, streamKeys_[streamKeyAIndex].id);
+		youTubeStore_->setLiveStreamId(0, streamKeys_[streamKeyAIndex]->id);
 	} else {
 		youTubeStore_->setLiveStreamId(0, {});
 	}
 
 	int streamKeyBIndex = streamKeyComboB_->currentIndex();
 	if (streamKeyBIndex >= 0) {
-		youTubeStore_->setLiveStreamId(1, streamKeys_[streamKeyBIndex].id);
+		youTubeStore_->setLiveStreamId(1, streamKeys_[streamKeyBIndex]->id);
 	} else {
 		youTubeStore_->setLiveStreamId(1, {});
 	}
@@ -649,8 +649,18 @@ void SettingsDialog::fetchStreamKeys()
 			}
 		}
 
-		std::vector<YouTubeApi::YouTubeLiveStream> streamKeys =
-			youTubeApiClient_->listLiveStreams(stoken, accessToken);
+		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
+				   std::shared_ptr<YouTubeApi::YouTubeError>>
+			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken);
+
+		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
+			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+			logger_->error("FetchStreamKeysApiError", {{"code", error->code}, {"message", error->message}});
+			throw std::runtime_error("YouTubeApiError(FetchStreamKeys)");
+		}
+
+		const auto &streamKeys =
+			std::get<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>>(apiResult);
 
 		streamKeyComboA_->clear();
 		streamKeyComboB_->clear();
@@ -663,22 +673,22 @@ void SettingsDialog::fetchStreamKeys()
 		logger_->info("CurrentStreamKeys",
 			      {{"streamKeyA_id", currentStreamKeyAId}, {"streamKeyB_id", currentStreamKeyBId}});
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
-			const YouTubeApi::YouTubeLiveStream &key = streamKeys_[i];
+			const std::shared_ptr<YouTubeApi::YouTubeLiveStream> &key = streamKeys_[i];
 
-			QString displayText = QString::fromStdString(
-				fmt::format("{} ({} - {})", key.snippet.title, key.cdn.resolution, key.cdn.frameRate));
-			streamKeyComboA_->addItem(displayText, QString::fromStdString(key.id));
-			streamKeyComboB_->addItem(displayText, QString::fromStdString(key.id));
+			QString displayText = QString::fromStdString(fmt::format(
+				"{} ({} - {})", key->snippet.title, key->cdn.resolution, key->cdn.frameRate));
+			streamKeyComboA_->addItem(displayText, QString::fromStdString(key->id));
+			streamKeyComboB_->addItem(displayText, QString::fromStdString(key->id));
 
-			logger_->info("StreamKeyListed", {{"id", key.id},
-							  {"title", key.snippet.title},
-							  {"resolution", key.cdn.resolution},
-							  {"frameRate", key.cdn.frameRate}});
-			if (key.id == currentStreamKeyAId) {
+			logger_->info("StreamKeyListed", {{"id", key->id},
+							  {"title", key->snippet.title},
+							  {"resolution", key->cdn.resolution},
+							  {"frameRate", key->cdn.frameRate}});
+			if (key->id == currentStreamKeyAId) {
 				streamKeyComboA_->setCurrentIndex(i);
 			}
 
-			if (key.id == currentStreamKeyBId) {
+			if (key->id == currentStreamKeyBId) {
 				streamKeyComboB_->setCurrentIndex(i);
 			}
 		}

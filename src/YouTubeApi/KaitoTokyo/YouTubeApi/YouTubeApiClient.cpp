@@ -336,9 +336,9 @@ std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
 	return readBuffer;
 }
 
-std::vector<nlohmann::json> performList(std::shared_ptr<const Logger::ILogger> logger,
-					std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
-					const std::string &url, curl_slist *headers = nullptr, int maxIterations = 20)
+std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeError>>
+performList(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+	    Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr, int maxIterations = 20)
 {
 	std::vector<nlohmann::json> items;
 	std::string nextPageToken;
@@ -358,8 +358,10 @@ std::vector<nlohmann::json> performList(std::shared_ptr<const Logger::ILogger> l
 		nlohmann::json j = nlohmann::json::parse(responseBody);
 
 		if (j.contains("error")) {
+			auto error = std::make_shared<YouTubeError>();
+			j["error"].get_to(*error);
 			logger->error("YouTubeApiError", {{"error", j["error"].dump()}});
-			throw std::runtime_error("APIError(YouTubeApiClient::performList)");
+			return error;
 		}
 
 		nlohmann::json jItems = std::move(j["items"]);
@@ -402,9 +404,9 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken,
-								 const std::string &accessToken,
-								 std::span<const std::string> ids)
+std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
+				  std::span<const std::string> ids)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -429,19 +431,28 @@ std::vector<YouTubeLiveStream> YouTubeApiClient::listLiveStreams(Jthread::stop_t
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<nlohmann::json> items = performList(logger_, curl_, stoken, url.get(), headers.getRaw());
+	std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeError>> listResult =
+		performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	std::vector<YouTubeLiveStream> liveStreams;
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult)) {
+		return std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult);
+	}
+
+	const auto &items = std::get<std::vector<nlohmann::json>>(listResult);
+
+	std::vector<std::shared_ptr<YouTubeLiveStream>> liveStreams;
 	for (const nlohmann::json &item : items) {
-		liveStreams.push_back(item.get<YouTubeLiveStream>());
+		auto newLiveStream = std::make_shared<YouTubeLiveStream>();
+		item.get_to(*newLiveStream);
+		liveStreams.push_back(newLiveStream);
 	}
 
 	return liveStreams;
 }
 
-std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(Jthread::stop_token stoken,
-									       const std::string &accessToken,
-									       const std::string &broadcastStatus)
+std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::listLiveBroadcastsByStatus(Jthread::stop_token stoken, const std::string &accessToken,
+					     const std::string &broadcastStatus)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -467,18 +478,28 @@ std::vector<YouTubeLiveBroadcast> YouTubeApiClient::listLiveBroadcastsByStatus(J
 	headers.append(authHeader.c_str());
 
 	auto url = urlHandle.c_str();
-	std::vector<nlohmann::json> items = performList(logger_, curl_, stoken, url.get(), headers.getRaw());
+	std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeError>> listResult =
+		performList(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	std::vector<YouTubeLiveBroadcast> broadcasts;
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult)) {
+		return std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(listResult);
+	}
+
+	const auto &items = std::get<std::vector<nlohmann::json>>(listResult);
+
+	std::vector<std::shared_ptr<YouTubeLiveBroadcast>> broadcasts;
 	for (const nlohmann::json &item : items) {
-		broadcasts.push_back(item.get<YouTubeLiveBroadcast>());
+		auto newBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+		item.get_to(*newBroadcast);
+		broadcasts.push_back(newBroadcast);
 	}
 
 	return broadcasts;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-							   const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+				      const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -507,15 +528,20 @@ YouTubeLiveBroadcast YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token s
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		std::shared_ptr<YouTubeError> error = std::make_shared<YouTubeError>();
+		j["error"].get_to(*error);
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		throw std::runtime_error("APIError(YouTubeApiClient::insertLiveBroadcast)");
+		return error;
 	}
 
-	return j.get<YouTubeLiveBroadcast>();
+	auto liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	j.get_to(*liveBroadcast);
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-							   const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+				      const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -543,16 +569,20 @@ YouTubeLiveBroadcast YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token s
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	if (j.contains("error")) {
+		std::shared_ptr<YouTubeError> error = std::make_shared<YouTubeError>();
+		j["error"].get_to(*error);
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		throw std::runtime_error("APIError(YouTubeApiClient::updateLiveBroadcast)");
+		return error;
 	}
 
-	return j.get<YouTubeLiveBroadcast>();
+	auto liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	j.get_to(*liveBroadcast);
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-							 const std::string &broadcastId,
-							 const std::optional<std::string> &streamId)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+				    const std::string &broadcastId, const std::optional<std::string> &streamId)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -585,17 +615,20 @@ YouTubeLiveBroadcast YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token sto
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		std::shared_ptr<YouTubeError> error = std::make_shared<YouTubeError>();
+		j["error"].get_to(*error);
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		throw std::runtime_error("APIError(YouTubeApiClient::bindLiveBroadcast)");
+		return error;
 	}
 
-	return j.get<YouTubeLiveBroadcast>();
+	auto liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	j.get_to(*liveBroadcast);
+	return liveBroadcast;
 }
 
-YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_token stoken,
-							       const std::string &accessToken,
-							       const std::string &broadcastId,
-							       const std::string &broadcastStatus)
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+					  const std::string &broadcastId, const std::string &broadcastStatus)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
@@ -632,15 +665,20 @@ YouTubeLiveBroadcast YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_tok
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		std::shared_ptr<YouTubeError> error = std::make_shared<YouTubeError>();
+		j["error"].get_to(*error);
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		throw std::runtime_error("APIError(YouTubeApiClient::transitionLiveBroadcast)");
+		return error;
 	}
 
-	return j.get<YouTubeLiveBroadcast>();
+	auto liveBroadcast = std::make_shared<YouTubeLiveBroadcast>();
+	j.get_to(*liveBroadcast);
+	return liveBroadcast;
 }
 
-void YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::string &accessToken,
-				    const std::string &videoId, const std::filesystem::path &thumbnailPath)
+std::variant<std::monostate, std::shared_ptr<YouTubeError>>
+YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::string &accessToken, const std::string &videoId,
+			       const std::filesystem::path &thumbnailPath)
 {
 	constexpr std::uintmax_t kMaxThumbnailBytes = 2 * 1024 * 1024;
 
@@ -710,9 +748,13 @@ void YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::strin
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	if (j.contains("error")) {
+		std::shared_ptr<YouTubeError> error = std::make_shared<YouTubeError>();
+		j["error"].get_to(*error);
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		throw std::runtime_error("APIError(YouTubeApiClient::setThumbnail)");
+		return error;
 	}
+
+	return std::monostate{};
 }
 
 } // namespace KaitoTokyo::YouTubeApi

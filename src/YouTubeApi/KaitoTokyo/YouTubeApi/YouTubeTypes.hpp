@@ -29,10 +29,28 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 
 namespace KaitoTokyo::YouTubeApi {
+
+struct YouTubeError {
+	std::string code;
+
+	struct ErrorDetail {
+		std::string domain;
+		std::string reason;
+		std::string message;
+	};
+
+	std::vector<ErrorDetail> errors;
+
+	std::string message;
+};
+
+void to_json(nlohmann::json &j, const YouTubeError &p);
+void from_json(const nlohmann::json &j, YouTubeError &p);
 
 struct YouTubeLiveStream {
 	std::string kind;
