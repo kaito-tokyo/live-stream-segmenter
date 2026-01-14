@@ -450,6 +450,48 @@ YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken, const std::string 
 	return liveStreams;
 }
 
+std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
+YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
+				std::shared_ptr<const InsertingYouTubeLiveStream> insertingLiveStream)
+{
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::insertLiveStream)");
+	}
+
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
+	params.append("part", "id,snippet,cdn,contentDetails");
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveStreams");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
+
+	CurlHelper::CurlSlistHandle headers;
+	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+	headers.append("Content-Type: application/json");
+
+	nlohmann::json requestBody = *insertingLiveStream;
+	std::string bodyStr = requestBody.dump();
+
+	std::vector<char> responseBody = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
+
+	nlohmann::json j = nlohmann::json::parse(responseBody);
+
+	if (j.contains("error")) {
+		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
+		j["error"].get_to(*error);
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
+		return error;
+	}
+
+	auto liveStream = std::make_shared<YouTubeLiveStream>();
+	j.get_to(*liveStream);
+	return liveStream;
+}
+
 std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::listLiveBroadcastsByStatus(Jthread::stop_token stoken, const std::string &accessToken,
 					     const std::string &broadcastStatus)

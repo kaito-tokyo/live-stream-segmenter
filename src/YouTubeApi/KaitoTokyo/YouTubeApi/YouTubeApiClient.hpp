@@ -54,6 +54,10 @@ public:
 	listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
 			std::span<const std::string> ids = {});
 
+	std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
+	insertLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
+			 std::shared_ptr<const InsertingYouTubeLiveStream> insertingLiveStream);
+
 	std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
 	listLiveBroadcastsByStatus(Jthread::stop_token stoken, const std::string &accessToken,
 				   const std::string &broadcastStatus);
