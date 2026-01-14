@@ -37,14 +37,13 @@ namespace KaitoTokyo::YouTubeApi {
 
 // --- YouTubeApiError ---
 struct YouTubeApiError {
-	std::string code;
+	int code;
 
 	struct ErrorDetail {
 		std::string domain;
 		std::string reason;
 		std::string message;
 	};
-
 	std::vector<ErrorDetail> errors;
 
 	std::string message;

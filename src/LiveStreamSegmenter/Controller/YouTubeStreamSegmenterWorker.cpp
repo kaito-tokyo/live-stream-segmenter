@@ -223,7 +223,7 @@ void completeActiveLiveBroadcasts(Jthread::stop_token stoken,
 
 	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-		logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
+		logger->error("YouTubeApiError", {{"code", std::to_string(error->code)}, {"message", error->message}});
 		throw std::runtime_error(
 			"YouTubeApiError(YouTubeStreamSegmenterMainLoop::completeActiveLiveBroadcasts)");
 	}
@@ -286,7 +286,7 @@ createLiveBroadcast(Jthread::stop_token stoken, std::shared_ptr<YouTubeApi::YouT
 
 	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-		logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
+		logger->error("YouTubeApiError", {{"code", std::to_string(error->code)}, {"message", error->message}});
 		throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::createLiveBroadcast)");
 	}
 
@@ -363,7 +363,7 @@ startStreaming(QThread *workerThread, Jthread::stop_token stoken,
 
 	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-		logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
+		logger->error("YouTubeApiError", {{"code", std::to_string(error->code)}, {"message", error->message}});
 		throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::startStreaming)");
 	}
 
@@ -470,7 +470,8 @@ startStreaming(QThread *workerThread, Jthread::stop_token stoken,
 
 		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-			logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
+			logger->error("YouTubeApiError",
+				      {{"code", std::to_string(error->code)}, {"message", error->message}});
 			throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::startStreaming)");
 		}
 
@@ -737,7 +738,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 			if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 				const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 				taskLogger->error("YouTubeApiError",
-						  {{"code", error->code}, {"message", error->message}});
+						  {{"code", std::to_string(error->code)}, {"message", error->message}});
 				throw std::runtime_error(
 					"YouTubeApiError(YouTubeStreamSegmenterMainLoop::stopContinuousSessionTask)");
 			}
@@ -856,7 +857,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 			if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 				const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 				taskLogger->error("YouTubeApiError",
-						  {{"code", error->code}, {"message", error->message}});
+						  {{"code", std::to_string(error->code)}, {"message", error->message}});
 				throw std::runtime_error(
 					"YouTubeApiError(YouTubeStreamSegmenterMainLoop::segmentContinuousSessionTask)");
 			}
