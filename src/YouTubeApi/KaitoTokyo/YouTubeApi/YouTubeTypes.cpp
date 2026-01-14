@@ -475,21 +475,16 @@ void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p)
 	}
 	if (p.status) {
 		nlohmann::json statusJson;
-		if (p.status->lifeCycleStatus) {
+		if (p.status->lifeCycleStatus)
 			statusJson["lifeCycleStatus"] = *p.status->lifeCycleStatus;
-		}
-		if (p.status->privacyStatus) {
+		if (p.status->privacyStatus)
 			statusJson["privacyStatus"] = *p.status->privacyStatus;
-		}
-		if (p.status->recordingStatus) {
+		if (p.status->recordingStatus)
 			statusJson["recordingStatus"] = *p.status->recordingStatus;
-		}
-		if (p.status->madeForKids) {
+		if (p.status->madeForKids)
 			statusJson["madeForKids"] = *p.status->madeForKids;
-		}
-		if (p.status->selfDeclaredMadeForKids) {
+		if (p.status->selfDeclaredMadeForKids)
 			statusJson["selfDeclaredMadeForKids"] = *p.status->selfDeclaredMadeForKids;
-		}
 		j["status"] = std::move(statusJson);
 	}
 	if (p.contentDetails) {
@@ -624,7 +619,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 			snippetObj.actualStartTime = std::nullopt;
 		}
 		if (s.contains("actualEndTime")) {
- 			s.at("actualEndTime").get_to(snippetObj.actualEndTime);
+			s.at("actualEndTime").get_to(snippetObj.actualEndTime);
 		} else {
 			snippetObj.actualEndTime = std::nullopt;
 		}
@@ -818,58 +813,44 @@ void to_json(nlohmann::json &j, const InsertingYouTubeLiveBroadcast &p)
 	nlohmann::json snippetJson;
 	snippetJson["title"] = p.snippet.title;
 	snippetJson["scheduledStartTime"] = p.snippet.scheduledStartTime;
-	if (p.snippet.description) {
+	if (p.snippet.description)
 		snippetJson["description"] = *p.snippet.description;
-	}
-	if (p.snippet.scheduledEndTime) {
+	if (p.snippet.scheduledEndTime)
 		snippetJson["scheduledEndTime"] = *p.snippet.scheduledEndTime;
-	}
 	j["snippet"] = std::move(snippetJson);
 
 	// status
 	nlohmann::json statusJson;
 	statusJson["privacyStatus"] = p.status.privacyStatus;
-	if (p.status.selfDeclaredMadeForKids) {
+	if (p.status.selfDeclaredMadeForKids)
 		statusJson["selfDeclaredMadeForKids"] = *p.status.selfDeclaredMadeForKids;
-	}
 	j["status"] = std::move(statusJson);
 
 	// contentDetails
 	nlohmann::json contentDetailsJson;
-	if (p.contentDetails.enableAutoStart) {
+	if (p.contentDetails.enableAutoStart)
 		contentDetailsJson["enableAutoStart"] = *p.contentDetails.enableAutoStart;
-	}
-	if (p.contentDetails.enableAutoStop) {
+	if (p.contentDetails.enableAutoStop)
 		contentDetailsJson["enableAutoStop"] = *p.contentDetails.enableAutoStop;
-	}
-	if (p.contentDetails.enableClosedCaptions) {
+	if (p.contentDetails.enableClosedCaptions)
 		contentDetailsJson["enableClosedCaptions"] = *p.contentDetails.enableClosedCaptions;
-	}
-	if (p.contentDetails.enableDvr) {
+	if (p.contentDetails.enableDvr)
 		contentDetailsJson["enableDvr"] = *p.contentDetails.enableDvr;
-	}
-	if (p.contentDetails.enableEmbed) {
+	if (p.contentDetails.enableEmbed)
 		contentDetailsJson["enableEmbed"] = *p.contentDetails.enableEmbed;
-	}
-	if (p.contentDetails.recordFromStart) {
+	if (p.contentDetails.recordFromStart)
 		contentDetailsJson["recordFromStart"] = *p.contentDetails.recordFromStart;
-	}
-	if (p.contentDetails.latencyPreference) {
+	if (p.contentDetails.latencyPreference)
 		contentDetailsJson["latencyPreference"] = *p.contentDetails.latencyPreference;
-	}
 	nlohmann::json monitorStreamJson;
-	if (p.contentDetails.monitorStream.enableMonitorStream) {
+	if (p.contentDetails.monitorStream.enableMonitorStream)
 		monitorStreamJson["enableMonitorStream"] = *p.contentDetails.monitorStream.enableMonitorStream;
-	}
-	if (p.contentDetails.monitorStream.broadcastStreamDelayMs) {
+	if (p.contentDetails.monitorStream.broadcastStreamDelayMs)
 		monitorStreamJson["broadcastStreamDelayMs"] = *p.contentDetails.monitorStream.broadcastStreamDelayMs;
-	}
-	if (!monitorStreamJson.empty()) {
+	if (!monitorStreamJson.empty())
 		contentDetailsJson["monitorStream"] = std::move(monitorStreamJson);
-	}
-	if (!contentDetailsJson.empty()) {
+	if (!contentDetailsJson.empty())
 		j["contentDetails"] = std::move(contentDetailsJson);
-	}
 }
 
 void from_json(const nlohmann::json &j, InsertingYouTubeLiveBroadcast &p)
@@ -968,8 +949,8 @@ void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
 
 	// status
 	nlohmann::json statusJson;
-	if (p.status.privacyStatus)
-		statusJson["privacyStatus"] = *p.status.privacyStatus;
+	if (p.status->privacyStatus)
+		statusJson["privacyStatus"] = *p.status->privacyStatus;
 	if (!statusJson.empty())
 		j["status"] = std::move(statusJson);
 
@@ -998,8 +979,9 @@ void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
 	// monetizationDetails
 	nlohmann::json monetizationDetailsJson;
 	nlohmann::json cuepointScheduleJson;
-	if (p.monetizationDetails.cuepointSchedule.pauseAdsUntil)
-		cuepointScheduleJson["pauseAdsUntil"] = *p.monetizationDetails.cuepointSchedule.pauseAdsUntil;
+	if (p.monetizationDetails && p.monetizationDetails->cuepointSchedule &&
+	    p.monetizationDetails->cuepointSchedule->pauseAdsUntil)
+		cuepointScheduleJson["pauseAdsUntil"] = *p.monetizationDetails->cuepointSchedule->pauseAdsUntil;
 	if (!cuepointScheduleJson.empty())
 		monetizationDetailsJson["cuepointSchedule"] = std::move(cuepointScheduleJson);
 	if (!monetizationDetailsJson.empty())
@@ -1045,8 +1027,7 @@ void from_json(const nlohmann::json &j, UpdatingYouTubeLiveBroadcast &p)
 	const auto &ms = cd.at("monitorStream");
 	ms.at("enableMonitorStream").get_to(p.contentDetails.monitorStream.enableMonitorStream);
 	if (ms.contains("broadcastStreamDelayMs")) {
-		ms.at("broadcastStreamDelayMs")
-			.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
+		ms.at("broadcastStreamDelayMs").get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
 	} else {
 		p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
 	}
