@@ -31,6 +31,7 @@
 #include <span>
 #include <string_view>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <KaitoTokyo/CurlHelper/CurlHandle.hpp>
@@ -49,28 +50,33 @@ public:
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
-	std::vector<YouTubeLiveStream> listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
-						       std::span<const std::string> ids = {});
+	std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeError>>
+	listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
+			std::span<const std::string> ids = {});
 
-	std::vector<YouTubeLiveBroadcast> listLiveBroadcastsByStatus(Jthread::stop_token stoken,
-								     const std::string &accessToken,
-								     const std::string &broadcastStatus);
+	std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeError>>
+	listLiveBroadcastsByStatus(Jthread::stop_token stoken, const std::string &accessToken,
+				   const std::string &broadcastStatus);
 
-	YouTubeLiveBroadcast insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-						 const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+			    const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
 
-	YouTubeLiveBroadcast updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-						 const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+			    const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 
-	YouTubeLiveBroadcast bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-					       const std::string &broadcastId,
-					       const std::optional<std::string> &streamId);
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken, const std::string &broadcastId,
+			  const std::optional<std::string> &streamId);
 
-	YouTubeLiveBroadcast transitionLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
-						     const std::string &broadcastId,
-						     const std::string &broadcastStatus);
-	void setThumbnail(Jthread::stop_token stoken, const std::string &accessToken, const std::string &videoId,
-			  const std::filesystem::path &thumbnailPath);
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	transitionLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
+				const std::string &broadcastId, const std::string &broadcastStatus);
+
+	std::variant<std::monostate, std::shared_ptr<YouTubeError>>
+	setThumbnail(Jthread::stop_token stoken, const std::string &accessToken, const std::string &videoId,
+		     const std::filesystem::path &thumbnailPath);
 
 private:
 	std::shared_ptr<CurlHelper::CurlHandle> curl_;

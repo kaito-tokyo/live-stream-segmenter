@@ -48,6 +48,9 @@ struct YouTubeError {
 	std::string message;
 };
 
+void to_json(nlohmann::json &j, const YouTubeError &p);
+void from_json(const nlohmann::json &j, YouTubeError &p);
+
 struct YouTubeLiveStream {
 	std::string kind;
 	std::string etag;
