@@ -674,8 +674,8 @@ void SettingsDialog::fetchStreamKeys()
 		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
 			const std::shared_ptr<YouTubeApi::YouTubeLiveStream> &key = streamKeys_[i];
 
-			QString displayText = QString::fromStdString(
-				fmt::format("{} ({} - {})", key->snippet.title, key->cdn.resolution, key->cdn.frameRate));
+			QString displayText = QString::fromStdString(fmt::format(
+				"{} ({} - {})", key->snippet.title, key->cdn.resolution, key->cdn.frameRate));
 			streamKeyComboA_->addItem(displayText, QString::fromStdString(key->id));
 			streamKeyComboB_->addItem(displayText, QString::fromStdString(key->id));
 

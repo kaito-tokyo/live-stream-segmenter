@@ -575,9 +575,10 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		// --- Create an initial live broadcast ---
 		taskLogger->info("YouTubeLiveBroadcastCreatingInitial");
 
-		auto initialLiveBroadcast = createLiveBroadcast(
-			stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
-			"onCreateYouTubeLiveBroadcastInitial", "onSetYouTubeThumbnailInitial", taskLogger);
+		auto initialLiveBroadcast = createLiveBroadcast(stoken, youTubeApiClient_, accessToken,
+								eventScriptingContext.context,
+								"onCreateYouTubeLiveBroadcastInitial",
+								"onSetYouTubeThumbnailInitial", taskLogger);
 
 		const std::string initialLiveBroadcastId = initialLiveBroadcast->id.value_or("(ID MISSING)");
 		const std::string initialLiveBroadcastTitle =
@@ -590,9 +591,10 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 		// --- Create the next live broadcast ---
 		taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-		const auto nextLiveBroadcast = createLiveBroadcast(
-			stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
-			"onCreateYouTubeLiveBroadcastInitialNext", "onSetYouTubeThumbnailInitialNext", taskLogger);
+		const auto nextLiveBroadcast = createLiveBroadcast(stoken, youTubeApiClient_, accessToken,
+								   eventScriptingContext.context,
+								   "onCreateYouTubeLiveBroadcastInitialNext",
+								   "onSetYouTubeThumbnailInitialNext", taskLogger);
 
 		const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
 		const std::string nextLiveBroadcastTitle =
@@ -774,9 +776,10 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		// --- Create the next live broadcast ---
 		taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-		const auto nextLiveBroadcast = createLiveBroadcast(
-			stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
-			"onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger);
+		const auto nextLiveBroadcast = createLiveBroadcast(stoken, youTubeApiClient_, accessToken,
+								   eventScriptingContext.context,
+								   "onCreateYouTubeLiveBroadcastNext",
+								   "onSetYouTubeThumbnailNext", taskLogger);
 
 		const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
 		const std::string nextLiveBroadcastTitle =
