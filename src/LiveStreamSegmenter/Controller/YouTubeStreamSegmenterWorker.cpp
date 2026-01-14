@@ -421,8 +421,9 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 			apiResult = youTubeApiClient->listLiveStreams(stoken, accessToken, nextLiveStreamIdArray);
 
 		if (apiResult.index() == 1) {
-			// const std::shared_ptr<YouTubeApi::YouTubeError> &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult); // unused
-			logger->error("YouTubeApiError");
+			const std::shared_ptr<YouTubeApi::YouTubeError> &error =
+				std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+			logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::startStreaming)");
 		}
 
