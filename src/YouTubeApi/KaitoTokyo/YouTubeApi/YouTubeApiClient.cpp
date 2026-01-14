@@ -547,12 +547,12 @@ YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");
-		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::insertLiveStream)");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::deleteLiveStream)");
 	}
 
 	if (liveStreamId.empty()) {
 		logger_->error("LiveStreamIdIsEmptyError");
-		throw std::invalid_argument("LiveStreamIdIsEmptyError(YouTubeApiClient::insertLiveStream)");
+		throw std::invalid_argument("LiveStreamIdIsEmptyError(YouTubeApiClient::deleteLiveStream)");
 	}
 
 	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
