@@ -774,9 +774,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		// --- Create the next live broadcast ---
 		taskLogger->info("YouTubeLiveBroadcastCreatingNext");
 
-		const auto nextLiveBroadcast = std::make_shared<YouTubeApi::YouTubeLiveBroadcast>(createLiveBroadcast(
+		const auto nextLiveBroadcast = createLiveBroadcast(
 			stoken, youTubeApiClient_, accessToken, eventScriptingContext.context,
-			"onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger));
+			"onCreateYouTubeLiveBroadcastNext", "onSetYouTubeThumbnailNext", taskLogger);
 
 		const std::string nextLiveBroadcastId = nextLiveBroadcast->id.value_or("(ID MISSING)");
 		const std::string nextLiveBroadcastTitle =
@@ -805,7 +805,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		} else if (liveStreams.size() > 1) {
 			taskLogger->warn("YouTubeLiveStreamMultipleFound", {{"liveStreamId", incomingLiveStreamId}});
 		}
-		const auto incomingLiveStream = std::make_shared<YouTubeApi::YouTubeLiveStream>(liveStreams[0]);
+		const auto incomingLiveStream = liveStreams[0];
 
 		taskLogger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
 
