@@ -295,14 +295,6 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 	}
 }
 
-void to_json(nlohmann::json &j, const YouTubeLiveBroadcastThumbnail &p)
-{
-	j = nlohmann::json{{"url", p.url}};
-	if (p.width)
-		j["width"] = *p.width;
-	if (p.height)
-		j["height"] = *p.height;
-}
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastThumbnail &p)
 {
 	j.at("url").get_to(p.url);
@@ -339,7 +331,16 @@ void to_json(nlohmann::json &j, const YouTubeLiveBroadcast &p)
 			snippetJson["description"] = *p.snippet->description;
 		}
 		if (p.snippet->thumbnails) {
-			snippetJson["thumbnails"] = *p.snippet->thumbnails;
+			   nlohmann::json thumbnailsJson;
+			   for (const auto &kv : *p.snippet->thumbnails) {
+				   const auto &thumb = kv.second;
+				   nlohmann::json thumbJson;
+				   thumbJson["url"] = thumb.url;
+				   if (thumb.width) thumbJson["width"] = *thumb.width;
+				   if (thumb.height) thumbJson["height"] = *thumb.height;
+				   thumbnailsJson[kv.first] = std::move(thumbJson);
+			   }
+			   snippetJson["thumbnails"] = std::move(thumbnailsJson);
 		}
 		if (p.snippet->scheduledStartTime) {
 			snippetJson["scheduledStartTime"] = *p.snippet->scheduledStartTime;
@@ -494,7 +495,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 			snippetObj.description = s.at("description").get<std::string>();
 		if (s.contains("thumbnails"))
 			snippetObj.thumbnails =
-				s.at("thumbnails").get<std::unordered_map<std::string, YouTubeLiveBroadcast::Snippet::Thumbnail>>();
+				s.at("thumbnails").get<std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail>>();
 		if (s.contains("scheduledStartTime"))
 			snippetObj.scheduledStartTime = s.at("scheduledStartTime").get<std::string>();
 		if (s.contains("scheduledEndTime"))
