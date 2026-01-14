@@ -318,7 +318,7 @@ void from_json(const nlohmann::json &j, InsertingYouTubeLiveStream &p)
 		p.snippet = std::nullopt;
 	}
 
-	// cdn (not optional)
+	// cdn
 	const auto &cdn = j.at("cdn");
 	cdn.at("ingestionType").get_to(p.cdn.ingestionType);
 	cdn.at("resolution").get_to(p.cdn.resolution);
