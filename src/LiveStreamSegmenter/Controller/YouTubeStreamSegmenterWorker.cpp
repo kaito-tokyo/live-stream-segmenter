@@ -351,21 +351,45 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		throw std::runtime_error(
 			"YouTubeLiveBroadcastIdMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
 	}
+
+	std::string nextLiveStreamId = nextLiveStream->id.value_or("(ID MISSING)");
+
 	logger->info("YouTubeLiveBroadcastBindingLiveStream",
-		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
+		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStreamId}});
 
-	youTubeApiClient->bindLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, nextLiveStream->id);
+	youTubeApiClient->bindLiveBroadcast(stoken, accessToken, *nextLiveBroadcast->id, nextLiveStreamId);
 	logger->info("YouTubeLiveBroadcastBoundToLiveStream",
-		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStream->id}});
+		     {{"broadcastId", *nextLiveBroadcast->id}, {"streamId", nextLiveStreamId}});
 
-	if (nextLiveStream->cdn.ingestionType == "rtmp") {
+	if (!nextLiveStream->cdn) {
+		logger->error("YouTubeLiveStreamCdnMissing");
+		throw std::runtime_error("YouTubeLiveStreamCdnMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
+	}
+
+	if (!nextLiveStream->cdn->ingestionType) {
+		logger->error("YouTubeLiveStreamIngestionTypeMissing");
+		throw std::runtime_error(
+			"YouTubeLiveStreamIngestionTypeMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
+	}
+
+	const std::string &nextLiveStreamIngestionType = *nextLiveStream->cdn->ingestionType;
+
+	if (!nextLiveStream->cdn->ingestionInfo || !nextLiveStream->cdn->ingestionInfo->streamName) {
+		logger->error("YouTubeLiveStreamIngestionInfoStreamNameMissing");
+		throw std::runtime_error(
+			"YouTubeLiveStreamIngestionInfoStreamNameMissing(YouTubeStreamSegmenterMainLoop::startStreaming)");
+	}
+
+	const std::string nextLiveStreamStreamName = *nextLiveStream->cdn->ingestionInfo->streamName;
+
+	if (nextLiveStreamIngestionType == "rtmp") {
 		logger->info("OBSStreamingYouTubeRTMPServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
 		obs_data_set_string(settings.get(), "service", "Custom");
 		obs_data_set_string(settings.get(), "protocol", "RTMPS");
 		obs_data_set_string(settings.get(), "server", "rtmps://a.rtmps.youtube.com:443/live2");
-		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStreamStreamName.c_str());
 
 		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube RTMP Service",
 							    settings.get(), nullptr);
@@ -374,7 +398,7 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		obs_service_release(service);
 
 		logger->info("OBSStreamingYouTubeRTMPServiceCreated");
-	} else if (nextLiveStream->cdn.ingestionType == "hls") {
+	} else if (nextLiveStreamIngestionType == "hls") {
 		logger->info("OBSStreamingYouTubeHLSServiceCreating");
 
 		auto settings = ObsBridgeUtils::unique_obs_data_t(obs_data_create());
@@ -383,7 +407,7 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		obs_data_set_string(
 			settings.get(), "server",
 			"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8");
-		obs_data_set_string(settings.get(), "key", nextLiveStream->cdn.ingestionInfo.streamName.c_str());
+		obs_data_set_string(settings.get(), "key", nextLiveStreamStreamName.c_str());
 
 		obs_service_t *service = obs_service_create("rtmp_common", "Live Stream Segmenter YouTube HLS Service",
 							    settings.get(), nullptr);
@@ -394,7 +418,7 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 		logger->info("OBSStreamingYouTubeHLSServiceCreated");
 	} else {
 		logger->error("OBSStreamingUnsupportedYouTubeIngestionTypeError",
-			      {{"ingestionType", nextLiveStream->cdn.ingestionType}});
+			      {{"ingestionType", nextLiveStreamIngestionType}});
 		throw std::runtime_error(
 			"OBSStreamingUnsupportedYouTubeIngestionTypeError(YouTubeStreamSegmenterMainLoop::startOBSStreaming)");
 	}
@@ -403,17 +427,17 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 
 	logger->info("OBSStreamingStarted");
 
-	logger->info("YouTubeLiveStreamWaitingForActive", {{"liveStreamId", nextLiveStream->id}});
+	logger->info("YouTubeLiveStreamWaitingForActive", {{"liveStreamId", nextLiveStreamId}});
 	co_await QCoro::moveToThread(workerThread);
 	// on a worker thread
 
-	const std::array<std::string, 1> nextLiveStreamIdArray{nextLiveStream->id};
+	const std::array<std::string, 1> nextLiveStreamIdArray{nextLiveStreamId};
 	for (int maxAttempts = 20; true; --maxAttempts) {
 		co_await QCoro::sleepFor(5s);
 
 		const std::string maxAttemptsStr = std::to_string(maxAttempts);
 		logger->info("YouTubeLiveStreamCheckingIfActive",
-			     {{"liveStreamId", nextLiveStream->id}, {"attemptsLeft", maxAttemptsStr}});
+			     {{"liveStreamId", nextLiveStreamId}, {"attemptsLeft", maxAttemptsStr}});
 
 		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
 				   std::shared_ptr<YouTubeApi::YouTubeApiError>>
@@ -430,12 +454,12 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 
 		if (liveStreams.size() == 1 && liveStreams[0]->status.has_value() &&
 		    liveStreams[0]->status->streamStatus == "active") {
-			logger->info("YouTubeLiveStreamActive", {{"liveStreamId", nextLiveStream->id}});
+			logger->info("YouTubeLiveStreamActive", {{"liveStreamId", nextLiveStreamId}});
 			break;
 		}
 
 		if (maxAttempts <= 0) {
-			logger->error("YouTubeLiveStreamTimeout", {{"liveStreamId", nextLiveStream->id}});
+			logger->error("YouTubeLiveStreamTimeout", {{"liveStreamId", nextLiveStreamId}});
 			co_return;
 		}
 	}
@@ -820,7 +844,7 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 		}
 		const auto incomingLiveStream = liveStreams[0];
 
-		taskLogger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStream->id}});
+		taskLogger->info("YouTubeLiveStreamGottenIncoming", {{"liveStreamId", incomingLiveStreamId}});
 
 		// --- Ensure OBS streaming is stopped ---
 		if (QThread *mainThread = mainContext_->thread()) {

@@ -44,7 +44,7 @@ YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
 {
 	std::vector<std::shared_ptr<YouTubeLiveStream>> liveStreams{std::make_shared<YouTubeLiveStream>()};
 	liveStreams[0]->id = "mocked_stream_id";
-	liveStreams[0]->snippet.title = "Mocked Stream";
+	liveStreams[0]->snippet->title = "Mocked Stream";
 	return liveStreams;
 }
 
