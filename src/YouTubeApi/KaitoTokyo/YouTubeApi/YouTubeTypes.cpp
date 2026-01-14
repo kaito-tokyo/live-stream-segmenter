@@ -272,6 +272,71 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 	}
 }
 
+void to_json(nlohmann::json &j, const InsertingYouTubeLiveStream &p)
+{
+    j = nlohmann::json{};
+
+    // snippet
+    if (p.snippet) {
+        nlohmann::json snippetJson;
+        snippetJson["title"] = p.snippet->title;
+        if (p.snippet->description) {
+            snippetJson["description"] = *p.snippet->description;
+        }
+        j["snippet"] = std::move(snippetJson);
+    }
+
+    // cdn
+    nlohmann::json cdnJson;
+    cdnJson["ingestionType"] = p.cdn.ingestionType;
+    cdnJson["resolution"] = p.cdn.resolution;
+    cdnJson["frameRate"] = p.cdn.frameRate;
+    j["cdn"] = std::move(cdnJson);
+
+    // contentDetails
+    if (p.contentDetails) {
+        nlohmann::json contentDetailsJson;
+        if (p.contentDetails->isReusable) {
+            contentDetailsJson["isReusable"] = *p.contentDetails->isReusable;
+        }
+        j["contentDetails"] = std::move(contentDetailsJson);
+    }
+}
+
+void from_json(const nlohmann::json &j, InsertingYouTubeLiveStream &p)
+{
+	// snippet
+	if (j.contains("snippet")) {
+		const auto &snippet = j.at("snippet");
+		InsertingYouTubeLiveStream::Snippet s;
+		snippet.at("title").get_to(s.title);
+		if (snippet.contains("description")) {
+			snippet.at("description").get_to(s.description);
+		}
+		p.snippet = std::move(s);
+	} else {
+		p.snippet = std::nullopt;
+	}
+
+	// cdn (not optional)
+	const auto &cdn = j.at("cdn");
+	cdn.at("ingestionType").get_to(p.cdn.ingestionType);
+	cdn.at("resolution").get_to(p.cdn.resolution);
+	cdn.at("frameRate").get_to(p.cdn.frameRate);
+
+	// contentDetails
+	if (j.contains("contentDetails")) {
+		const auto &contentDetails = j.at("contentDetails");
+		InsertingYouTubeLiveStream::ContentDetails c;
+		if (contentDetails.contains("isReusable")) {
+			contentDetails.at("isReusable").get_to(c.isReusable);
+		}
+		p.contentDetails = std::move(c);
+	} else {
+		p.contentDetails = std::nullopt;
+	}
+}
+
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastThumbnail &p)
 {
 	j = nlohmann::json{};

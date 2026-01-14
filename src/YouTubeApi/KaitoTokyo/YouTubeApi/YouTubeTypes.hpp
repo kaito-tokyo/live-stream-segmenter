@@ -108,6 +108,29 @@ struct YouTubeLiveStream {
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p);
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p);
 
+struct InsertingYouTubeLiveStream {
+	struct Snippet {
+		std::string title;
+		std::optional<std::string> description;
+	};
+	std::optional<Snippet> snippet;
+
+	struct Cdn {
+		std::string ingestionType;
+		std::string resolution;
+		std::string frameRate;
+	};
+	Cdn cdn;
+
+	struct ContentDetails {
+		std::optional<bool> isReusable;
+	};
+	std::optional<ContentDetails> contentDetails;
+};
+
+void to_json(nlohmann::json &j, const InsertingYouTubeLiveStream &p);
+void from_json(const nlohmann::json &j, InsertingYouTubeLiveStream &p);
+
 // --- YouTubeLiveBroadcast ---
 struct YouTubeLiveBroadcastThumbnail {
 	std::optional<std::string> url;
