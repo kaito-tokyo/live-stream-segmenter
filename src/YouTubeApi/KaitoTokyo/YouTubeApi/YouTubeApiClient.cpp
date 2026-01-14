@@ -452,7 +452,7 @@ YouTubeApiClient::listLiveStreams(Jthread::stop_token stoken, const std::string 
 
 std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
-				std::shared_ptr<const InsertingYouTubeLiveStream> insertingLiveStream)
+				   std::shared_ptr<const InsertingYouTubeLiveStream> insertingLiveStream)
 {
 	if (accessToken.empty()) {
 		logger_->error("AccessTokenIsEmptyError");

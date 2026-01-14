@@ -41,6 +41,11 @@ namespace KaitoTokyo::LiveStreamSegmenter::Controller {
 class YouTubeStreamSegmenterWorker : public QObject {
 	Q_OBJECT
 public:
+	struct CurrentLiveBroadcast {
+		std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast> liveBroadcast;
+		std::shared_ptr<YouTubeApi::YouTubeLiveStream> liveStream;
+	};
+
 	YouTubeStreamSegmenterWorker(QObject *mainContext, QThread *workerThread,
 				     std::shared_ptr<const Logger::ILogger> logger,
 				     std::shared_ptr<CurlHelper::CurlHandle> curl,
@@ -76,7 +81,7 @@ private:
 	std::shared_ptr<Store::EventHandlerStore> eventHandlerStore_;
 	std::shared_ptr<Store::YouTubeStore> youtubeStore_;
 
-	int currentLiveStreamIndex_ = 0;
+	std::optional<CurrentLiveBroadcast> currentLiveBroadcast_;
 	std::array<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>, 2> liveBroadcasts_;
 	Jthread::stop_source stopSource_;
 };

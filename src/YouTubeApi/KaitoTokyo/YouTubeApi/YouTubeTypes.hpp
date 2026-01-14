@@ -113,7 +113,7 @@ struct InsertingYouTubeLiveStream {
 		std::string title;
 		std::optional<std::string> description;
 	};
-	std::optional<Snippet> snippet;
+	Snippet snippet;
 
 	struct Cdn {
 		std::string ingestionType;

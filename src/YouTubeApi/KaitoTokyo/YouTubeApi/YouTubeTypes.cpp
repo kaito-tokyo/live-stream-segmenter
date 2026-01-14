@@ -346,13 +346,11 @@ void to_json(nlohmann::json &j, const InsertingYouTubeLiveStream &p)
 	j = nlohmann::json{};
 
 	// snippet
-	if (p.snippet) {
-		nlohmann::json snippetJson;
-		snippetJson["title"] = p.snippet->title;
-		if (p.snippet->description)
-			snippetJson["description"] = *p.snippet->description;
-		j["snippet"] = std::move(snippetJson);
-	}
+	nlohmann::json snippetJson;
+	snippetJson["title"] = p.snippet.title;
+	if (p.snippet.description)
+		snippetJson["description"] = *p.snippet.description;
+	j["snippet"] = std::move(snippetJson);
 
 	// cdn
 	nlohmann::json cdnJson;
@@ -373,19 +371,15 @@ void to_json(nlohmann::json &j, const InsertingYouTubeLiveStream &p)
 void from_json(const nlohmann::json &j, InsertingYouTubeLiveStream &p)
 {
 	// snippet
-	if (j.contains("snippet")) {
-		const auto &snippet = j.at("snippet");
-		InsertingYouTubeLiveStream::Snippet s;
-		snippet.at("title").get_to(s.title);
-		if (snippet.contains("description")) {
-			snippet.at("description").get_to(s.description);
-		} else {
-			s.description = std::nullopt;
-		}
-		p.snippet = std::move(s);
+	const auto &snippet = j.at("snippet");
+	InsertingYouTubeLiveStream::Snippet s;
+	snippet.at("title").get_to(s.title);
+	if (snippet.contains("description")) {
+		snippet.at("description").get_to(s.description);
 	} else {
-		p.snippet = std::nullopt;
+		s.description = std::nullopt;
 	}
+	p.snippet = std::move(s);
 
 	// cdn
 	const auto &cdn = j.at("cdn");
