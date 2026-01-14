@@ -407,9 +407,9 @@ performList(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlH
 		nlohmann::json j = nlohmann::json::parse(responseBody);
 
 		if (j.contains("error")) {
+			logger->error("YouTubeApiError", {{"error", j["error"].dump()}});
 			auto error = std::make_shared<YouTubeApiError>();
 			j["error"].get_to(*error);
-			logger->error("YouTubeApiError", {{"error", j["error"].dump()}});
 			return error;
 		}
 
@@ -530,9 +530,9 @@ YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -573,9 +573,9 @@ YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -662,9 +662,9 @@ YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token stoken, const std::str
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -703,9 +703,9 @@ YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token stoken, const std::str
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -749,9 +749,9 @@ YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token stoken, const std::strin
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -799,9 +799,9 @@ YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_token stoken, const std:
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
@@ -882,9 +882,9 @@ YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::string &ac
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 	if (j.contains("error")) {
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
 		j["error"].get_to(*error);
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		return error;
 	}
 
