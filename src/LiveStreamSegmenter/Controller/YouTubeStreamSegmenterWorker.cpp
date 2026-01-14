@@ -717,15 +717,21 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 		// --- Complete active broadcasts ---
 		if (currentLiveBroadcast_ && currentLiveBroadcast_->liveStream &&
 		    currentLiveBroadcast_->liveStream->id) {
+			std::string currentLiveStreamId = *currentLiveBroadcast_->liveStream->id;
+
 			taskLogger->info("YouTubeLiveBroadcastCompletingActive");
 
-			const std::array<std::string, 2> liveStreamIds{
-				*currentLiveBroadcast_->liveStream->id,
-			};
+			const std::array<std::string, 2> liveStreamIds{currentLiveStreamId};
 
 			completeActiveLiveBroadcasts(stoken, youTubeApiClient_, accessToken, liveStreamIds, taskLogger);
 
 			taskLogger->info("YouTubeLiveBroadcastCompletedActive");
+
+			taskLogger->info("YouTubeLiveStreamDeleting", {{"liveStreamId", currentLiveStreamId}});
+
+			youTubeApiClient_->deleteLiveStream(stoken, accessToken, currentLiveStreamId);
+
+			taskLogger->info("YouTubeLiveStreamDeleted", {{"liveStreamId", currentLiveStreamId}});
 		} else {
 			taskLogger->info("YouTubeLiveBroadcastSkippingCompleteActiveNoCurrentBroadcast");
 		}
@@ -828,6 +834,14 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 			completeActiveLiveBroadcasts(stoken, youTubeApiClient_, accessToken, liveStreamIds, taskLogger);
 
 			taskLogger->info("YouTubeLiveBroadcastCompletedActive");
+
+			taskLogger->info("YouTubeLiveStreamDeleting", {{"liveStreamId", *stoppingLiveStreamId}});
+
+			youTubeApiClient_->deleteLiveStream(stoken, accessToken, *stoppingLiveStreamId);
+
+			taskLogger->info("YouTubeLiveStreamDeleted", {{"liveStreamId", *stoppingLiveStreamId}});
+		} else {
+			taskLogger->info("YouTubeLiveStreamSkippingCompleteActiveNoCurrentBroadcast");
 		}
 
 		// --- Segment completed ---

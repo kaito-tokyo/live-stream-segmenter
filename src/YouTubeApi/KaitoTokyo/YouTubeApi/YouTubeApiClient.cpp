@@ -336,6 +336,55 @@ std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
 	return readBuffer;
 }
 
+std::vector<char> doDelete(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+			   Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
+{
+	if (!logger) {
+		logger = Logger::NullLogger::instance();
+	}
+	if (!curl) {
+		logger->error("CurlIsNullError");
+		throw std::invalid_argument("CurlIsNullError(YouTubeApiClient::doDelete)");
+	}
+	if (url.empty()) {
+		logger->error("UrlIsEmptyError");
+		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doDelete)");
+	}
+
+	std::vector<char> readBuffer;
+
+	curl_easy_reset(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl->getRaw(), CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CUSTOMREQUEST, "DELETE");
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, &stoken);
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_CONNECTTIMEOUT, 10L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_TIMEOUT, 60L);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_NOSIGNAL, 1L);
+
+	CURLcode res = curl_easy_perform(curl->getRaw());
+
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, nullptr);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFODATA, nullptr);
+
+	if (res != CURLE_OK) {
+		logger->error("CurlPerformError", {{"error", curl_easy_strerror(res)}});
+		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doDelete)");
+	}
+
+	return readBuffer;
+}
+
 std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeApiError>>
 performList(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
 	    Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr, int maxIterations = 20)
@@ -477,6 +526,49 @@ YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string
 	std::string bodyStr = requestBody.dump();
 
 	std::vector<char> responseBody = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
+
+	nlohmann::json j = nlohmann::json::parse(responseBody);
+
+	if (j.contains("error")) {
+		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
+		j["error"].get_to(*error);
+		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
+		return error;
+	}
+
+	auto liveStream = std::make_shared<YouTubeLiveStream>();
+	j.get_to(*liveStream);
+	return liveStream;
+}
+
+std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
+YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
+				   const std::string &liveStreamId)
+{
+	if (accessToken.empty()) {
+		logger_->error("AccessTokenIsEmptyError");
+		throw std::invalid_argument("AccessTokenIsEmptyError(YouTubeApiClient::insertLiveStream)");
+	}
+
+	if (liveStreamId.empty()) {
+		logger_->error("LiveStreamIdIsEmptyError");
+		throw std::invalid_argument("LiveStreamIdIsEmptyError(YouTubeApiClient::insertLiveStream)");
+	}
+
+	CurlHelper::CurlUrlSearchParams params(curl_->getRaw());
+	params.append("id", liveStreamId);
+	std::string qs = params.toString();
+
+	CurlHelper::CurlUrlHandle urlHandle;
+	urlHandle.setUrl("https://www.googleapis.com/youtube/v3/liveStreams");
+	urlHandle.appendQuery(qs.c_str());
+	auto url = urlHandle.c_str();
+
+	CurlHelper::CurlSlistHandle headers;
+	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
+	headers.append(authHeader.c_str());
+
+	std::vector<char> responseBody = doDelete(logger_, curl_, stoken, url.get(), headers.getRaw());
 
 	nlohmann::json j = nlohmann::json::parse(responseBody);
 
