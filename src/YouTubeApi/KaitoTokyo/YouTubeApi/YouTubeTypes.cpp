@@ -29,7 +29,7 @@
 
 namespace KaitoTokyo::YouTubeApi {
 
-void to_json(nlohmann::json &j, const YouTubeError &p)
+void to_json(nlohmann::json &j, const YouTubeApiError &p)
 {
 	j = nlohmann::json{};
 	j["code"] = p.code;
@@ -44,14 +44,14 @@ void to_json(nlohmann::json &j, const YouTubeError &p)
 	}
 }
 
-void from_json(const nlohmann::json &j, YouTubeError &p)
+void from_json(const nlohmann::json &j, YouTubeApiError &p)
 {
 	j.at("code").get_to(p.code);
 	j.at("message").get_to(p.message);
 	p.errors.clear();
 	if (j.contains("errors")) {
 		for (const auto &errJson : j.at("errors")) {
-			YouTubeError::ErrorDetail err;
+			YouTubeApiError::ErrorDetail err;
 			errJson.at("domain").get_to(err.domain);
 			errJson.at("reason").get_to(err.reason);
 			errJson.at("message").get_to(err.message);

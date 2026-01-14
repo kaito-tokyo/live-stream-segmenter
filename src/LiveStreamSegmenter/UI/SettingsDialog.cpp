@@ -650,11 +650,11 @@ void SettingsDialog::fetchStreamKeys()
 		}
 
 		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
-				   std::shared_ptr<YouTubeApi::YouTubeError>>
+				   std::shared_ptr<YouTubeApi::YouTubeApiError>>
 			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken);
 
-		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 			logger_->error("FetchStreamKeysApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error("YouTubeApiError(FetchStreamKeys)");
 		}

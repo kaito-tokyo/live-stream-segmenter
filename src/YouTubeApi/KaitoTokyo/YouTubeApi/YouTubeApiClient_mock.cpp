@@ -37,7 +37,7 @@ YouTubeApiClient::YouTubeApiClient(std::shared_ptr<CurlHelper::CurlHandle> curl)
 
 YouTubeApiClient::~YouTubeApiClient() noexcept = default;
 
-std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeError>>
+std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
 				  [[maybe_unused]] const std::string &accessToken,
 				  [[maybe_unused]] std::span<const std::string> ids)
@@ -48,7 +48,7 @@ YouTubeApiClient::listLiveStreams([[maybe_unused]] Jthread::stop_token stoken,
 	return liveStreams;
 }
 
-std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeError>>
+std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] Jthread::stop_token stoken,
 					     [[maybe_unused]] const std::string &accessToken,
 					     [[maybe_unused]] const std::string &broadcastStatus)
@@ -61,7 +61,7 @@ YouTubeApiClient::listLiveBroadcastsByStatus([[maybe_unused]] Jthread::stop_toke
 	return liveBroadcasts;
 }
 
-std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast)
@@ -74,7 +74,7 @@ YouTubeApiClient::insertLiveBroadcast([[maybe_unused]] Jthread::stop_token stoke
 	return liveBroadcast;
 }
 
-std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 				      [[maybe_unused]] const std::string &accessToken,
 				      [[maybe_unused]] const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast)
@@ -88,7 +88,7 @@ YouTubeApiClient::updateLiveBroadcast([[maybe_unused]] Jthread::stop_token stoke
 	return liveBroadcast;
 }
 
-std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 				    [[maybe_unused]] const std::string &accessToken, const std::string &broadcastId,
 				    [[maybe_unused]] const std::optional<std::string> &streamId)
@@ -101,7 +101,7 @@ YouTubeApiClient::bindLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 	return liveBroadcast;
 }
 
-std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] Jthread::stop_token stoken,
 					  [[maybe_unused]] const std::string &accessToken,
 					  [[maybe_unused]] const std::string &broadcastId,
@@ -115,7 +115,7 @@ YouTubeApiClient::transitionLiveBroadcast([[maybe_unused]] Jthread::stop_token s
 	return liveBroadcast;
 }
 
-std::variant<std::monostate, std::shared_ptr<YouTubeError>> YouTubeApiClient::setThumbnail(
+std::variant<std::monostate, std::shared_ptr<YouTubeApiError>> YouTubeApiClient::setThumbnail(
 	[[maybe_unused]] Jthread::stop_token stoken, [[maybe_unused]] const std::string &accessToken,
 	[[maybe_unused]] const std::string &videoId, [[maybe_unused]] const std::filesystem::path &thumbnailPath)
 {

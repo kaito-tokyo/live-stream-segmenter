@@ -216,11 +216,11 @@ void completeActiveLiveBroadcasts(Jthread::stop_token stoken,
 	logger->info("YouTubeLiveBroadcastCompletingAllActive");
 
 	const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>>,
-			   std::shared_ptr<YouTubeApi::YouTubeError>>
+			   std::shared_ptr<YouTubeApi::YouTubeApiError>>
 		apiResult = youTubeApiClient->listLiveBroadcastsByStatus(stoken, accessToken, "active");
 
-	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 		logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 		throw std::runtime_error(
 			"YouTubeApiError(YouTubeStreamSegmenterMainLoop::completeActiveLiveBroadcasts)");
@@ -278,11 +278,11 @@ createLiveBroadcast(Jthread::stop_token stoken, std::shared_ptr<YouTubeApi::YouT
 
 	logger->info("YouTubeLiveBroadcastInserting");
 
-	const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApi::YouTubeError>>
+	const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApi::YouTubeApiError>>
 		apiResult = youTubeApiClient->insertLiveBroadcast(stoken, accessToken, insertingLiveBroadcast);
 
-	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+		const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 		logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 		throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::createLiveBroadcast)");
 	}
@@ -415,11 +415,11 @@ QCoro::Task<void> startStreaming(QThread *workerThread, Jthread::stop_token stok
 			     {{"liveStreamId", nextLiveStream->id}, {"attemptsLeft", maxAttemptsStr}});
 
 		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
-				   std::shared_ptr<YouTubeApi::YouTubeError>>
+				   std::shared_ptr<YouTubeApi::YouTubeApiError>>
 			apiResult = youTubeApiClient->listLiveStreams(stoken, accessToken, nextLiveStreamIdArray);
 
-		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 			logger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error("YouTubeApiError(YouTubeStreamSegmenterMainLoop::startStreaming)");
 		}
@@ -611,11 +611,11 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 
 		const std::array<std::string, 1> currentLiveStreamIdArray{currentLiveStreamId};
 		std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
-			     std::shared_ptr<YouTubeApi::YouTubeError>>
+			     std::shared_ptr<YouTubeApi::YouTubeApiError>>
 			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken, currentLiveStreamIdArray);
 
-		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 			taskLogger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error(
 				"YouTubeApiError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
@@ -796,11 +796,11 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 
 		const std::array<std::string, 1> incomingLiveStreamIdArray{incomingLiveStreamId};
 		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
-				   std::shared_ptr<YouTubeApi::YouTubeError>>
+				   std::shared_ptr<YouTubeApi::YouTubeApiError>>
 			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken, incomingLiveStreamIdArray);
 
-		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult)) {
-			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
+			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
 
 			taskLogger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error(
