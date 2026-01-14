@@ -50,31 +50,31 @@ public:
 
 	void setLogger(std::shared_ptr<const Logger::ILogger> logger) { logger_ = std::move(logger); }
 
-	std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeError>>
+	std::variant<std::vector<std::shared_ptr<YouTubeLiveStream>>, std::shared_ptr<YouTubeApiError>>
 	listLiveStreams(Jthread::stop_token stoken, const std::string &accessToken,
 			std::span<const std::string> ids = {});
 
-	std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeError>>
+	std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
 	listLiveBroadcastsByStatus(Jthread::stop_token stoken, const std::string &accessToken,
 				   const std::string &broadcastStatus);
 
-	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 	insertLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 			    const InsertingYouTubeLiveBroadcast &insertingLiveBroadcast);
 
-	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 	updateLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 			    const UpdatingYouTubeLiveBroadcast &updatingLiveBroadcast);
 
-	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 	bindLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken, const std::string &broadcastId,
 			  const std::optional<std::string> &streamId);
 
-	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeError>>
+	std::variant<std::shared_ptr<YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApiError>>
 	transitionLiveBroadcast(Jthread::stop_token stoken, const std::string &accessToken,
 				const std::string &broadcastId, const std::string &broadcastStatus);
 
-	std::variant<std::monostate, std::shared_ptr<YouTubeError>>
+	std::variant<std::monostate, std::shared_ptr<YouTubeApiError>>
 	setThumbnail(Jthread::stop_token stoken, const std::string &accessToken, const std::string &videoId,
 		     const std::filesystem::path &thumbnailPath);
 

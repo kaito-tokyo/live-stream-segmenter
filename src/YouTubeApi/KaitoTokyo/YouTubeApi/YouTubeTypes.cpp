@@ -29,7 +29,7 @@
 
 namespace KaitoTokyo::YouTubeApi {
 
-void to_json(nlohmann::json &j, const YouTubeError &p)
+void to_json(nlohmann::json &j, const YouTubeApiError &p)
 {
 	j = nlohmann::json{};
 	j["code"] = p.code;
@@ -44,14 +44,14 @@ void to_json(nlohmann::json &j, const YouTubeError &p)
 	}
 }
 
-void from_json(const nlohmann::json &j, YouTubeError &p)
+void from_json(const nlohmann::json &j, YouTubeApiError &p)
 {
 	j.at("code").get_to(p.code);
 	j.at("message").get_to(p.message);
 	p.errors.clear();
 	if (j.contains("errors")) {
 		for (const auto &errJson : j.at("errors")) {
-			YouTubeError::ErrorDetail err;
+			YouTubeApiError::ErrorDetail err;
 			errJson.at("domain").get_to(err.domain);
 			errJson.at("reason").get_to(err.reason);
 			errJson.at("message").get_to(err.message);
@@ -62,154 +62,211 @@ void from_json(const nlohmann::json &j, YouTubeError &p)
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
-	j = nlohmann::json{{"kind", p.kind}, {"etag", p.etag}, {"id", p.id}};
+
+	j = nlohmann::json{};
+	if (p.kind)
+		j["kind"] = *p.kind;
+	if (p.etag)
+		j["etag"] = *p.etag;
+	if (p.id)
+		j["id"] = *p.id;
 
 	// snippet
-	nlohmann::json snippetJson = {{"publishedAt", p.snippet.publishedAt},
-				      {"channelId", p.snippet.channelId},
-				      {"title", p.snippet.title},
-				      {"description", p.snippet.description}};
-	if (p.snippet.isDefaultStream.has_value()) {
-		snippetJson["isDefaultStream"] = p.snippet.isDefaultStream.value();
+	if (p.snippet) {
+		nlohmann::json snippetJson;
+		if (p.snippet->publishedAt)
+			snippetJson["publishedAt"] = *p.snippet->publishedAt;
+		if (p.snippet->channelId)
+			snippetJson["channelId"] = *p.snippet->channelId;
+		if (p.snippet->title)
+			snippetJson["title"] = *p.snippet->title;
+		if (p.snippet->description)
+			snippetJson["description"] = *p.snippet->description;
+		if (p.snippet->isDefaultStream)
+			snippetJson["isDefaultStream"] = *p.snippet->isDefaultStream;
+		if (!snippetJson.empty())
+			j["snippet"] = std::move(snippetJson);
 	}
-	j["snippet"] = std::move(snippetJson);
 
 	// cdn
-	nlohmann::json cdnJson = {{"ingestionType", p.cdn.ingestionType},
-				  {"ingestionInfo",
-				   {{"streamName", p.cdn.ingestionInfo.streamName},
-				    {"ingestionAddress", p.cdn.ingestionInfo.ingestionAddress},
-				    {"backupIngestionAddress", p.cdn.ingestionInfo.backupIngestionAddress}}},
-				  {"resolution", p.cdn.resolution},
-				  {"frameRate", p.cdn.frameRate}};
-	j["cdn"] = std::move(cdnJson);
-
-	// status (optional)
-	bool hasStatus = p.status.has_value() &&
-			 (!p.status->streamStatus.empty() || !p.status->healthStatus.status.empty() ||
-			  p.status->healthStatus.lastUpdateTimeSeconds.has_value() ||
-			  !p.status->healthStatus.configurationIssues.empty());
-	if (hasStatus) {
-		nlohmann::json healthStatusJson = {{"status", p.status->healthStatus.status},
-						   {"configurationIssues", nlohmann::json::array()}};
-		if (p.status->healthStatus.lastUpdateTimeSeconds.has_value()) {
-			healthStatusJson["lastUpdateTimeSeconds"] =
-				p.status->healthStatus.lastUpdateTimeSeconds.value();
+	if (p.cdn) {
+		nlohmann::json cdnJson;
+		if (p.cdn->ingestionType)
+			cdnJson["ingestionType"] = *p.cdn->ingestionType;
+		if (p.cdn->ingestionInfo) {
+			nlohmann::json ingestionInfoJson;
+			if (p.cdn->ingestionInfo->streamName)
+				ingestionInfoJson["streamName"] = *p.cdn->ingestionInfo->streamName;
+			if (p.cdn->ingestionInfo->ingestionAddress)
+				ingestionInfoJson["ingestionAddress"] = *p.cdn->ingestionInfo->ingestionAddress;
+			if (p.cdn->ingestionInfo->backupIngestionAddress)
+				ingestionInfoJson["backupIngestionAddress"] =
+					*p.cdn->ingestionInfo->backupIngestionAddress;
+			if (!ingestionInfoJson.empty())
+				cdnJson["ingestionInfo"] = std::move(ingestionInfoJson);
 		}
-		if (!p.status->healthStatus.configurationIssues.empty()) {
-			auto &arr = healthStatusJson["configurationIssues"];
-			for (const auto &issue : p.status->healthStatus.configurationIssues) {
-				arr.push_back({{"type", issue.type},
-					       {"severity", issue.severity},
-					       {"reason", issue.reason},
-					       {"description", issue.description}});
-			}
-		}
-		nlohmann::json statusJson = {{"streamStatus", p.status->streamStatus},
-					     {"healthStatus", std::move(healthStatusJson)}};
-		j["status"] = std::move(statusJson);
+		if (p.cdn->resolution)
+			cdnJson["resolution"] = *p.cdn->resolution;
+		if (p.cdn->frameRate)
+			cdnJson["frameRate"] = *p.cdn->frameRate;
+		if (!cdnJson.empty())
+			j["cdn"] = std::move(cdnJson);
 	}
 
-	// contentDetails (optional)
-	bool hasContentDetails =
-		p.contentDetails.has_value() &&
-		(!p.contentDetails->closedCaptionsIngestionUrl.empty() || p.contentDetails->isReusable.has_value());
-	if (hasContentDetails) {
-		nlohmann::json contentDetailsJson = {
-			{"closedCaptionsIngestionUrl", p.contentDetails->closedCaptionsIngestionUrl}};
-		if (p.contentDetails->isReusable.has_value()) {
-			contentDetailsJson["isReusable"] = p.contentDetails->isReusable.value();
+	// status
+	if (p.status) {
+		nlohmann::json statusJson;
+		if (p.status->streamStatus)
+			statusJson["streamStatus"] = *p.status->streamStatus;
+		if (p.status->healthStatus) {
+			nlohmann::json healthStatusJson;
+			if (p.status->healthStatus->status)
+				healthStatusJson["status"] = *p.status->healthStatus->status;
+			if (p.status->healthStatus->lastUpdateTimeSeconds)
+				healthStatusJson["lastUpdateTimeSeconds"] =
+					*p.status->healthStatus->lastUpdateTimeSeconds;
+			if (p.status->healthStatus->configurationIssues) {
+				nlohmann::json arr = nlohmann::json::array();
+				for (const auto &issue : *p.status->healthStatus->configurationIssues) {
+					nlohmann::json issueJson;
+					if (issue.type)
+						issueJson["type"] = *issue.type;
+					if (issue.severity)
+						issueJson["severity"] = *issue.severity;
+					if (issue.reason)
+						issueJson["reason"] = *issue.reason;
+					if (issue.description)
+						issueJson["description"] = *issue.description;
+					arr.push_back(std::move(issueJson));
+				}
+				healthStatusJson["configurationIssues"] = std::move(arr);
+			}
+			if (!healthStatusJson.empty())
+				statusJson["healthStatus"] = std::move(healthStatusJson);
 		}
-		j["contentDetails"] = std::move(contentDetailsJson);
+		if (!statusJson.empty())
+			j["status"] = std::move(statusJson);
+	}
+
+	// contentDetails
+	if (p.contentDetails) {
+		nlohmann::json contentDetailsJson;
+		if (p.contentDetails->closedCaptionsIngestionUrl)
+			contentDetailsJson["closedCaptionsIngestionUrl"] =
+				*p.contentDetails->closedCaptionsIngestionUrl;
+		if (p.contentDetails->isReusable)
+			contentDetailsJson["isReusable"] = *p.contentDetails->isReusable;
+		if (!contentDetailsJson.empty())
+			j["contentDetails"] = std::move(contentDetailsJson);
 	}
 }
 
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 {
-	// Required fields
-	j.at("kind").get_to(p.kind);
-	j.at("etag").get_to(p.etag);
-	j.at("id").get_to(p.id);
+	// kind, etag, id
+	if (j.contains("kind"))
+		j.at("kind").get_to(p.kind);
+	if (j.contains("etag"))
+		j.at("etag").get_to(p.etag);
+	if (j.contains("id"))
+		j.at("id").get_to(p.id);
 
-	// snippet (optional)
+	// snippet
 	if (j.contains("snippet")) {
 		const auto &snippet = j.at("snippet");
-		snippet.at("publishedAt").get_to(p.snippet.publishedAt);
-		snippet.at("channelId").get_to(p.snippet.channelId);
-		snippet.at("title").get_to(p.snippet.title);
-		snippet.at("description").get_to(p.snippet.description);
-		if (snippet.contains("isDefaultStream")) {
-			p.snippet.isDefaultStream = snippet.at("isDefaultStream").get<bool>();
-		} else {
-			p.snippet.isDefaultStream = std::nullopt;
-		}
+		YouTubeLiveStream::Snippet s;
+		if (snippet.contains("publishedAt"))
+			snippet.at("publishedAt").get_to(s.publishedAt);
+		if (snippet.contains("channelId"))
+			snippet.at("channelId").get_to(s.channelId);
+		if (snippet.contains("title"))
+			snippet.at("title").get_to(s.title);
+		if (snippet.contains("description"))
+			snippet.at("description").get_to(s.description);
+		if (snippet.contains("isDefaultStream"))
+			snippet.at("isDefaultStream").get_to(s.isDefaultStream);
+		p.snippet = std::move(s);
 	} else {
-		p.snippet.publishedAt.clear();
-		p.snippet.channelId.clear();
-		p.snippet.title.clear();
-		p.snippet.description.clear();
-		p.snippet.isDefaultStream = std::nullopt;
+		p.snippet = std::nullopt;
 	}
 
-	// cdn (optional)
+	// cdn
 	if (j.contains("cdn")) {
 		const auto &cdn = j.at("cdn");
-		cdn.at("ingestionType").get_to(p.cdn.ingestionType);
-		const auto &ingestionInfo = cdn.at("ingestionInfo");
-		ingestionInfo.at("streamName").get_to(p.cdn.ingestionInfo.streamName);
-		ingestionInfo.at("ingestionAddress").get_to(p.cdn.ingestionInfo.ingestionAddress);
-		ingestionInfo.at("backupIngestionAddress").get_to(p.cdn.ingestionInfo.backupIngestionAddress);
-		cdn.at("resolution").get_to(p.cdn.resolution);
-		cdn.at("frameRate").get_to(p.cdn.frameRate);
+		YouTubeLiveStream::Cdn c;
+		if (cdn.contains("ingestionType"))
+			cdn.at("ingestionType").get_to(c.ingestionType);
+		if (cdn.contains("ingestionInfo")) {
+			const auto &ingestionInfo = cdn.at("ingestionInfo");
+			YouTubeLiveStream::Cdn::IngestionInfo info;
+			if (ingestionInfo.contains("streamName"))
+				ingestionInfo.at("streamName").get_to(info.streamName);
+			if (ingestionInfo.contains("ingestionAddress"))
+				ingestionInfo.at("ingestionAddress").get_to(info.ingestionAddress);
+			if (ingestionInfo.contains("backupIngestionAddress"))
+				ingestionInfo.at("backupIngestionAddress").get_to(info.backupIngestionAddress);
+			c.ingestionInfo = std::move(info);
+		} else {
+			c.ingestionInfo = std::nullopt;
+		}
+		if (cdn.contains("resolution"))
+			cdn.at("resolution").get_to(c.resolution);
+		if (cdn.contains("frameRate"))
+			cdn.at("frameRate").get_to(c.frameRate);
+		p.cdn = std::move(c);
 	} else {
-		p.cdn.ingestionType.clear();
-		p.cdn.ingestionInfo.streamName.clear();
-		p.cdn.ingestionInfo.ingestionAddress.clear();
-		p.cdn.ingestionInfo.backupIngestionAddress.clear();
-		p.cdn.resolution.clear();
-		p.cdn.frameRate.clear();
+		p.cdn = std::nullopt;
 	}
 
-	// status (optional)
+	// status
 	if (j.contains("status")) {
-		YouTubeLiveStream::Status statusObj;
 		const auto &status = j.at("status");
-		status.at("streamStatus").get_to(statusObj.streamStatus);
-		const auto &healthStatus = status.at("healthStatus");
-		healthStatus.at("status").get_to(statusObj.healthStatus.status);
-		if (healthStatus.contains("lastUpdateTimeSeconds")) {
-			statusObj.healthStatus.lastUpdateTimeSeconds =
-				healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
-		} else {
-			statusObj.healthStatus.lastUpdateTimeSeconds = std::nullopt;
-		}
-		statusObj.healthStatus.configurationIssues.clear();
-		if (healthStatus.contains("configurationIssues")) {
-			for (const auto &issue : healthStatus.at("configurationIssues")) {
-				YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
-				issue.at("type").get_to(ci.type);
-				issue.at("severity").get_to(ci.severity);
-				issue.at("reason").get_to(ci.reason);
-				issue.at("description").get_to(ci.description);
-				statusObj.healthStatus.configurationIssues.push_back(std::move(ci));
+		YouTubeLiveStream::Status s;
+		if (status.contains("streamStatus"))
+			status.at("streamStatus").get_to(s.streamStatus);
+		if (status.contains("healthStatus")) {
+			const auto &healthStatus = status.at("healthStatus");
+			YouTubeLiveStream::Status::HealthStatus h;
+			if (healthStatus.contains("status"))
+				healthStatus.at("status").get_to(h.status);
+			if (healthStatus.contains("lastUpdateTimeSeconds"))
+				healthStatus.at("lastUpdateTimeSeconds").get_to(h.lastUpdateTimeSeconds);
+			if (healthStatus.contains("configurationIssues")) {
+				std::vector<YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue> issues;
+				for (const auto &issue : healthStatus.at("configurationIssues")) {
+					YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
+					if (issue.contains("type"))
+						issue.at("type").get_to(ci.type);
+					if (issue.contains("severity"))
+						issue.at("severity").get_to(ci.severity);
+					if (issue.contains("reason"))
+						issue.at("reason").get_to(ci.reason);
+					if (issue.contains("description"))
+						issue.at("description").get_to(ci.description);
+					issues.push_back(std::move(ci));
+				}
+				h.configurationIssues = std::move(issues);
+			} else {
+				h.configurationIssues = std::nullopt;
 			}
+			s.healthStatus = std::move(h);
+		} else {
+			s.healthStatus = std::nullopt;
 		}
-		p.status = std::move(statusObj);
+		p.status = std::move(s);
 	} else {
 		p.status = std::nullopt;
 	}
 
-	// contentDetails (optional)
+	// contentDetails
 	if (j.contains("contentDetails")) {
-		YouTubeLiveStream::ContentDetails contentDetailsObj;
 		const auto &contentDetails = j.at("contentDetails");
-		contentDetails.at("closedCaptionsIngestionUrl").get_to(contentDetailsObj.closedCaptionsIngestionUrl);
-		if (contentDetails.contains("isReusable")) {
-			contentDetailsObj.isReusable = contentDetails.at("isReusable").get<bool>();
-		} else {
-			contentDetailsObj.isReusable = std::nullopt;
-		}
-		p.contentDetails = std::move(contentDetailsObj);
+		YouTubeLiveStream::ContentDetails c;
+		if (contentDetails.contains("closedCaptionsIngestionUrl"))
+			contentDetails.at("closedCaptionsIngestionUrl").get_to(c.closedCaptionsIngestionUrl);
+		if (contentDetails.contains("isReusable"))
+			contentDetails.at("isReusable").get_to(c.isReusable);
+		p.contentDetails = std::move(c);
 	} else {
 		p.contentDetails = std::nullopt;
 	}
@@ -217,15 +274,19 @@ void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 
 void to_json(nlohmann::json &j, const YouTubeLiveBroadcastThumbnail &p)
 {
-	j = nlohmann::json{{"url", p.url}};
+	j = nlohmann::json{};
+	if (p.url)
+		j["url"] = *p.url;
 	if (p.width)
 		j["width"] = *p.width;
 	if (p.height)
 		j["height"] = *p.height;
 }
+
 void from_json(const nlohmann::json &j, YouTubeLiveBroadcastThumbnail &p)
 {
-	j.at("url").get_to(p.url);
+	if (j.contains("url"))
+		j.at("url").get_to(p.url);
 	if (j.contains("width"))
 		j.at("width").get_to(p.width.emplace());
 	if (j.contains("height"))
@@ -396,37 +457,36 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 {
 	p = YouTubeLiveBroadcast{};
 	if (j.contains("kind"))
-		p.kind = j.at("kind").get<std::string>();
+		j.at("kind").get_to(p.kind);
 	if (j.contains("etag"))
-		p.etag = j.at("etag").get<std::string>();
+		j.at("etag").get_to(p.etag);
 	if (j.contains("id"))
-		p.id = j.at("id").get<std::string>();
+		j.at("id").get_to(p.id);
 	if (j.contains("snippet")) {
 		YouTubeLiveBroadcast::Snippet snippetObj;
 		const auto &s = j.at("snippet");
 		if (s.contains("publishedAt"))
-			snippetObj.publishedAt = s.at("publishedAt").get<std::string>();
+			s.at("publishedAt").get_to(snippetObj.publishedAt);
 		if (s.contains("channelId"))
-			snippetObj.channelId = s.at("channelId").get<std::string>();
+			s.at("channelId").get_to(snippetObj.channelId);
 		if (s.contains("title"))
-			snippetObj.title = s.at("title").get<std::string>();
+			s.at("title").get_to(snippetObj.title);
 		if (s.contains("description"))
-			snippetObj.description = s.at("description").get<std::string>();
+			s.at("description").get_to(snippetObj.description);
 		if (s.contains("thumbnails"))
-			snippetObj.thumbnails =
-				s.at("thumbnails").get<std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail>>();
+			s.at("thumbnails").get_to(snippetObj.thumbnails);
 		if (s.contains("scheduledStartTime"))
-			snippetObj.scheduledStartTime = s.at("scheduledStartTime").get<std::string>();
+			s.at("scheduledStartTime").get_to(snippetObj.scheduledStartTime);
 		if (s.contains("scheduledEndTime"))
-			snippetObj.scheduledEndTime = s.at("scheduledEndTime").get<std::string>();
+			s.at("scheduledEndTime").get_to(snippetObj.scheduledEndTime);
 		if (s.contains("actualStartTime"))
-			snippetObj.actualStartTime = s.at("actualStartTime").get<std::string>();
+			s.at("actualStartTime").get_to(snippetObj.actualStartTime);
 		if (s.contains("actualEndTime"))
-			snippetObj.actualEndTime = s.at("actualEndTime").get<std::string>();
+			s.at("actualEndTime").get_to(snippetObj.actualEndTime);
 		if (s.contains("isDefaultBroadcast"))
-			snippetObj.isDefaultBroadcast = s.at("isDefaultBroadcast").get<bool>();
+			s.at("isDefaultBroadcast").get_to(snippetObj.isDefaultBroadcast);
 		if (s.contains("liveChatId"))
-			snippetObj.liveChatId = s.at("liveChatId").get<std::string>();
+			s.at("liveChatId").get_to(snippetObj.liveChatId);
 		p.snippet = std::move(snippetObj);
 	} else {
 		p.snippet = std::nullopt;
@@ -435,15 +495,15 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 		YouTubeLiveBroadcast::Status statusObj;
 		const auto &s = j.at("status");
 		if (s.contains("lifeCycleStatus"))
-			statusObj.lifeCycleStatus = s.at("lifeCycleStatus").get<std::string>();
+			s.at("lifeCycleStatus").get_to(statusObj.lifeCycleStatus);
 		if (s.contains("privacyStatus"))
-			statusObj.privacyStatus = s.at("privacyStatus").get<std::string>();
+			s.at("privacyStatus").get_to(statusObj.privacyStatus);
 		if (s.contains("recordingStatus"))
-			statusObj.recordingStatus = s.at("recordingStatus").get<std::string>();
+			s.at("recordingStatus").get_to(statusObj.recordingStatus);
 		if (s.contains("madeForKids"))
-			statusObj.madeForKids = s.at("madeForKids").get<bool>();
+			s.at("madeForKids").get_to(statusObj.madeForKids);
 		if (s.contains("selfDeclaredMadeForKids"))
-			statusObj.selfDeclaredMadeForKids = s.at("selfDeclaredMadeForKids").get<bool>();
+			s.at("selfDeclaredMadeForKids").get_to(statusObj.selfDeclaredMadeForKids);
 		p.status = std::move(statusObj);
 	} else {
 		p.status = std::nullopt;
@@ -452,44 +512,42 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 		YouTubeLiveBroadcast::ContentDetails contentDetailsObj;
 		const auto &c = j.at("contentDetails");
 		if (c.contains("boundStreamId"))
-			contentDetailsObj.boundStreamId = c.at("boundStreamId").get<std::string>();
+			c.at("boundStreamId").get_to(contentDetailsObj.boundStreamId);
 		if (c.contains("boundStreamLastUpdateTimeMs"))
-			contentDetailsObj.boundStreamLastUpdateTimeMs =
-				c.at("boundStreamLastUpdateTimeMs").get<std::string>();
+			c.at("boundStreamLastUpdateTimeMs").get_to(contentDetailsObj.boundStreamLastUpdateTimeMs);
 		if (c.contains("monitorStream")) {
 			YouTubeLiveBroadcast::ContentDetails::MonitorStream monitorStreamObj;
 			const auto &m = c.at("monitorStream");
 			if (m.contains("enableMonitorStream"))
-				monitorStreamObj.enableMonitorStream = m.at("enableMonitorStream").get<bool>();
+				m.at("enableMonitorStream").get_to(monitorStreamObj.enableMonitorStream);
 			if (m.contains("broadcastStreamDelayMs"))
-				monitorStreamObj.broadcastStreamDelayMs =
-					m.at("broadcastStreamDelayMs").get<std::uint32_t>();
+				m.at("broadcastStreamDelayMs").get_to(monitorStreamObj.broadcastStreamDelayMs);
 			if (m.contains("embedHtml"))
-				monitorStreamObj.embedHtml = m.at("embedHtml").get<std::string>();
+				m.at("embedHtml").get_to(monitorStreamObj.embedHtml);
 			contentDetailsObj.monitorStream = std::move(monitorStreamObj);
 		} else {
 			contentDetailsObj.monitorStream = std::nullopt;
 		}
 		if (c.contains("enableEmbed"))
-			contentDetailsObj.enableEmbed = c.at("enableEmbed").get<bool>();
+			c.at("enableEmbed").get_to(contentDetailsObj.enableEmbed);
 		if (c.contains("enableDvr"))
-			contentDetailsObj.enableDvr = c.at("enableDvr").get<bool>();
+			c.at("enableDvr").get_to(contentDetailsObj.enableDvr);
 		if (c.contains("recordFromStart"))
-			contentDetailsObj.recordFromStart = c.at("recordFromStart").get<bool>();
+			c.at("recordFromStart").get_to(contentDetailsObj.recordFromStart);
 		if (c.contains("enableClosedCaptions"))
-			contentDetailsObj.enableClosedCaptions = c.at("enableClosedCaptions").get<bool>();
+			c.at("enableClosedCaptions").get_to(contentDetailsObj.enableClosedCaptions);
 		if (c.contains("closedCaptionsType"))
-			contentDetailsObj.closedCaptionsType = c.at("closedCaptionsType").get<std::string>();
+			c.at("closedCaptionsType").get_to(contentDetailsObj.closedCaptionsType);
 		if (c.contains("projection"))
-			contentDetailsObj.projection = c.at("projection").get<std::string>();
+			c.at("projection").get_to(contentDetailsObj.projection);
 		if (c.contains("enableLowLatency"))
-			contentDetailsObj.enableLowLatency = c.at("enableLowLatency").get<bool>();
+			c.at("enableLowLatency").get_to(contentDetailsObj.enableLowLatency);
 		if (c.contains("latencyPreference"))
-			contentDetailsObj.latencyPreference = c.at("latencyPreference").get<std::string>();
+			c.at("latencyPreference").get_to(contentDetailsObj.latencyPreference);
 		if (c.contains("enableAutoStart"))
-			contentDetailsObj.enableAutoStart = c.at("enableAutoStart").get<bool>();
+			c.at("enableAutoStart").get_to(contentDetailsObj.enableAutoStart);
 		if (c.contains("enableAutoStop"))
-			contentDetailsObj.enableAutoStop = c.at("enableAutoStop").get<bool>();
+			c.at("enableAutoStop").get_to(contentDetailsObj.enableAutoStop);
 		p.contentDetails = std::move(contentDetailsObj);
 	} else {
 		p.contentDetails = std::nullopt;
@@ -498,7 +556,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 		YouTubeLiveBroadcast::Statistics statisticsObj;
 		const auto &s = j.at("statistics");
 		if (s.contains("totalChatCount"))
-			statisticsObj.totalChatCount = s.at("totalChatCount").get<std::uint64_t>();
+			s.at("totalChatCount").get_to(statisticsObj.totalChatCount);
 		p.statistics = std::move(statisticsObj);
 	} else {
 		p.statistics = std::nullopt;
@@ -510,14 +568,13 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 			YouTubeLiveBroadcast::MonetizationDetails::CuepointSchedule cuepointScheduleObj;
 			const auto &c = m.at("cuepointSchedule");
 			if (c.contains("enabled"))
-				cuepointScheduleObj.enabled = c.at("enabled").get<bool>();
+				c.at("enabled").get_to(cuepointScheduleObj.enabled);
 			if (c.contains("pauseAdsUntil"))
-				cuepointScheduleObj.pauseAdsUntil = c.at("pauseAdsUntil").get<std::string>();
+				c.at("pauseAdsUntil").get_to(cuepointScheduleObj.pauseAdsUntil);
 			if (c.contains("scheduleStrategy"))
-				cuepointScheduleObj.scheduleStrategy = c.at("scheduleStrategy").get<std::string>();
+				c.at("scheduleStrategy").get_to(cuepointScheduleObj.scheduleStrategy);
 			if (c.contains("repeatIntervalSecs"))
-				cuepointScheduleObj.repeatIntervalSecs =
-					c.at("repeatIntervalSecs").get<std::uint32_t>();
+				c.at("repeatIntervalSecs").get_to(cuepointScheduleObj.repeatIntervalSecs);
 			monetizationDetailsObj.cuepointSchedule = std::move(cuepointScheduleObj);
 		} else {
 			monetizationDetailsObj.cuepointSchedule = std::nullopt;
@@ -593,176 +650,41 @@ void from_json(const nlohmann::json &j, InsertingYouTubeLiveBroadcast &p)
 {
 	const auto &snippet = j.at("snippet");
 	snippet.at("title").get_to(p.snippet.title);
-	if (snippet.contains("description")) {
-		p.snippet.description = snippet.at("description").get<std::string>();
-	} else {
-		p.snippet.description = std::nullopt;
-	}
+	if (snippet.contains("description"))
+		snippet.at("description").get_to(p.snippet.description);
+
 	snippet.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
-	if (snippet.contains("scheduledEndTime")) {
-		p.snippet.scheduledEndTime = snippet.at("scheduledEndTime").get<std::string>();
-	} else {
-		p.snippet.scheduledEndTime = std::nullopt;
-	}
+	if (snippet.contains("scheduledEndTime"))
+		snippet.at("scheduledEndTime").get_to(p.snippet.scheduledEndTime.emplace());
 
 	const auto &status = j.at("status");
 	status.at("privacyStatus").get_to(p.status.privacyStatus);
-	if (status.contains("selfDeclaredMadeForKids")) {
-		p.status.selfDeclaredMadeForKids = status.at("selfDeclaredMadeForKids").get<bool>();
-	} else {
-		p.status.selfDeclaredMadeForKids = std::nullopt;
-	}
+	if (status.contains("selfDeclaredMadeForKids"))
+		status.at("selfDeclaredMadeForKids").get_to(p.status.selfDeclaredMadeForKids);
 
 	const auto &contentDetails = j.at("contentDetails");
-	if (contentDetails.contains("enableAutoStart")) {
-		p.contentDetails.enableAutoStart = contentDetails.at("enableAutoStart").get<bool>();
-	} else {
-		p.contentDetails.enableAutoStart = std::nullopt;
-	}
-	if (contentDetails.contains("enableAutoStop")) {
-		p.contentDetails.enableAutoStop = contentDetails.at("enableAutoStop").get<bool>();
-	} else {
-		p.contentDetails.enableAutoStop = std::nullopt;
-	}
-	if (contentDetails.contains("enableClosedCaptions")) {
-		p.contentDetails.enableClosedCaptions = contentDetails.at("enableClosedCaptions").get<bool>();
-	} else {
-		p.contentDetails.enableClosedCaptions = std::nullopt;
-	}
-	if (contentDetails.contains("enableDvr")) {
-		p.contentDetails.enableDvr = contentDetails.at("enableDvr").get<bool>();
-	} else {
-		p.contentDetails.enableDvr = std::nullopt;
-	}
-	if (contentDetails.contains("enableEmbed")) {
-		p.contentDetails.enableEmbed = contentDetails.at("enableEmbed").get<bool>();
-	} else {
-		p.contentDetails.enableEmbed = std::nullopt;
-	}
-	if (contentDetails.contains("recordFromStart")) {
-		p.contentDetails.recordFromStart = contentDetails.at("recordFromStart").get<bool>();
-	} else {
-		p.contentDetails.recordFromStart = std::nullopt;
-	}
-	if (contentDetails.contains("latencyPreference")) {
-		p.contentDetails.latencyPreference = contentDetails.at("latencyPreference").get<std::string>();
-	} else {
-		p.contentDetails.latencyPreference = std::nullopt;
-	}
+	if (contentDetails.contains("enableAutoStart"))
+		contentDetails.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart);
+	if (contentDetails.contains("enableAutoStop"))
+		contentDetails.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop);
+	if (contentDetails.contains("enableClosedCaptions"))
+		contentDetails.at("enableClosedCaptions").get_to(p.contentDetails.enableClosedCaptions);
+	if (contentDetails.contains("enableDvr"))
+		contentDetails.at("enableDvr").get_to(p.contentDetails.enableDvr);
+	if (contentDetails.contains("enableEmbed"))
+		contentDetails.at("enableEmbed").get_to(p.contentDetails.enableEmbed);
+	if (contentDetails.contains("recordFromStart"))
+		contentDetails.at("recordFromStart").get_to(p.contentDetails.recordFromStart);
+	if (contentDetails.contains("latencyPreference"))
+		contentDetails.at("latencyPreference").get_to(p.contentDetails.latencyPreference);
 	if (contentDetails.contains("monitorStream")) {
 		const auto &monitorStream = contentDetails.at("monitorStream");
-		if (monitorStream.contains("enableMonitorStream")) {
-			p.contentDetails.monitorStream.enableMonitorStream =
-				monitorStream.at("enableMonitorStream").get<bool>();
-		} else {
-			p.contentDetails.monitorStream.enableMonitorStream = std::nullopt;
-		}
-		if (monitorStream.contains("broadcastStreamDelayMs")) {
-			p.contentDetails.monitorStream.broadcastStreamDelayMs =
-				monitorStream.at("broadcastStreamDelayMs").get<uint32_t>();
-		} else {
-			p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
-		}
-	} else {
-		p.contentDetails.monitorStream.enableMonitorStream = std::nullopt;
-		p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
-	}
-}
-
-void from_json(const nlohmann::json &j, UpdatingYouTubeLiveBroadcast &p)
-{
-	if (j.contains("id")) {
-		j.at("id").get_to(p.id);
-	}
-
-	if (j.contains("snippet")) {
-		const auto &snippet = j.at("snippet");
-		if (snippet.contains("title")) {
-			snippet.at("title").get_to(p.snippet.title);
-		} else {
-			p.snippet.title = std::nullopt;
-		}
-		if (snippet.contains("description")) {
-			snippet.at("description").get_to(p.snippet.description);
-		} else {
-			p.snippet.description = std::nullopt;
-		}
-		snippet.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
-		if (snippet.contains("scheduledEndTime")) {
-			snippet.at("scheduledEndTime").get_to(p.snippet.scheduledEndTime.emplace());
-		} else {
-			p.snippet.scheduledEndTime = std::nullopt;
-		}
-	}
-
-	if (j.contains("status")) {
-		const auto &status = j.at("status");
-		if (status.contains("privacyStatus")) {
-			status.at("privacyStatus").get_to(p.status.privacyStatus);
-		} else {
-			p.status.privacyStatus = std::nullopt;
-		}
-	}
-
-	if (j.contains("contentDetails")) {
-		const auto &cd = j.at("contentDetails");
-		if (cd.contains("monitorStream")) {
-			const auto &ms = cd.at("monitorStream");
-			ms.at("enableMonitorStream").get_to(p.contentDetails.monitorStream.enableMonitorStream);
-			if (ms.contains("broadcastStreamDelayMs")) {
-				ms.at("broadcastStreamDelayMs")
-					.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
-			} else {
-				p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
-			}
-		} else {
-			p.contentDetails.monitorStream.enableMonitorStream = false;
-			p.contentDetails.monitorStream.broadcastStreamDelayMs = std::nullopt;
-		}
-		if (cd.contains("enableAutoStart")) {
-			cd.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart);
-		} else {
-			p.contentDetails.enableAutoStart = std::nullopt;
-		}
-		if (cd.contains("enableAutoStop")) {
-			cd.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop);
-		} else {
-			p.contentDetails.enableAutoStop = std::nullopt;
-		}
-		if (cd.contains("enableClosedCaptions")) {
-			cd.at("enableClosedCaptions").get_to(p.contentDetails.enableClosedCaptions);
-		} else {
-			p.contentDetails.enableClosedCaptions = std::nullopt;
-		}
-		if (cd.contains("enableDvr")) {
-			cd.at("enableDvr").get_to(p.contentDetails.enableDvr);
-		} else {
-			p.contentDetails.enableDvr = std::nullopt;
-		}
-		if (cd.contains("enableEmbed")) {
-			cd.at("enableEmbed").get_to(p.contentDetails.enableEmbed);
-		} else {
-			p.contentDetails.enableEmbed = std::nullopt;
-		}
-		if (cd.contains("recordFromStart")) {
-			cd.at("recordFromStart").get_to(p.contentDetails.recordFromStart);
-		} else {
-			p.contentDetails.recordFromStart = std::nullopt;
-		}
-	}
-
-	if (j.contains("monetizationDetails")) {
-		const auto &md = j.at("monetizationDetails");
-		if (md.contains("cuepointSchedule")) {
-			const auto &cs = md.at("cuepointSchedule");
-			if (cs.contains("pauseAdsUntil")) {
-				cs.at("pauseAdsUntil").get_to(p.monetizationDetails.cuepointSchedule.pauseAdsUntil);
-			} else {
-				p.monetizationDetails.cuepointSchedule.pauseAdsUntil = std::nullopt;
-			}
-		} else {
-			p.monetizationDetails.cuepointSchedule.pauseAdsUntil = std::nullopt;
-		}
+		if (monitorStream.contains("enableMonitorStream"))
+			monitorStream.at("enableMonitorStream")
+				.get_to(p.contentDetails.monitorStream.enableMonitorStream);
+		if (monitorStream.contains("broadcastStreamDelayMs"))
+			monitorStream.at("broadcastStreamDelayMs")
+				.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
 	}
 }
 
@@ -833,6 +755,62 @@ void to_json(nlohmann::json &j, const UpdatingYouTubeLiveBroadcast &p)
 	}
 	if (!monetizationDetailsJson.empty()) {
 		j["monetizationDetails"] = std::move(monetizationDetailsJson);
+	}
+}
+
+void from_json(const nlohmann::json &j, UpdatingYouTubeLiveBroadcast &p)
+{
+	if (j.contains("id")) {
+		j.at("id").get_to(p.id);
+	}
+
+	if (j.contains("snippet")) {
+		const auto &snippet = j.at("snippet");
+		if (snippet.contains("title"))
+			snippet.at("title").get_to(p.snippet.title);
+		if (snippet.contains("description"))
+			snippet.at("description").get_to(p.snippet.description);
+		snippet.at("scheduledStartTime").get_to(p.snippet.scheduledStartTime);
+		if (snippet.contains("scheduledEndTime"))
+			snippet.at("scheduledEndTime").get_to(p.snippet.scheduledEndTime.emplace());
+	}
+
+	if (j.contains("status")) {
+		const auto &status = j.at("status");
+		if (status.contains("privacyStatus"))
+			status.at("privacyStatus").get_to(p.status.privacyStatus);
+	}
+
+	if (j.contains("contentDetails")) {
+		const auto &cd = j.at("contentDetails");
+		if (cd.contains("monitorStream")) {
+			const auto &ms = cd.at("monitorStream");
+			ms.at("enableMonitorStream").get_to(p.contentDetails.monitorStream.enableMonitorStream);
+			if (ms.contains("broadcastStreamDelayMs"))
+				ms.at("broadcastStreamDelayMs")
+					.get_to(p.contentDetails.monitorStream.broadcastStreamDelayMs.emplace());
+		}
+		if (cd.contains("enableAutoStart"))
+			cd.at("enableAutoStart").get_to(p.contentDetails.enableAutoStart);
+		if (cd.contains("enableAutoStop"))
+			cd.at("enableAutoStop").get_to(p.contentDetails.enableAutoStop);
+		if (cd.contains("enableClosedCaptions"))
+			cd.at("enableClosedCaptions").get_to(p.contentDetails.enableClosedCaptions);
+		if (cd.contains("enableDvr"))
+			cd.at("enableDvr").get_to(p.contentDetails.enableDvr);
+		if (cd.contains("enableEmbed"))
+			cd.at("enableEmbed").get_to(p.contentDetails.enableEmbed);
+		if (cd.contains("recordFromStart"))
+			cd.at("recordFromStart").get_to(p.contentDetails.recordFromStart);
+	}
+
+	if (j.contains("monetizationDetails")) {
+		const auto &md = j.at("monetizationDetails");
+		if (md.contains("cuepointSchedule")) {
+			const auto &cs = md.at("cuepointSchedule");
+			if (cs.contains("pauseAdsUntil"))
+				cs.at("pauseAdsUntil").get_to(p.monetizationDetails.cuepointSchedule.pauseAdsUntil);
+		}
 	}
 }
 
