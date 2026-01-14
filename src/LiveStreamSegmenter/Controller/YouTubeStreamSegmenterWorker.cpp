@@ -278,7 +278,8 @@ createLiveBroadcast(Jthread::stop_token stoken, std::shared_ptr<YouTubeApi::YouT
 
 	logger->info("YouTubeLiveBroadcastInserting");
 
-	const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>, std::shared_ptr<YouTubeApi::YouTubeApiError>>
+	const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveBroadcast>,
+			   std::shared_ptr<YouTubeApi::YouTubeApiError>>
 		apiResult = youTubeApiClient->insertLiveBroadcast(stoken, accessToken, insertingLiveBroadcast);
 
 	if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {

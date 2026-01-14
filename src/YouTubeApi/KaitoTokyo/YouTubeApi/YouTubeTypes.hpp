@@ -35,6 +35,7 @@
 
 namespace KaitoTokyo::YouTubeApi {
 
+// --- YouTubeApiError ---
 struct YouTubeApiError {
 	std::string code;
 
@@ -52,6 +53,7 @@ struct YouTubeApiError {
 void to_json(nlohmann::json &j, const YouTubeApiError &p);
 void from_json(const nlohmann::json &j, YouTubeApiError &p);
 
+// --- YouTubeLiveStream ---
 struct YouTubeLiveStream {
 	std::string kind;
 	std::string etag;
@@ -102,12 +104,7 @@ struct YouTubeLiveStream {
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p);
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p);
 
-struct YouTubeLiveBroadcastThumbnail {
-	std::string url;
-	std::optional<std::uint32_t> width;
-	std::optional<std::uint32_t> height;
-};
-
+// --- YouTubeLiveBroadcast ---
 struct YouTubeLiveBroadcast {
 	std::optional<std::string> kind;
 	std::optional<std::string> etag;
@@ -118,7 +115,14 @@ struct YouTubeLiveBroadcast {
 		std::optional<std::string> channelId;
 		std::optional<std::string> title;
 		std::optional<std::string> description;
-		std::optional<std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail>> thumbnails;
+
+		struct Thumbnail {
+			std::string url;
+			std::optional<std::uint32_t> width;
+			std::optional<std::uint32_t> height;
+		};
+
+		std::optional<std::unordered_map<std::string, Thumbnail>> thumbnails;
 		std::optional<std::string> scheduledStartTime;
 		std::optional<std::string> scheduledEndTime;
 		std::optional<std::string> actualStartTime;
