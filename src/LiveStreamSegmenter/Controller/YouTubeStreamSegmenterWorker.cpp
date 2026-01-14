@@ -616,8 +616,9 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStartSession()
 			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken, currentLiveStreamIdArray);
 
 		if (apiResult.index() == 1) {
-			// const std::shared_ptr<YouTubeApi::YouTubeError> &error = std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult); // unused
-			taskLogger->error("YouTubeApiError");
+			const std::shared_ptr<YouTubeApi::YouTubeError> &error =
+				std::get<std::shared_ptr<YouTubeApi::YouTubeError>>(apiResult);
+			taskLogger->error("YouTubeApiError", {{"code", error->code}, {"message", error->message}});
 			throw std::runtime_error(
 				"YouTubeApiError(YouTubeStreamSegmenterMainLoop::startContinuousSessionTask)");
 		}
