@@ -34,6 +34,20 @@
 
 namespace KaitoTokyo::YouTubeApi {
 
+struct YouTubeError {
+	std::string code;
+
+	struct ErrorDetail {
+		std::string domain;
+		std::string reason;
+		std::string message;
+	};
+
+	std::vector<ErrorDetail> errors;
+
+	std::string message;
+};
+
 struct YouTubeLiveStream {
 	std::string kind;
 	std::string etag;
