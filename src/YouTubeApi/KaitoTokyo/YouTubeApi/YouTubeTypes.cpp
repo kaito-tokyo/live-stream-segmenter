@@ -62,154 +62,234 @@ void from_json(const nlohmann::json &j, YouTubeApiError &p)
 
 void to_json(nlohmann::json &j, const YouTubeLiveStream &p)
 {
-	j = nlohmann::json{{"kind", p.kind}, {"etag", p.etag}, {"id", p.id}};
+
+	j = nlohmann::json{};
+	if (p.kind)
+		j["kind"] = *p.kind;
+	if (p.etag)
+		j["etag"] = *p.etag;
+	if (p.id)
+		j["id"] = *p.id;
 
 	// snippet
-	nlohmann::json snippetJson = {{"publishedAt", p.snippet.publishedAt},
-				      {"channelId", p.snippet.channelId},
-				      {"title", p.snippet.title},
-				      {"description", p.snippet.description}};
-	if (p.snippet.isDefaultStream.has_value()) {
-		snippetJson["isDefaultStream"] = p.snippet.isDefaultStream.value();
+	if (p.snippet) {
+		nlohmann::json snippetJson;
+		if (p.snippet->publishedAt)
+			snippetJson["publishedAt"] = *p.snippet->publishedAt;
+		if (p.snippet->channelId)
+			snippetJson["channelId"] = *p.snippet->channelId;
+		if (p.snippet->title)
+			snippetJson["title"] = *p.snippet->title;
+		if (p.snippet->description)
+			snippetJson["description"] = *p.snippet->description;
+		if (p.snippet->isDefaultStream)
+			snippetJson["isDefaultStream"] = *p.snippet->isDefaultStream;
+		if (!snippetJson.empty())
+			j["snippet"] = std::move(snippetJson);
 	}
-	j["snippet"] = std::move(snippetJson);
 
 	// cdn
-	nlohmann::json cdnJson = {{"ingestionType", p.cdn.ingestionType},
-				  {"ingestionInfo",
-				   {{"streamName", p.cdn.ingestionInfo.streamName},
-				    {"ingestionAddress", p.cdn.ingestionInfo.ingestionAddress},
-				    {"backupIngestionAddress", p.cdn.ingestionInfo.backupIngestionAddress}}},
-				  {"resolution", p.cdn.resolution},
-				  {"frameRate", p.cdn.frameRate}};
-	j["cdn"] = std::move(cdnJson);
-
-	// status (optional)
-	bool hasStatus = p.status.has_value() &&
-			 (!p.status->streamStatus.empty() || !p.status->healthStatus.status.empty() ||
-			  p.status->healthStatus.lastUpdateTimeSeconds.has_value() ||
-			  !p.status->healthStatus.configurationIssues.empty());
-	if (hasStatus) {
-		nlohmann::json healthStatusJson = {{"status", p.status->healthStatus.status},
-						   {"configurationIssues", nlohmann::json::array()}};
-		if (p.status->healthStatus.lastUpdateTimeSeconds.has_value()) {
-			healthStatusJson["lastUpdateTimeSeconds"] =
-				p.status->healthStatus.lastUpdateTimeSeconds.value();
+	if (p.cdn) {
+		nlohmann::json cdnJson;
+		if (p.cdn->ingestionType)
+			cdnJson["ingestionType"] = *p.cdn->ingestionType;
+		if (p.cdn->ingestionInfo) {
+			nlohmann::json ingestionInfoJson;
+			if (p.cdn->ingestionInfo->streamName)
+				ingestionInfoJson["streamName"] = *p.cdn->ingestionInfo->streamName;
+			if (p.cdn->ingestionInfo->ingestionAddress)
+				ingestionInfoJson["ingestionAddress"] = *p.cdn->ingestionInfo->ingestionAddress;
+			if (p.cdn->ingestionInfo->backupIngestionAddress)
+				ingestionInfoJson["backupIngestionAddress"] =
+					*p.cdn->ingestionInfo->backupIngestionAddress;
+			if (!ingestionInfoJson.empty())
+				cdnJson["ingestionInfo"] = std::move(ingestionInfoJson);
 		}
-		if (!p.status->healthStatus.configurationIssues.empty()) {
-			auto &arr = healthStatusJson["configurationIssues"];
-			for (const auto &issue : p.status->healthStatus.configurationIssues) {
-				arr.push_back({{"type", issue.type},
-					       {"severity", issue.severity},
-					       {"reason", issue.reason},
-					       {"description", issue.description}});
-			}
-		}
-		nlohmann::json statusJson = {{"streamStatus", p.status->streamStatus},
-					     {"healthStatus", std::move(healthStatusJson)}};
-		j["status"] = std::move(statusJson);
+		if (p.cdn->resolution)
+			cdnJson["resolution"] = *p.cdn->resolution;
+		if (p.cdn->frameRate)
+			cdnJson["frameRate"] = *p.cdn->frameRate;
+		if (!cdnJson.empty())
+			j["cdn"] = std::move(cdnJson);
 	}
 
-	// contentDetails (optional)
-	bool hasContentDetails =
-		p.contentDetails.has_value() &&
-		(!p.contentDetails->closedCaptionsIngestionUrl.empty() || p.contentDetails->isReusable.has_value());
-	if (hasContentDetails) {
-		nlohmann::json contentDetailsJson = {
-			{"closedCaptionsIngestionUrl", p.contentDetails->closedCaptionsIngestionUrl}};
-		if (p.contentDetails->isReusable.has_value()) {
-			contentDetailsJson["isReusable"] = p.contentDetails->isReusable.value();
+	// status
+	if (p.status) {
+		nlohmann::json statusJson;
+		if (p.status->streamStatus)
+			statusJson["streamStatus"] = *p.status->streamStatus;
+		if (p.status->healthStatus) {
+			nlohmann::json healthStatusJson;
+			if (p.status->healthStatus->status)
+				healthStatusJson["status"] = *p.status->healthStatus->status;
+			if (p.status->healthStatus->lastUpdateTimeSeconds)
+				healthStatusJson["lastUpdateTimeSeconds"] =
+					*p.status->healthStatus->lastUpdateTimeSeconds;
+			if (p.status->healthStatus->configurationIssues) {
+				nlohmann::json arr = nlohmann::json::array();
+				for (const auto &issue : *p.status->healthStatus->configurationIssues) {
+					nlohmann::json issueJson;
+					if (issue.type)
+						issueJson["type"] = *issue.type;
+					if (issue.severity)
+						issueJson["severity"] = *issue.severity;
+					if (issue.reason)
+						issueJson["reason"] = *issue.reason;
+					if (issue.description)
+						issueJson["description"] = *issue.description;
+					arr.push_back(std::move(issueJson));
+				}
+				healthStatusJson["configurationIssues"] = std::move(arr);
+			}
+			if (!healthStatusJson.empty())
+				statusJson["healthStatus"] = std::move(healthStatusJson);
 		}
-		j["contentDetails"] = std::move(contentDetailsJson);
+		if (!statusJson.empty())
+			j["status"] = std::move(statusJson);
+	}
+
+	// contentDetails
+	if (p.contentDetails) {
+		nlohmann::json contentDetailsJson;
+		if (p.contentDetails->closedCaptionsIngestionUrl)
+			contentDetailsJson["closedCaptionsIngestionUrl"] =
+				*p.contentDetails->closedCaptionsIngestionUrl;
+		if (p.contentDetails->isReusable)
+			contentDetailsJson["isReusable"] = *p.contentDetails->isReusable;
+		if (!contentDetailsJson.empty())
+			j["contentDetails"] = std::move(contentDetailsJson);
 	}
 }
 
 void from_json(const nlohmann::json &j, YouTubeLiveStream &p)
 {
-	// Required fields
-	j.at("kind").get_to(p.kind);
-	j.at("etag").get_to(p.etag);
-	j.at("id").get_to(p.id);
+	// kind, etag, id
+	p.kind = j.contains("kind") ? std::make_optional(j.at("kind").get<std::string>()) : std::nullopt;
+	p.etag = j.contains("etag") ? std::make_optional(j.at("etag").get<std::string>()) : std::nullopt;
+	p.id = j.contains("id") ? std::make_optional(j.at("id").get<std::string>()) : std::nullopt;
 
-	// snippet (optional)
+	// snippet
 	if (j.contains("snippet")) {
 		const auto &snippet = j.at("snippet");
-		snippet.at("publishedAt").get_to(p.snippet.publishedAt);
-		snippet.at("channelId").get_to(p.snippet.channelId);
-		snippet.at("title").get_to(p.snippet.title);
-		snippet.at("description").get_to(p.snippet.description);
-		if (snippet.contains("isDefaultStream")) {
-			p.snippet.isDefaultStream = snippet.at("isDefaultStream").get<bool>();
-		} else {
-			p.snippet.isDefaultStream = std::nullopt;
-		}
+		YouTubeLiveStream::Snippet s;
+		s.publishedAt = snippet.contains("publishedAt")
+					? std::make_optional(snippet.at("publishedAt").get<std::string>())
+					: std::nullopt;
+		s.channelId = snippet.contains("channelId")
+				      ? std::make_optional(snippet.at("channelId").get<std::string>())
+				      : std::nullopt;
+		s.title = snippet.contains("title") ? std::make_optional(snippet.at("title").get<std::string>())
+						    : std::nullopt;
+		s.description = snippet.contains("description")
+					? std::make_optional(snippet.at("description").get<std::string>())
+					: std::nullopt;
+		s.isDefaultStream = snippet.contains("isDefaultStream")
+					    ? std::make_optional(snippet.at("isDefaultStream").get<bool>())
+					    : std::nullopt;
+		p.snippet = std::move(s);
 	} else {
-		p.snippet.publishedAt.clear();
-		p.snippet.channelId.clear();
-		p.snippet.title.clear();
-		p.snippet.description.clear();
-		p.snippet.isDefaultStream = std::nullopt;
+		p.snippet = std::nullopt;
 	}
 
-	// cdn (optional)
+	// cdn
 	if (j.contains("cdn")) {
 		const auto &cdn = j.at("cdn");
-		cdn.at("ingestionType").get_to(p.cdn.ingestionType);
-		const auto &ingestionInfo = cdn.at("ingestionInfo");
-		ingestionInfo.at("streamName").get_to(p.cdn.ingestionInfo.streamName);
-		ingestionInfo.at("ingestionAddress").get_to(p.cdn.ingestionInfo.ingestionAddress);
-		ingestionInfo.at("backupIngestionAddress").get_to(p.cdn.ingestionInfo.backupIngestionAddress);
-		cdn.at("resolution").get_to(p.cdn.resolution);
-		cdn.at("frameRate").get_to(p.cdn.frameRate);
+		YouTubeLiveStream::Cdn c;
+		c.ingestionType = cdn.contains("ingestionType")
+					  ? std::make_optional(cdn.at("ingestionType").get<std::string>())
+					  : std::nullopt;
+		if (cdn.contains("ingestionInfo")) {
+			const auto &ingestionInfo = cdn.at("ingestionInfo");
+			YouTubeLiveStream::Cdn::IngestionInfo info;
+			info.streamName =
+				ingestionInfo.contains("streamName")
+					? std::make_optional(ingestionInfo.at("streamName").get<std::string>())
+					: std::nullopt;
+			info.ingestionAddress =
+				ingestionInfo.contains("ingestionAddress")
+					? std::make_optional(ingestionInfo.at("ingestionAddress").get<std::string>())
+					: std::nullopt;
+			info.backupIngestionAddress =
+				ingestionInfo.contains("backupIngestionAddress")
+					? std::make_optional(
+						  ingestionInfo.at("backupIngestionAddress").get<std::string>())
+					: std::nullopt;
+			c.ingestionInfo = std::move(info);
+		} else {
+			c.ingestionInfo = std::nullopt;
+		}
+		c.resolution = cdn.contains("resolution") ? std::make_optional(cdn.at("resolution").get<std::string>())
+							  : std::nullopt;
+		c.frameRate = cdn.contains("frameRate") ? std::make_optional(cdn.at("frameRate").get<std::string>())
+							: std::nullopt;
+		p.cdn = std::move(c);
 	} else {
-		p.cdn.ingestionType.clear();
-		p.cdn.ingestionInfo.streamName.clear();
-		p.cdn.ingestionInfo.ingestionAddress.clear();
-		p.cdn.ingestionInfo.backupIngestionAddress.clear();
-		p.cdn.resolution.clear();
-		p.cdn.frameRate.clear();
+		p.cdn = std::nullopt;
 	}
 
-	// status (optional)
+	// status
 	if (j.contains("status")) {
-		YouTubeLiveStream::Status statusObj;
 		const auto &status = j.at("status");
-		status.at("streamStatus").get_to(statusObj.streamStatus);
-		const auto &healthStatus = status.at("healthStatus");
-		healthStatus.at("status").get_to(statusObj.healthStatus.status);
-		if (healthStatus.contains("lastUpdateTimeSeconds")) {
-			statusObj.healthStatus.lastUpdateTimeSeconds =
-				healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>();
-		} else {
-			statusObj.healthStatus.lastUpdateTimeSeconds = std::nullopt;
-		}
-		statusObj.healthStatus.configurationIssues.clear();
-		if (healthStatus.contains("configurationIssues")) {
-			for (const auto &issue : healthStatus.at("configurationIssues")) {
-				YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
-				issue.at("type").get_to(ci.type);
-				issue.at("severity").get_to(ci.severity);
-				issue.at("reason").get_to(ci.reason);
-				issue.at("description").get_to(ci.description);
-				statusObj.healthStatus.configurationIssues.push_back(std::move(ci));
+		YouTubeLiveStream::Status s;
+		s.streamStatus = status.contains("streamStatus")
+					 ? std::make_optional(status.at("streamStatus").get<std::string>())
+					 : std::nullopt;
+		if (status.contains("healthStatus")) {
+			const auto &healthStatus = status.at("healthStatus");
+			YouTubeLiveStream::Status::HealthStatus h;
+			h.status = healthStatus.contains("status")
+					   ? std::make_optional(healthStatus.at("status").get<std::string>())
+					   : std::nullopt;
+			h.lastUpdateTimeSeconds =
+				healthStatus.contains("lastUpdateTimeSeconds")
+					? std::make_optional(
+						  healthStatus.at("lastUpdateTimeSeconds").get<std::uint64_t>())
+					: std::nullopt;
+			if (healthStatus.contains("configurationIssues")) {
+				std::vector<YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue> issues;
+				for (const auto &issue : healthStatus.at("configurationIssues")) {
+					YouTubeLiveStream::Status::HealthStatus::ConfigurationIssue ci;
+					ci.type = issue.contains("type")
+							  ? std::make_optional(issue.at("type").get<std::string>())
+							  : std::nullopt;
+					ci.severity =
+						issue.contains("severity")
+							? std::make_optional(issue.at("severity").get<std::string>())
+							: std::nullopt;
+					ci.reason = issue.contains("reason")
+							    ? std::make_optional(issue.at("reason").get<std::string>())
+							    : std::nullopt;
+					ci.description =
+						issue.contains("description")
+							? std::make_optional(issue.at("description").get<std::string>())
+							: std::nullopt;
+					issues.push_back(std::move(ci));
+				}
+				h.configurationIssues = std::move(issues);
+			} else {
+				h.configurationIssues = std::nullopt;
 			}
+			s.healthStatus = std::move(h);
+		} else {
+			s.healthStatus = std::nullopt;
 		}
-		p.status = std::move(statusObj);
+		p.status = std::move(s);
 	} else {
 		p.status = std::nullopt;
 	}
 
-	// contentDetails (optional)
+	// contentDetails
 	if (j.contains("contentDetails")) {
-		YouTubeLiveStream::ContentDetails contentDetailsObj;
 		const auto &contentDetails = j.at("contentDetails");
-		contentDetails.at("closedCaptionsIngestionUrl").get_to(contentDetailsObj.closedCaptionsIngestionUrl);
-		if (contentDetails.contains("isReusable")) {
-			contentDetailsObj.isReusable = contentDetails.at("isReusable").get<bool>();
-		} else {
-			contentDetailsObj.isReusable = std::nullopt;
-		}
-		p.contentDetails = std::move(contentDetailsObj);
+		YouTubeLiveStream::ContentDetails c;
+		c.closedCaptionsIngestionUrl =
+			contentDetails.contains("closedCaptionsIngestionUrl")
+				? std::make_optional(contentDetails.at("closedCaptionsIngestionUrl").get<std::string>())
+				: std::nullopt;
+		c.isReusable = contentDetails.contains("isReusable")
+				       ? std::make_optional(contentDetails.at("isReusable").get<bool>())
+				       : std::nullopt;
+		p.contentDetails = std::move(c);
 	} else {
 		p.contentDetails = std::nullopt;
 	}
@@ -414,7 +494,7 @@ void from_json(const nlohmann::json &j, YouTubeLiveBroadcast &p)
 			snippetObj.description = s.at("description").get<std::string>();
 		if (s.contains("thumbnails"))
 			snippetObj.thumbnails =
-				s.at("thumbnails").get<std::unordered_map<std::string, YouTubeLiveBroadcastThumbnail>>();
+				s.at("thumbnails").get<std::unordered_map<std::string, YouTubeLiveBroadcast::Snippet::Thumbnail>>();
 		if (s.contains("scheduledStartTime"))
 			snippetObj.scheduledStartTime = s.at("scheduledStartTime").get<std::string>();
 		if (s.contains("scheduledEndTime"))

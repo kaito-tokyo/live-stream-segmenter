@@ -55,47 +55,51 @@ void from_json(const nlohmann::json &j, YouTubeApiError &p);
 
 // --- YouTubeLiveStream ---
 struct YouTubeLiveStream {
-	std::string kind;
-	std::string etag;
-	std::string id;
+	std::optional<std::string> kind;
+	std::optional<std::string> etag;
+	std::optional<std::string> id;
 
 	struct Snippet {
-		std::string publishedAt;
-		std::string channelId;
-		std::string title;
-		std::string description;
+		std::optional<std::string> publishedAt;
+		std::optional<std::string> channelId;
+		std::optional<std::string> title;
+		std::optional<std::string> description;
 		std::optional<bool> isDefaultStream;
-	} snippet;
+	};
+	std::optional<Snippet> snippet;
 
 	struct Cdn {
-		std::string ingestionType;
+		std::optional<std::string> ingestionType;
 		struct IngestionInfo {
-			std::string streamName;
-			std::string ingestionAddress;
-			std::string backupIngestionAddress;
-		} ingestionInfo;
-		std::string resolution;
-		std::string frameRate;
-	} cdn;
+			std::optional<std::string> streamName;
+			std::optional<std::string> ingestionAddress;
+			std::optional<std::string> backupIngestionAddress;
+		};
+		std::optional<IngestionInfo> ingestionInfo;
+		std::optional<std::string> resolution;
+		std::optional<std::string> frameRate;
+	};
+	std::optional<Cdn> cdn;
 
 	struct Status {
-		std::string streamStatus;
+		std::optional<std::string> streamStatus;
 		struct HealthStatus {
-			std::string status;
+			std::optional<std::string> status;
 			std::optional<std::uint64_t> lastUpdateTimeSeconds;
 			struct ConfigurationIssue {
-				std::string type;
-				std::string severity;
-				std::string reason;
-				std::string description;
+				std::optional<std::string> type;
+				std::optional<std::string> severity;
+				std::optional<std::string> reason;
+				std::optional<std::string> description;
 			};
-			std::vector<ConfigurationIssue> configurationIssues;
-		} healthStatus;
+			std::optional<std::vector<ConfigurationIssue>> configurationIssues;
+		};
+		std::optional<HealthStatus> healthStatus;
 	};
 	std::optional<Status> status;
 
 	struct ContentDetails {
-		std::string closedCaptionsIngestionUrl;
+		std::optional<std::string> closedCaptionsIngestionUrl;
 		std::optional<bool> isReusable;
 	};
 	std::optional<ContentDetails> contentDetails;
