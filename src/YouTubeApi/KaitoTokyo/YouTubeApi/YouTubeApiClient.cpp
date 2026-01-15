@@ -50,7 +50,7 @@ namespace KaitoTokyo::YouTubeApi {
 namespace {
 
 struct HTTPResponse {
-	CURLcode code;
+	long code;
 	std::vector<char> body;
 };
 
@@ -590,6 +590,9 @@ YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string
 	if (response.code == 204) {
 		// Request succeeded, no content
 		return std::monostate{};
+	} else if (response.body.empty()) {
+		logger_->error("EmptyResponseError");
+		throw std::runtime_error("EmptyResponseError(YouTubeApiClient::deleteLiveStream)");
 	} else {
 		nlohmann::json j = nlohmann::json::parse(response.body);
 
