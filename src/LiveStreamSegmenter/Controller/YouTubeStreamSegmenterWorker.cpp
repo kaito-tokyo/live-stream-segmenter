@@ -730,10 +730,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onStopSession()
 
 			taskLogger->info("YouTubeLiveStreamDeleting", {{"liveStreamId", currentLiveStreamId}});
 
-			const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveStream>,
-					   std::shared_ptr<YouTubeApi::YouTubeApiError>>
-				apiResult =
-					youTubeApiClient_->deleteLiveStream(stoken, accessToken, currentLiveStreamId);
+			const std::variant<std::monostate, std::shared_ptr<YouTubeApi::YouTubeApiError>> apiResult =
+				youTubeApiClient_->deleteLiveStream(stoken, accessToken, currentLiveStreamId);
 
 			if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 				const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
@@ -849,10 +847,8 @@ QCoro::Task<> YouTubeStreamSegmenterWorker::onSegmentSession()
 
 			taskLogger->info("YouTubeLiveStreamDeleting", {{"liveStreamId", *stoppingLiveStreamId}});
 
-			const std::variant<std::shared_ptr<YouTubeApi::YouTubeLiveStream>,
-					   std::shared_ptr<YouTubeApi::YouTubeApiError>>
-				apiResult =
-					youTubeApiClient_->deleteLiveStream(stoken, accessToken, *stoppingLiveStreamId);
+			const std::variant<std::monostate, std::shared_ptr<YouTubeApi::YouTubeApiError>> apiResult =
+				youTubeApiClient_->deleteLiveStream(stoken, accessToken, *stoppingLiveStreamId);
 
 			if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
 				const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
