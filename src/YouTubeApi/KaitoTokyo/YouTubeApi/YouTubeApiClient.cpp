@@ -49,6 +49,11 @@ namespace KaitoTokyo::YouTubeApi {
 
 namespace {
 
+struct HTTPResponse {
+	CURLcode code;
+	std::vector<char> body;
+};
+
 int progressCallback(void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off_t)
 {
 	auto *stoken = static_cast<Jthread::stop_token *>(clientp);
@@ -59,8 +64,8 @@ int progressCallback(void *clientp, curl_off_t, curl_off_t, curl_off_t, curl_off
 	}
 }
 
-std::vector<char> doGet(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
-			Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
+HTTPResponse doGet(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+		   Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -74,7 +79,7 @@ std::vector<char> doGet(std::shared_ptr<const Logger::ILogger> logger, std::shar
 		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doGet)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -83,7 +88,7 @@ std::vector<char> doGet(std::shared_ptr<const Logger::ILogger> logger, std::shar
 	curl_easy_setopt(curl->getRaw(), CURLOPT_FOLLOWLOCATION, 2L);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -105,11 +110,13 @@ std::vector<char> doGet(std::shared_ptr<const Logger::ILogger> logger, std::shar
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doGet)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
-std::vector<char> doPost(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
-			 Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
+HTTPResponse doPost(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+		    Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -123,7 +130,7 @@ std::vector<char> doPost(std::shared_ptr<const Logger::ILogger> logger, std::sha
 		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doPost)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -134,7 +141,7 @@ std::vector<char> doPost(std::shared_ptr<const Logger::ILogger> logger, std::sha
 	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, 0L);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -156,12 +163,14 @@ std::vector<char> doPost(std::shared_ptr<const Logger::ILogger> logger, std::sha
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPost)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
-std::vector<char> doPostWithString(std::shared_ptr<const Logger::ILogger> logger,
-				   std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
-				   const std::string &url, std::string_view body, curl_slist *headers = nullptr)
+HTTPResponse doPostWithString(std::shared_ptr<const Logger::ILogger> logger,
+			      std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+			      const std::string &url, std::string_view body, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -179,7 +188,7 @@ std::vector<char> doPostWithString(std::shared_ptr<const Logger::ILogger> logger
 		throw std::invalid_argument("BodyIsEmptyError(YouTubeApiClient::doPostWithString)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -190,7 +199,7 @@ std::vector<char> doPostWithString(std::shared_ptr<const Logger::ILogger> logger
 	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -212,13 +221,15 @@ std::vector<char> doPostWithString(std::shared_ptr<const Logger::ILogger> logger
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPostWithString)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
-std::vector<char> doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logger,
-				     std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
-				     const std::string &url, std::ifstream &ifs, std::uintmax_t ifsSize,
-				     curl_slist *headers = nullptr)
+HTTPResponse doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logger,
+				std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+				const std::string &url, std::ifstream &ifs, std::uintmax_t ifsSize,
+				curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -240,7 +251,7 @@ std::vector<char> doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logg
 		throw std::invalid_argument("IfstreamSizeIsZeroError(YouTubeApiClient::doPostWithIfstream)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -252,7 +263,7 @@ std::vector<char> doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logg
 	curl_easy_setopt(curl->getRaw(), CURLOPT_READFUNCTION, CurlHelper::CurlIfstreamReadCallback);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_READDATA, &ifs);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -276,12 +287,14 @@ std::vector<char> doPostWithIfstream(std::shared_ptr<const Logger::ILogger> logg
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPostWithIfstream)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
-std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
-				  std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
-				  const std::string &url, std::string_view body, curl_slist *headers = nullptr)
+HTTPResponse doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
+			     std::shared_ptr<CurlHelper::CurlHandle> curl, Jthread::stop_token stoken,
+			     const std::string &url, std::string_view body, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -300,7 +313,7 @@ std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
 		throw std::invalid_argument("BodyIsEmptyError(YouTubeApiClient::doPutWithString)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -311,7 +324,7 @@ std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
 	curl_easy_setopt(curl->getRaw(), CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -333,11 +346,13 @@ std::vector<char> doPutWithString(std::shared_ptr<const Logger::ILogger> logger,
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doPutWithString)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
-std::vector<char> doDelete(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
-			   Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
+HTTPResponse doDelete(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlHelper::CurlHandle> curl,
+		      Jthread::stop_token stoken, const std::string &url, curl_slist *headers = nullptr)
 {
 	if (!logger) {
 		logger = Logger::NullLogger::instance();
@@ -351,7 +366,7 @@ std::vector<char> doDelete(std::shared_ptr<const Logger::ILogger> logger, std::s
 		throw std::invalid_argument("UrlIsEmptyError(YouTubeApiClient::doDelete)");
 	}
 
-	std::vector<char> readBuffer;
+	HTTPResponse response;
 
 	curl_easy_reset(curl->getRaw());
 
@@ -360,7 +375,7 @@ std::vector<char> doDelete(std::shared_ptr<const Logger::ILogger> logger, std::s
 	curl_easy_setopt(curl->getRaw(), CURLOPT_CUSTOMREQUEST, "DELETE");
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEFUNCTION, CurlHelper::CurlCharVectorWriteCallback);
-	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl->getRaw(), CURLOPT_WRITEDATA, &response.body);
 
 	curl_easy_setopt(curl->getRaw(), CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(curl->getRaw(), CURLOPT_XFERINFOFUNCTION, progressCallback);
@@ -382,7 +397,9 @@ std::vector<char> doDelete(std::shared_ptr<const Logger::ILogger> logger, std::s
 		throw std::runtime_error("CurlPerformError(YouTubeApiClient::doDelete)");
 	}
 
-	return readBuffer;
+	curl_easy_getinfo(curl->getRaw(), CURLINFO_RESPONSE_CODE, &response.code);
+
+	return response;
 }
 
 std::variant<std::vector<nlohmann::json>, std::shared_ptr<YouTubeApiError>>
@@ -403,8 +420,8 @@ performList(std::shared_ptr<const Logger::ILogger> logger, std::shared_ptr<CurlH
 		}
 
 		auto nextUrl = urlHandle.c_str();
-		std::vector<char> responseBody = doGet(logger, curl, stoken, nextUrl.get(), headers);
-		nlohmann::json j = nlohmann::json::parse(responseBody);
+		HTTPResponse response = doGet(logger, curl, stoken, nextUrl.get(), headers);
+		nlohmann::json j = nlohmann::json::parse(response.body);
 
 		if (j.contains("error")) {
 			logger->error("YouTubeApiError", {{"error", j["error"].dump()}});
@@ -525,9 +542,9 @@ YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string
 	nlohmann::json requestBody = *insertingLiveStream;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
+	HTTPResponse response = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
@@ -541,7 +558,7 @@ YouTubeApiClient::insertLiveStream(Jthread::stop_token stoken, const std::string
 	return liveStream;
 }
 
-std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
+std::variant<std::monostate, std::shared_ptr<YouTubeApiError>>
 YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
 				   const std::string &liveStreamId)
 {
@@ -568,20 +585,24 @@ YouTubeApiClient::deleteLiveStream(Jthread::stop_token stoken, const std::string
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<char> responseBody = doDelete(logger_, curl_, stoken, url.get(), headers.getRaw());
+	HTTPResponse response = doDelete(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	if (response.code == 204) {
+		// Request succeeded, no content
+		return std::monostate{};
+	} else {
+		nlohmann::json j = nlohmann::json::parse(response.body);
 
-	if (j.contains("error")) {
-		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
-		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
-		j["error"].get_to(*error);
-		return error;
+		if (j.contains("error")) {
+			logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
+			std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
+			j["error"].get_to(*error);
+			return error;
+		} else {
+			logger_->error("UnexpectedResponseError", {{"response", j.dump()}});
+			throw std::runtime_error("UnexpectedResponseError(YouTubeApiClient::deleteLiveStream)");
+		}
 	}
-
-	auto liveStream = std::make_shared<YouTubeLiveStream>();
-	j.get_to(*liveStream);
-	return liveStream;
 }
 
 std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
@@ -657,9 +678,9 @@ YouTubeApiClient::insertLiveBroadcast(Jthread::stop_token stoken, const std::str
 	nlohmann::json requestBody = insertingLiveBroadcast;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
+	HTTPResponse response = doPostWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
@@ -699,9 +720,9 @@ YouTubeApiClient::updateLiveBroadcast(Jthread::stop_token stoken, const std::str
 	nlohmann::json requestBody = updatingLiveBroadcast;
 	std::string bodyStr = requestBody.dump();
 
-	std::vector<char> responseBody = doPutWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
+	HTTPResponse response = doPutWithString(logger_, curl_, stoken, url.get(), bodyStr, headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();
@@ -744,9 +765,9 @@ YouTubeApiClient::bindLiveBroadcast(Jthread::stop_token stoken, const std::strin
 	std::string authHeader = fmt::format("Authorization: Bearer {}", accessToken);
 	headers.append(authHeader.c_str());
 
-	std::vector<char> responseBody = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
+	HTTPResponse response = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
@@ -794,9 +815,9 @@ YouTubeApiClient::transitionLiveBroadcast(Jthread::stop_token stoken, const std:
 
 	logger_->info("TransitioningLiveBroadcast",
 		      {{"broadcastId", broadcastId}, {"broadcastStatus", broadcastStatus}});
-	std::vector<char> responseBody = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
+	HTTPResponse response = doPost(logger_, curl_, stoken, url.get(), headers.getRaw());
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
@@ -876,11 +897,10 @@ YouTubeApiClient::setThumbnail(Jthread::stop_token stoken, const std::string &ac
 		throw std::runtime_error("ThumbnailFileOpenError(YouTubeApiClient::setThumbnail)");
 	}
 
-	std::vector<char> responseBody =
-		doPostWithIfstream(logger_, curl_, stoken, url.get(), ifs, size, headers.getRaw());
+	HTTPResponse response = doPostWithIfstream(logger_, curl_, stoken, url.get(), ifs, size, headers.getRaw());
 	ifs.close();
 
-	nlohmann::json j = nlohmann::json::parse(responseBody);
+	nlohmann::json j = nlohmann::json::parse(response.body);
 	if (j.contains("error")) {
 		logger_->error("YouTubeApiError", {{"error", j["error"].dump()}});
 		std::shared_ptr<YouTubeApiError> error = std::make_shared<YouTubeApiError>();

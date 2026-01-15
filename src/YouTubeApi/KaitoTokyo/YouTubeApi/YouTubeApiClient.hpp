@@ -58,7 +58,7 @@ public:
 	insertLiveStream(Jthread::stop_token stoken, const std::string &accessToken,
 			 std::shared_ptr<const InsertingYouTubeLiveStream> insertingLiveStream);
 
-	std::variant<std::shared_ptr<YouTubeLiveStream>, std::shared_ptr<YouTubeApiError>>
+	std::variant<std::monostate, std::shared_ptr<YouTubeApiError>>
 	deleteLiveStream(Jthread::stop_token stoken, const std::string &accessToken, const std::string &liveStreamId);
 
 	std::variant<std::vector<std::shared_ptr<YouTubeLiveBroadcast>>, std::shared_ptr<YouTubeApiError>>
