@@ -15,6 +15,12 @@
 - **Organized logging system** that will be shown on the dock UI and recorded on the log of OBS itself.
 - **Intuitive status dock UI** and **user-friendly setup interface**
 
+## Screenshot
+
+<div align=center>
+  <img src="docs/public/live-stream-segmenter-dock.jpg" width="300" alt="The dock UI of Live Stream Segmenter plugin that shows the ongoing status and the current broadcast information. This screenshot indicates that this plugin has detailed logging and a settings dialog.">
+</div>
+
 ## Requirements
 
 - **OBS Studio** 31.1.1 or later
