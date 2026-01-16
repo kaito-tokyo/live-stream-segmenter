@@ -10,14 +10,14 @@
 
 - All the automations will be based on YouTube Data API and YouTube Live Streaming API on your Google Cloud project.
 - Every transition is carefully tested and the developer prioritizes the stream stability and availability.
-- **Builtin timers** to renew the broadcast on YouTube automatically.
+- **Built-in timers** to renew the broadcast on YouTube automatically.
 - **JS scripting interface** for streamers to control the information of their broadcast extensively.
 - **Organized logging system** that will be shown on the dock UI and recorded on the log of OBS itself.
 - **Intuitive status dock UI** and **user-friendly setup interface**
 
 ## Screenshot
 
-<div align=center>
+<div align="center">
   <img src="docs/public/live-stream-segmenter-dock.jpg" width="300" alt="The dock UI of Live Stream Segmenter plugin that shows the ongoing status and the current broadcast information. This screenshot indicates that this plugin has detailed logging and a settings dialog.">
 </div>
 
@@ -31,8 +31,8 @@
 
 ## Development policy
 
-We prioritize the compliance and ethics of our softwares as a member of global OSS community, and take the LLM concerns seriously.
-While we use the LLM-based code reviews to ensure the quality of our software satisfactory for every streamers, we always avoid to include GenAI-generated contents into our product.
+We prioritize the compliance and ethics of our software projects as a member of global OSS community, and take the LLM concerns seriously.
+While we use LLM-based code reviews to ensure that the quality of our software is satisfactory for every streamer, we always avoid including GenAI-generated content in our product.
 Currently, the UI code is largely based on the GenAI-generated code and we are eagerly working on fixing this code.
 
 ## Download and installation
