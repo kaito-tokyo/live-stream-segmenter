@@ -9,7 +9,7 @@
 ## Key Features
 
 - All the automations will be based on YouTube Data API and YouTube Live Streaming API on your Google Cloud project.
-- Every transition is carefully tested and the developer always has the first priority on the stream availability.
+- Every transition is carefully tested and the developer prioritizes the stream stability and availability.
 - **Builtin timers** to renew the broadcast on YouTube automatically.
 - **JS scripting interface** for streamers to control the information of their broadcast extensively.
 - **Organized logging system** that will be shown on the dock UI and recorded on the log of OBS itself.
@@ -25,7 +25,7 @@
 
 ## Development policy
 
-We prioritize the compliance of our softwares as an member of global OSS community, and take the LLM concerns seriously.
+We prioritize the compliance and ethics of our softwares as an member of global OSS community, and take the LLM concerns seriously.
 While we use the LLM-based code reviews to ensure the quality of our software satisfactory for every streamers, we always avoid to include GenAI-generated contents into our product.
 Currently, the UI code is largely based on the GenAI-generated code and we are eagerly working on fixing this code.
 
