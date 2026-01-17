@@ -113,15 +113,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  clearAuthButton_(new QPushButton(this)),
 	  statusLabel_(new QLabel(this)),
 
-	  // 6. Stream Settings Group
-	  keyGroup_(new QGroupBox(this)),
-	  keyLayout_(new QVBoxLayout(keyGroup_)),
-	  streamKeyLabelA_(new QLabel(this)),
-	  streamKeyComboA_(new QComboBox(this)),
-	  streamKeyLabelB_(new QLabel(this)),
-	  streamKeyComboB_(new QComboBox(this)),
-
-	  // 7. Script Tab
+	  // 6. Script Tab
 	  scriptTab_(new QWidget(this)),
 	  scriptTabLayout_(new QVBoxLayout(scriptTab_)),
 	  scriptHelpLabel_(new QLabel(this)),
@@ -129,7 +121,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  scriptFunctionCombo_(new QComboBox(this)),
 	  runScriptButton_(new QPushButton(this)),
 
-	  // 8. LocalStorage Tab
+	  // 7. LocalStorage Tab
 	  localStorageTab_(new QWidget(this)),
 	  localStorageTabLayout_(new QVBoxLayout(localStorageTab_)),
 	  localStorageHelpLabel_(new QLabel(this)),
@@ -140,7 +132,7 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  editLocalStorageButton_(new QPushButton(this)),
 	  deleteLocalStorageButton_(new QPushButton(this)),
 
-	  // 9. Dialog Buttons
+	  // 8. Dialog Buttons
 	  buttonBox_(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Apply | QDialogButtonBox::Cancel,
 					  this)),
 	  applyButton_(buttonBox_->button(QDialogButtonBox::Apply))
@@ -369,29 +361,6 @@ void SettingsDialog::setupUi()
 
 	youTubeTabLayout_->addWidget(authGroup_);
 
-	// --- 3. Stream Settings Group ---
-	keyGroup_->setTitle(tr("3. Stream Settings"));
-
-	QFormLayout *streamKeyFormLayout = new QFormLayout();
-	streamKeyFormLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-
-	// Key A
-	streamKeyLabelA_->setText(tr("Stream Key A"));
-	streamKeyComboA_->setPlaceholderText(tr("-"));
-	streamKeyComboA_->setEnabled(false);
-	streamKeyComboA_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-	streamKeyFormLayout->addRow(streamKeyLabelA_, streamKeyComboA_);
-
-	// Key B
-	streamKeyLabelB_->setText(tr("Stream Key B"));
-	streamKeyComboB_->setPlaceholderText(tr("-"));
-	streamKeyComboB_->setEnabled(false);
-	streamKeyComboB_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-	streamKeyFormLayout->addRow(streamKeyLabelB_, streamKeyComboB_);
-
-	keyLayout_->addLayout(streamKeyFormLayout);
-	youTubeTabLayout_->addWidget(keyGroup_);
-
 	youTubeTabLayout_->addStretch();
 
 	// --- Script Tab Config ---
@@ -489,20 +458,6 @@ void SettingsDialog::saveSettings()
 	eventHandlerStore_->save();
 
 	// Save YouTubeStore
-	int streamKeyAIndex = streamKeyComboA_->currentIndex();
-	if (streamKeyAIndex >= 0) {
-		youTubeStore_->setLiveStreamId(0, *streamKeys_[streamKeyAIndex]->id);
-	} else {
-		youTubeStore_->setLiveStreamId(0, {});
-	}
-
-	int streamKeyBIndex = streamKeyComboB_->currentIndex();
-	if (streamKeyBIndex >= 0) {
-		youTubeStore_->setLiveStreamId(1, *streamKeys_[streamKeyBIndex]->id);
-	} else {
-		youTubeStore_->setLiveStreamId(1, {});
-	}
-
 	youTubeStore_->save();
 
 	// Save LocalStorage data
@@ -618,95 +573,6 @@ void SettingsDialog::onCodeReceived(const QString &code, const QUrl &redirectUri
 	authStore_->setGoogleTokenState(tokenState);
 	statusLabel_->setText(tr("Authorized (Not Saved)"));
 	markDirty();
-
-	fetchStreamKeys();
-}
-
-void SettingsDialog::fetchStreamKeys()
-{
-	try {
-		Jthread::stop_token stoken;
-		auto curl = std::make_shared<CurlHelper::CurlHandle>();
-		auto clientCredentials = std::make_shared<GoogleAuth::GoogleOAuth2ClientCredentials>(
-			authStore_->getGoogleOAuth2ClientCredentials());
-		const auto authManager =
-			std::make_shared<GoogleAuth::GoogleAuthManager>(logger_, curl, clientCredentials);
-		GoogleAuth::GoogleTokenState tokenState = authStore_->getGoogleTokenState();
-
-		std::string accessToken;
-		if (tokenState.isAuthorized()) {
-			if (tokenState.isAccessTokenFresh()) {
-				logger_->info("YouTubeAccessTokenFresh");
-				accessToken = tokenState.access_token;
-			} else {
-				logger_->info("YouTubeAccessTokenNotFresh");
-				std::shared_ptr<GoogleAuth::GoogleAuthResponse> freshAuthResponse =
-					authManager->fetchFreshAuthResponse(stoken, tokenState.refresh_token);
-				tokenState.loadAuthResponse(*freshAuthResponse);
-				authStore_->setGoogleTokenState(tokenState);
-				accessToken = freshAuthResponse->access_token;
-				logger_->info("YouTubeAccessTokenFetched");
-			}
-		}
-
-		const std::variant<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>,
-				   std::shared_ptr<YouTubeApi::YouTubeApiError>>
-			apiResult = youTubeApiClient_->listLiveStreams(stoken, accessToken);
-
-		if (std::holds_alternative<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult)) {
-			const auto &error = std::get<std::shared_ptr<YouTubeApi::YouTubeApiError>>(apiResult);
-			logger_->error("FetchStreamKeysApiError",
-				       {{"code", std::to_string(error->code)}, {"message", error->message}});
-			throw std::runtime_error("YouTubeApiError(FetchStreamKeys)");
-		}
-
-		const auto &streamKeys =
-			std::get<std::vector<std::shared_ptr<YouTubeApi::YouTubeLiveStream>>>(apiResult);
-
-		streamKeyComboA_->clear();
-		streamKeyComboB_->clear();
-
-		streamKeys_ = std::move(streamKeys);
-
-		std::string currentStreamKeyAId = youTubeStore_->getLiveStreamId(0);
-		std::string currentStreamKeyBId = youTubeStore_->getLiveStreamId(1);
-
-		logger_->info("CurrentStreamKeys",
-			      {{"streamKeyA_id", currentStreamKeyAId}, {"streamKeyB_id", currentStreamKeyBId}});
-		for (int i = 0; i < static_cast<int>(streamKeys_.size()); ++i) {
-			const std::shared_ptr<YouTubeApi::YouTubeLiveStream> &key = streamKeys_[i];
-
-			QString displayText = QString::fromStdString(fmt::format(
-				"{} ({} - {})", *key->snippet->title, *key->cdn->resolution, *key->cdn->frameRate));
-			streamKeyComboA_->addItem(displayText, QString::fromStdString(*key->id));
-			streamKeyComboB_->addItem(displayText, QString::fromStdString(*key->id));
-
-			logger_->info("StreamKeyListed", {{"id", *key->id},
-							  {"title", *key->snippet->title},
-							  {"resolution", *key->cdn->resolution},
-							  {"frameRate", *key->cdn->frameRate}});
-			if (*key->id == currentStreamKeyAId) {
-				streamKeyComboA_->setCurrentIndex(i);
-			}
-
-			if (*key->id == currentStreamKeyBId) {
-				streamKeyComboB_->setCurrentIndex(i);
-			}
-		}
-
-		streamKeyComboA_->setEnabled(true);
-		streamKeyComboB_->setEnabled(true);
-
-		connect(streamKeyComboA_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
-			Qt::UniqueConnection);
-		connect(streamKeyComboB_, &QComboBox::currentTextChanged, this, &SettingsDialog::markDirty,
-			Qt::UniqueConnection);
-
-		connect(scriptEditor_, &QPlainTextEdit::textChanged, this, &SettingsDialog::markDirty,
-			Qt::UniqueConnection);
-	} catch (const std::exception &e) {
-		logger_->error("FetchStreamKeysFailed", {{"exception", e.what()}});
-	}
 }
 
 void SettingsDialog::loadLocalStorageData()
