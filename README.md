@@ -32,7 +32,7 @@
 ## Development policy
 
 We prioritize the compliance and ethics of our software projects as a member of global OSS community, and take the LLM concerns seriously.
-While we use LLM-based code reviews to ensure that the quality of our software is satisfactory for every streamer, we always avoid including GenAI-generated content in our product, except the translation.
+While we use LLM-based code reviews to ensure that the quality of our software is satisfactory for every streamer, we always avoid including GenAI-generated content in our product, except for translations.
 Currently, the UI code is largely based on the GenAI-generated code and we are eagerly working on fixing this code.
 
 ## Download and installation
