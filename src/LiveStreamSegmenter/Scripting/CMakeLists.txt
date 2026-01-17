@@ -23,7 +23,6 @@ target_sources(
   PRIVATE
     dayjs_bundle.c
     EventScriptingContext.cpp
-    ini_bundle.c
     localstorage_bundle.c
     ScriptingDatabase.cpp
     ScriptingRuntime.cpp

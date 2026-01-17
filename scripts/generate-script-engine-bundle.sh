@@ -16,15 +16,6 @@ bun build dayjs.ts --outfile=dayjs.bundle.js
   dayjs.bundle.js
 clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/dayjs_bundle.c
 
-bun build ini.ts --outfile=ini.bundle.js
-"$QJSC" \
-  -o ../src/LiveStreamSegmenter/Scripting/ini_bundle.c \
-  -N qjsc_ini_bundle \
-  -m \
-  -n 'builtin:ini' \
-  ini.bundle.js
-clang-format-19 -i ../src/LiveStreamSegmenter/Scripting/ini_bundle.c
-
 "$QJSC" \
   -o ../src/LiveStreamSegmenter/Scripting/localstorage_bundle.c \
   -N qjsc_localstorage_bundle \

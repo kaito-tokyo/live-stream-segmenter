@@ -56,6 +56,7 @@ Built with:
 - [Qt Framework](https://www.qt.io/)
 - [cURL](https://curl.se/)
 - [fmt](https://github.com/fmtlib/fmt)
+- [GoogleTest](https://github.com/google/googletest)
 - [nlohmann/json](https://github.com/nlohmann/json)
 - [QuickJS-ng](https://github.com/quickjs-ng/quickjs)
 - [SQLite](https://sqlite.org/)
