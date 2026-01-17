@@ -1,10 +1,10 @@
 # Live Stream Segmenter
 
-> Keep all the contents of your long stream archived on YouTube
+> Keep all the content of your long stream archived on YouTube
 
 ## Overview
 
-**Live Stream Segmenter** is an OBS automation plugin that has a dock UI to manage your broadcast and to keep the length of your stream less than 12 hours.
+**Live Stream Segmenter** is an OBS automation plugin with a dock UI to manage your broadcast and to keep the length of your stream less than 12 hours.
 
 ## Key Features
 
