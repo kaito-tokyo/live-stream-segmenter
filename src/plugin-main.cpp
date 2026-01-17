@@ -14,6 +14,8 @@
 
 #include <memory>
 
+#include <curl/curl.h>
+
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
@@ -38,7 +40,11 @@ static std::shared_ptr<const Logger::ILogger> g_logger;
 static std::shared_ptr<Controller::MainPluginContext> g_mainPluginContext;
 
 bool obs_module_load(void)
-{
+try {
+	Q_INIT_RESOURCE(licenses);
+
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
 	g_logger = std::make_shared<ObsBridgeUtils::ObsLogger>("[" PLUGIN_NAME "]");
 
 	if (QMainWindow *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window())) {
@@ -50,11 +56,22 @@ bool obs_module_load(void)
 
 	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version " PLUGIN_VERSION ")");
 	return true;
+} catch (const std::exception &e) {
+	blog(LOG_ERROR, "[%s] plugin load failed (version %s): %s", PLUGIN_NAME, PLUGIN_VERSION, e.what());
+	return false;
+} catch (...) {
+	blog(LOG_ERROR, "[%s] plugin load failed (version %s)", PLUGIN_NAME, PLUGIN_VERSION);
+	return false;
 }
 
 void obs_module_unload(void)
 {
 	g_mainPluginContext.reset();
 	g_logger.reset();
+
+	Q_CLEANUP_RESOURCE(licenses);
+
+	curl_global_cleanup();
+
 	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin unloaded");
 }

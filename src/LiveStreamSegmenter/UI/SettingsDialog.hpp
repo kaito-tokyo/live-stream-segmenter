@@ -80,6 +80,7 @@ public slots:
 
 private slots:
 	void markDirty();
+	void onLicensesButtonClicked();
 	void onCredentialsFileDropped(const QString &localFile);
 	void onAuthButtonClicked();
 	void onClearAuthButtonClicked();
@@ -121,6 +122,8 @@ private:
 	// 2. General Tab
 	QWidget *generalTab_;
 	QVBoxLayout *generalTabLayout_;
+	QPushButton *aboutButton_;
+	QPushButton *licensesButton_;
 
 	// 3. YouTube Tab
 	QWidget *youTubeTab_;

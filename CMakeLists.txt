@@ -277,12 +277,13 @@ add_subdirectory(src)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp src/licenses.qrc)
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
-  PRIVATE OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
+  PRIVATE CURL::libcurl OBS::libobs OBS::obs-frontend-api Logger ${CMAKE_PROJECT_NAME}_Controller
 )
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PLUGIN_VERSION="${CMAKE_PROJECT_VERSION}")
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTORCC ON)
 
 if(APPLE)
   target_link_options(
