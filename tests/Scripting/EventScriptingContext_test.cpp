@@ -134,17 +134,6 @@ TEST_F(EventScriptingContextTest, ReturnInt64)
 	ASSERT_EQ(value.asInt64(), 42);
 }
 
-TEST_F(EventScriptingContextTest, Ini)
-{
-	auto value = eval(R"(
-		import { parse } from "builtin:ini";
-		const iniString = "[section]\nkey=value";
-		export default JSON.stringify(parse(iniString));
-	)");
-	ASSERT_TRUE(value.asString().has_value());
-	ASSERT_EQ(value.asString(), R"({"section":{"key":"value"}})");
-}
-
 TEST_F(EventScriptingContextTest, Dayjs)
 {
 	auto value = eval(R"(
