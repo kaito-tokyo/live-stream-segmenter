@@ -350,13 +350,14 @@ void SettingsDialog::setupUi()
 	// --- General Tab Config ---
 	generalTabLayout_->setSpacing(16);
 	generalTabLayout_->setContentsMargins(16, 16, 16, 16);
-	generalTabLayout_->addStretch();
 
 	aboutButton_->setText(tr("About Qt"));
 	generalTabLayout_->addWidget(aboutButton_);
 
 	licensesButton_->setText(tr("Open Source Licenses"));
 	generalTabLayout_->addWidget(licensesButton_);
+
+	generalTabLayout_->addStretch();
 
 	// --- YouTube Tab Config ---
 	youTubeTabLayout_->setSpacing(16);
