@@ -27,7 +27,7 @@
 - **OS** Windows, Mac, Linux (Ubuntu, Arch Linux, Flatpak)
 - **YouTube Account** that has live streaming permission
 - **Google Cloud project** that has [YouTube Data API v3](https://console.cloud.google.com/marketplace/product/google/youtube.googleapis.com) enabled
-- **OAuth2 Desktop Client** which belongs to your project, internal or testing is OK
+- **OAuth2 Desktop Client** which belongs to your project, needs to be production but not verified is OK
 
 ## Development policy
 
