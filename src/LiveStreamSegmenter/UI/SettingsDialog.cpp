@@ -93,6 +93,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 	  // 2. General Tab
 	  generalTab_(new QWidget(this)),
 	  generalTabLayout_(new QVBoxLayout(generalTab_)),
+	  aboutButton_(new QPushButton(this)),
+	  licensesButton_(new QPushButton(this)),
 
 	  // 3. YouTube Tab
 	  youTubeTab_(new QWidget(this)),
@@ -141,6 +143,9 @@ SettingsDialog::SettingsDialog(std::shared_ptr<Scripting::ScriptingRuntime> runt
 
 	setupUi();
 
+	connect(aboutButton_, &QPushButton::clicked, this, [this]() { QMessageBox::aboutQt(this); });
+	connect(licensesButton_, &QPushButton::clicked, this, [this]() { onLicensesButtonClicked(); });
+
 	connect(dropArea_, &JsonDropArea::jsonFileDropped, this, &SettingsDialog::onCredentialsFileDropped);
 
 	connect(clientIdDisplay_, &QLineEdit::textChanged, this, &SettingsDialog::markDirty);
@@ -173,6 +178,61 @@ void SettingsDialog::accept()
 void SettingsDialog::markDirty()
 {
 	applyButton_->setEnabled(true);
+}
+
+void SettingsDialog::onLicensesButtonClicked()
+{
+	struct LicenseInfo {
+		QString name;
+		QString resourcePath;
+	};
+
+	const QList<LicenseInfo> licenses = {
+		{"Main LICENSE file", "://live-stream-segmenter-licenses/LICENSE"},
+		{"GNU General Public License v3.0 or later",
+		 "://live-stream-segmenter-licenses/LICENSE.GPL-3.0-or-later"},
+		{"MIT License", "://live-stream-segmenter-licenses/LICENSE.MIT"},
+		{"OBS Studio", "://live-stream-segmenter-licenses/obs-studio.txt"},
+		{"curl", "://live-stream-segmenter-licenses/curl.txt"},
+		{"dayjs", "://live-stream-segmenter-licenses/dayjs.txt"},
+		{"fmt", "://live-stream-segmenter-licenses/fmt.txt"},
+		{"GoogleTest", "://live-stream-segmenter-licenses/googletest.txt"},
+		{"nlohmann-json", "://live-stream-segmenter-licenses/nlohmann-json.txt"},
+		{"QuickJS-ng", "://live-stream-segmenter-licenses/quickjs-ng.txt"},
+		{"SQLite", "://live-stream-segmenter-licenses/sqlite.txt"},
+		{"wolfSSL", "://live-stream-segmenter-licenses/wolfssl.txt"},
+		{"zlib", "://live-stream-segmenter-licenses/zlib.txt"},
+	};
+
+	QString text;
+	text += "<b>Live Stream Segmenter</b><br>\n";
+	text += "Copyright (C) 2025 Kaito Udagawa &lt;umireon@kaito.tokyo&gt;<br>\n";
+	text += "<br>\n";
+	text += "This software is licensed under the GNU General Public License v3.0 or later.<br>\n";
+	text += "See below for included open source licenses.<br><br>\n";
+
+	for (const auto &license : licenses) {
+		QFile file(license.resourcePath);
+		if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			QTextStream in(&file);
+			QString content = in.readAll();
+			text += QString("<b>%1</b><br><pre>%2</pre><br>").arg(license.name, content.toHtmlEscaped());
+		}
+	}
+
+	QDialog dlg(this);
+	dlg.setWindowTitle(tr("Open Source Licenses"));
+	dlg.resize(700, 600);
+	QVBoxLayout *layout = new QVBoxLayout(&dlg);
+	QTextEdit *edit = new QTextEdit(&dlg);
+	edit->setReadOnly(true);
+	edit->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
+	edit->setHtml(text);
+	layout->addWidget(edit);
+	QDialogButtonBox *box = new QDialogButtonBox(QDialogButtonBox::Close, &dlg);
+	layout->addWidget(box);
+	QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+	dlg.exec();
 }
 
 void SettingsDialog::onAuthButtonClicked()
@@ -291,6 +351,12 @@ void SettingsDialog::setupUi()
 	generalTabLayout_->setSpacing(16);
 	generalTabLayout_->setContentsMargins(16, 16, 16, 16);
 	generalTabLayout_->addStretch();
+
+	aboutButton_->setText(tr("About Qt"));
+	generalTabLayout_->addWidget(aboutButton_);
+
+	licensesButton_->setText(tr("Open Source Licenses"));
+	generalTabLayout_->addWidget(licensesButton_);
 
 	// --- YouTube Tab Config ---
 	youTubeTabLayout_->setSpacing(16);
