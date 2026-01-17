@@ -52,86 +52,14 @@ void YouTubeStore::setLogger(std::shared_ptr<const Logger::ILogger> logger)
 	logger_ = std::move(logger);
 }
 
-void YouTubeStore::setLiveStreamId(std::size_t index, std::string liveStreamId)
-{
-	std::scoped_lock lock(mutex_);
-	if (index >= liveStreamIds_.size()) {
-		liveStreamIds_.resize(index + 1);
-	}
-	liveStreamIds_[index] = std::move(liveStreamId);
-}
-
-std::string YouTubeStore::getLiveStreamId(std::size_t index) const
-{
-	std::scoped_lock lock(mutex_);
-	if (index < liveStreamIds_.size()) {
-		return liveStreamIds_[index];
-	} else {
-		return {};
-	}
-}
-
 void YouTubeStore::save() const
 {
-	const std::filesystem::path configPath = getConfigPath();
-
-	std::vector<std::string> liveStreamIds;
-	{
-		std::scoped_lock lock(mutex_);
-		liveStreamIds = liveStreamIds_;
-	}
-
-	nlohmann::json j{
-		{"liveStreamIds", liveStreamIds},
-	};
-
-	std::filesystem::path tmpConfigPath = configPath;
-	tmpConfigPath += ".tmp";
-	std::ofstream ofs(tmpConfigPath, std::ios::out);
-	if (!ofs.is_open()) {
-		logger_->error("FileOpenError", {{"path", configPath.string()}});
-		throw std::runtime_error("FileOpenError(save)");
-	}
-
-	ofs << j;
-
-	ofs.close();
-
-	std::filesystem::path bakConfigPath = configPath;
-	bakConfigPath += ".bak";
-
-	if (std::filesystem::is_regular_file(configPath)) {
-		std::filesystem::rename(configPath, bakConfigPath);
-	}
-	std::filesystem::rename(tmpConfigPath, configPath);
+	// Stub
 }
 
 void YouTubeStore::restore()
 {
-	const std::filesystem::path configPath = getConfigPath();
-	if (!std::filesystem::is_regular_file(configPath)) {
-		logger_->info("YouTubeStoreConfigFileNotExist", {{"path", configPath.string()}});
-		return;
-	}
-
-	std::ifstream ifs(configPath, std::ios::in);
-	if (!ifs.is_open()) {
-		logger_->error("FileOpenError", {{"path", configPath.string()}});
-		throw std::runtime_error("FileOpenError(restore)");
-	}
-
-	nlohmann::json j;
-	ifs >> j;
-
-	std::scoped_lock lock(mutex_);
-	try {
-		if (j.contains("liveStreamIds")) {
-			j.at("liveStreamIds").get_to(liveStreamIds_);
-		}
-	} catch (...) {
-		liveStreamIds_.clear();
-		throw;
-	}
+	// Stub
 }
 
 } // namespace KaitoTokyo::LiveStreamSegmenter::Store

@@ -72,8 +72,6 @@ public:
 
 	~SettingsDialog() override;
 
-	void fetchStreamKeys();
-
 	void loadLocalStorageData();
 	void saveLocalStorageData();
 
@@ -143,15 +141,7 @@ private:
 	QPushButton *clearAuthButton_;
 	QLabel *statusLabel_;
 
-	// 6. Stream Settings Group (YouTube)
-	QGroupBox *keyGroup_;
-	QVBoxLayout *keyLayout_;
-	QLabel *streamKeyLabelA_;
-	QComboBox *streamKeyComboA_;
-	QLabel *streamKeyLabelB_;
-	QComboBox *streamKeyComboB_;
-
-	// 7. Script Tab
+	// 6. Script Tab
 	QWidget *scriptTab_;
 	QVBoxLayout *scriptTabLayout_;
 	QLabel *scriptHelpLabel_;
@@ -159,7 +149,7 @@ private:
 	QComboBox *scriptFunctionCombo_;
 	QPushButton *runScriptButton_;
 
-	// 8. LocalStorage Tab
+	// 7. LocalStorage Tab
 	QWidget *localStorageTab_;
 	QVBoxLayout *localStorageTabLayout_;
 	QLabel *localStorageHelpLabel_;
@@ -170,7 +160,7 @@ private:
 	QPushButton *editLocalStorageButton_;
 	QPushButton *deleteLocalStorageButton_;
 
-	// 9. Dialog Buttons
+	// 8. Dialog Buttons
 	QDialogButtonBox *buttonBox_;
 	QPushButton *applyButton_;
 

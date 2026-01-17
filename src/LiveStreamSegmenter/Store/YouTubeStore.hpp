@@ -54,7 +54,6 @@ public:
 
 private:
 	mutable std::mutex mutex_;
-	std::vector<std::string> liveStreamIds_;
 
 	std::shared_ptr<const Logger::ILogger> logger_;
 };
