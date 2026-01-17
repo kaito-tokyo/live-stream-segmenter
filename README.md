@@ -55,6 +55,7 @@ Built with:
 - [OBS Studio](https://obsproject.com/)
 - [Qt Framework](https://www.qt.io/)
 - [cURL](https://curl.se/)
+- [dayjs](https://github.com/iamkun/dayjs)
 - [fmt](https://github.com/fmtlib/fmt)
 - [GoogleTest](https://github.com/google/googletest)
 - [nlohmann/json](https://github.com/nlohmann/json)
