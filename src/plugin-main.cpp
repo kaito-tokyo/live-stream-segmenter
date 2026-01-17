@@ -14,6 +14,8 @@
 
 #include <memory>
 
+#include <curl/curl.h>
+
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 
@@ -55,7 +57,6 @@ try {
 	blog(LOG_INFO, "[" PLUGIN_NAME "] plugin loaded successfully (version " PLUGIN_VERSION ")");
 	return true;
 } catch (const std::exception &e) {
-	blog(LOG_ERROR, "[%s] %s", PLUGIN_NAME, e.what());
 	blog(LOG_ERROR, "[%s] plugin load failed (version %s): %s", PLUGIN_NAME, PLUGIN_VERSION, e.what());
 	return false;
 } catch (...) {

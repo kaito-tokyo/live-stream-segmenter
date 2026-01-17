@@ -47,6 +47,8 @@
 #include <QTabWidget>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QTextEdit>
+#include <QTextStream>
 #include <QThreadPool>
 #include <QThreadPool>
 #include <QUrl>
@@ -188,20 +190,20 @@ void SettingsDialog::onLicensesButtonClicked()
 	};
 
 	const QList<LicenseInfo> licenses = {
-		{"Main LICENSE file", "://live-stream-segmenter-licenses/LICENSE"},
+		{"Main LICENSE file", ":/live-stream-segmenter-licenses/LICENSE"},
 		{"GNU General Public License v3.0 or later",
-		 "://live-stream-segmenter-licenses/LICENSE.GPL-3.0-or-later"},
-		{"MIT License", "://live-stream-segmenter-licenses/LICENSE.MIT"},
-		{"OBS Studio", "://live-stream-segmenter-licenses/obs-studio.txt"},
-		{"curl", "://live-stream-segmenter-licenses/curl.txt"},
-		{"dayjs", "://live-stream-segmenter-licenses/dayjs.txt"},
-		{"fmt", "://live-stream-segmenter-licenses/fmt.txt"},
-		{"GoogleTest", "://live-stream-segmenter-licenses/googletest.txt"},
-		{"nlohmann-json", "://live-stream-segmenter-licenses/nlohmann-json.txt"},
-		{"QuickJS-ng", "://live-stream-segmenter-licenses/quickjs-ng.txt"},
-		{"SQLite", "://live-stream-segmenter-licenses/sqlite.txt"},
-		{"wolfSSL", "://live-stream-segmenter-licenses/wolfssl.txt"},
-		{"zlib", "://live-stream-segmenter-licenses/zlib.txt"},
+		 ":/live-stream-segmenter-licenses/LICENSE.GPL-3.0-or-later"},
+		{"MIT License", ":/live-stream-segmenter-licenses/LICENSE.MIT"},
+		{"OBS Studio", ":/live-stream-segmenter-licenses/obs-studio.txt"},
+		{"curl", ":/live-stream-segmenter-licenses/curl.txt"},
+		{"dayjs", ":/live-stream-segmenter-licenses/dayjs.txt"},
+		{"fmt", ":/live-stream-segmenter-licenses/fmt.txt"},
+		{"GoogleTest", ":/live-stream-segmenter-licenses/googletest.txt"},
+		{"nlohmann-json", ":/live-stream-segmenter-licenses/nlohmann-json.txt"},
+		{"QuickJS-ng", ":/live-stream-segmenter-licenses/quickjs-ng.txt"},
+		{"SQLite", ":/live-stream-segmenter-licenses/sqlite.txt"},
+		{"wolfSSL", ":/live-stream-segmenter-licenses/wolfssl.txt"},
+		{"zlib", ":/live-stream-segmenter-licenses/zlib.txt"},
 	};
 
 	QString text;
@@ -217,6 +219,8 @@ void SettingsDialog::onLicensesButtonClicked()
 			QTextStream in(&file);
 			QString content = in.readAll();
 			text += QString("<b>%1</b><br><pre>%2</pre><br>").arg(license.name, content.toHtmlEscaped());
+		} else {
+			text += QString("<b>%1</b><br><pre>Failed to load license text.</pre><br>").arg(license.name);
 		}
 	}
 

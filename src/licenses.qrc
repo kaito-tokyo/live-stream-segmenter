@@ -1,10 +1,9 @@
 <RCC>
-    <qresource prefix="//live-stream-segmenter-licenses">
+    <qresource prefix="/live-stream-segmenter-licenses">
         <file alias="LICENSE">../LICENSE</file>
         <file alias="LICENSE.GPL-3.0-or-later">../LICENSE.GPL-3.0-or-later</file>
         <file alias="LICENSE.MIT">../LICENSE.MIT</file>
         <file alias="obs-studio.txt">../data/licenses/obs-studio.txt</file>
-        <file alias="qt-lgpl-3.0.txt">../data/licenses/qt-lgpl-3.0.txt</file>
         <file alias="curl.txt">../data/licenses/curl.txt</file>
         <file alias="dayjs.txt">../data/licenses/dayjs.txt</file>
         <file alias="fmt.txt">../data/licenses/fmt.txt</file>
