@@ -86,7 +86,7 @@ const releaseAssets = release.assets.map(
     }) satisfies FileVerifierReleaseAsset,
 );
 
-const baseDescription = `Download version ${release.tag_name} of Live Background Removal Lite.`;
+const baseDescription = `Download version ${release.tag_name} of Live Stream Segmenter.`;
 const cleanBody = stripMarkdown(releaseBody);
 const dynamicDescription = cleanBody
   ? `${baseDescription} Highlights: ${cleanBody}`.substring(0, 160) +
@@ -107,7 +107,7 @@ const totalDownloads = release.assets.reduce(
 const schemaData = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Live Background Removal Lite",
+  name: "Live Stream Segmenter",
   headline: "High-performance OBS plugin for real-time background removal",
   softwareVersion: release.tag_name,
   description:
@@ -177,7 +177,7 @@ const schemaData = {
 
 <Layout
   lang="en"
-  title={`Live Background Removal Lite ${release.tag_name} - Download & Release Notes`}
+  title={`Live Stream Segmenter ${release.tag_name} - Download & Release Notes`}
 >
   <Fragment slot="head-info">
     <meta name="description" content={dynamicDescription} />
@@ -206,7 +206,7 @@ const schemaData = {
             )
           }
         </div>
-        <h2>Live Background Removal Lite</h2>
+        <h2>Live Stream Segmenter</h2>
       </hgroup>
 
       {
